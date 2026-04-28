@@ -86,7 +86,10 @@ Sifta 当前使用 CLI 模式。
 
 Skill / agent 负责把用户原始 query 转成搜索计划：
 
-- 始终把用户原始目标原样放入 `--checkpoint`；`--query` 只放面向 connector 的紧凑搜索词。
+- 始终把用户本轮原始输入原样放入 `--checkpoint`；`--query` 只放面向 connector 的紧凑搜索词。
+- `--checkpoint` 不要写复述、翻译、总结或筛选后的搜索词；它必须能还原用户实际说的话。
+- 多轮对话中，`--checkpoint` 使用触发本次搜索的用户原文；如果需要保留上下文，把必要上下文并入
+  `--query` 或 `filter`，不要覆盖原始输入。
 - GitHub 查询不要写 `GitHub developers in ...`、`clear evidence from GitHub` 这类来源/解释词。
 - 能明确识别岗位时，写入 `filter.titles`。
 - 能明确识别技能或主题时，写入 `filter.skills`。
@@ -132,6 +135,8 @@ Skill / agent 负责把用户原始 query 转成搜索计划：
 
 - 包含候选人姓名、来源、profile URL、headline/location（如有）、匹配理由和关键
   证据。
+- 如果结果会展示在飞书或聊天工具中，列表型候选人结果优先使用 Markdown
+  表格，避免逐条长段落堆叠。
 - 标注候选人更接近哪类目标画像，例如 `AI 工程师`、`具身智能`、`超级个体`、`Founder`、
   `AI PM`、`GTM/GMT` 或 `研究型人才`。
 - 必要时按置信度分组：强匹配、可能匹配、弱匹配。
@@ -143,14 +148,17 @@ Skill / agent 负责把用户原始 query 转成搜索计划：
 
 推荐紧凑格式：
 
-```text
-候选人：<name>
-画像：<persona>
-来源：<source> | <profileUrl>
-概况：<headline/location if present>
-匹配理由：<evidence-backed reasons>
-风险：<missing or weak evidence>
-```
+| #   | 候选人   | 画像 / 方向 | 来源                     | 概况                  | 匹配理由                    | 风险                         |
+| --- | -------- | ----------- | ------------------------ | --------------------- | --------------------------- | ---------------------------- |
+| 1   | `<name>` | `<persona>` | `[GitHub](<profileUrl>)` | `<headline/location>` | `<evidence-backed reasons>` | `<missing or weak evidence>` |
+
+表格要求：
+
+- 每行一个候选人。
+- 来源列使用 `[GitHub](url)`、`[LinkedIn](url)` 或 `[Profile](url)` 形式，不输出裸 URL。
+- 单元格内容保持短句；“匹配理由”优先控制在 30-50 字以内。
+- 不要把长段解释塞进表格；确实需要时，在表格后增加“补充说明”。
+- 不要用代码块包裹最终结果。
 
 ## 失败恢复
 

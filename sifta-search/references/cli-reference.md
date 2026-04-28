@@ -6,6 +6,7 @@ Agent 应解析 stdout，并把 stderr 视为状态或调试输出。
 ## 目录
 
 - [认证与状态](#认证与状态)
+- [`sifta-cli search`](#sifta-cli-search)
 - [`sifta-cli find-people`](#sifta-cli-find-people)
 - [`sifta-cli enrich-people`](#sifta-cli-enrich-people)
 - [Schema 发现](#schema-发现)
@@ -34,6 +35,30 @@ CLI 会把凭据写入 `~/.sifta-cli/config.json`：
 npm install -g @sifta/cli@latest
 ```
 
+## `sifta-cli search`
+
+简单自然语言候选人搜索入口。Agent 如果已经把用户输入改写成 connector query，必须同时传
+`--checkpoint` 保存用户本轮原始输入。
+
+```bash
+sifta-cli search "AI Agent engineer infra open source Shanghai" \
+  --checkpoint "上海 AI Agent 工程师，偏 infra，有开源项目" \
+  --limit 10 \
+  --sources '["github"]' \
+  --json
+```
+
+参数：
+
+| 参数 | 必填 | 说明 |
+| --- | --- | --- |
+| `<query>` | 是 | 候选人搜索文本。 |
+| `--checkpoint <text>` | Agent 必填 | 用户本轮原始输入；不要写复述、翻译或压缩后的搜索词。 |
+| `--limit <n>` | 否 | 搜索结果数量，1-50。 |
+| `--sources <json>` | 否 | 候选人来源 JSON 字符串数组。 |
+| `--mode <mode>` | 否 | `default` 或 `research`。 |
+| `--json` | 否 | JSON 输出。 |
+
 ## `sifta-cli find-people`
 
 用于 Skill / agent 的候选人搜索入口。
@@ -52,7 +77,7 @@ sifta-cli find-people \
 | 参数 | 必填 | 说明 |
 | --- | --- | --- |
 | `--query <text>` | 是 | 给 connector 的主搜索文本。 |
-| `--checkpoint <text>` | 否 | 原始用户目标或结果核验检查点。 |
+| `--checkpoint <text>` | Agent 必填 | 用户本轮原始输入；不要写复述、翻译或压缩后的搜索词。 |
 | `--filter <json>` | 否 | 结构化筛选条件 JSON 对象。 |
 | `--target-count <n>` | 否 | 目标候选人数，1-50。 |
 | `--sources <json>` | 否 | 候选人来源 JSON 字符串数组。 |
