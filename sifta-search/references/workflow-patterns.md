@@ -19,7 +19,9 @@ ATS 管理、触达或 KOL 合作。
 ## 1. AI 工程师和开发者
 
 覆盖 AI Agent 开发、LLM 开发、视频大模型、语音模型、AI infra 和应用层工程师。
-用户强调代码、开源、SDK、框架、runtime、observability、agent infra 时，优先看 GitHub。
+“研发岗”“开发者”“开发工程师”“模型/infra/应用层工程师”等工程型表述默认优先看
+GitHub；代码、开源、SDK、框架、runtime、observability、agent infra 是更强的 GitHub
+信号。只有当用户更强调公司/团队履历、管理背景或职业经历时，才优先 LinkedIn。
 
 ```bash
 sifta-cli find-people --query "AI Agent engineer LLM infra open source evidence TypeScript Python" \
@@ -30,8 +32,10 @@ sifta-cli find-people --query "AI Agent engineer LLM infra open source evidence 
 如果用户给出公司或地点偏好，把明确条件写入 filter：
 
 ```bash
-sifta-cli find-people --query "视频大模型工程师，多模态生成，公开项目或论文证据" \
+sifta-cli find-people --query "video generation multimodal diffusion text-to-video" \
+  --checkpoint "找视频大模型工程师，多模态生成，公开项目或论文证据" \
   --filter '{"titles":["AI Engineer","ML Engineer"],"skills":["video generation","multimodal"],"locations":["China"]}' \
+  --sources '["github"]' \
   --target-count 10
 ```
 

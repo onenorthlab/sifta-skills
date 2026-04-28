@@ -41,6 +41,7 @@ npm install -g @sifta/cli@latest
 ```bash
 sifta-cli find-people \
   --query "AI Agent engineer LLM observability Shanghai open source evidence" \
+  --checkpoint "找上海 AI Agent/infra 工程师，有 LLM observability 开源证据" \
   --filter '{"titles":["AI Engineer","Infra Engineer"],"skills":["AI Agent","LLM observability"],"locations":["Shanghai"]}' \
   --sources '["github","linkedin"]' \
   --target-count 10
@@ -51,6 +52,7 @@ sifta-cli find-people \
 | 参数 | 必填 | 说明 |
 | --- | --- | --- |
 | `--query <text>` | 是 | 给 connector 的主搜索文本。 |
+| `--checkpoint <text>` | 否 | 原始用户目标或结果核验检查点。 |
 | `--filter <json>` | 否 | 结构化筛选条件 JSON 对象。 |
 | `--target-count <n>` | 否 | 目标候选人数，1-50。 |
 | `--sources <json>` | 否 | 候选人来源 JSON 字符串数组。 |
