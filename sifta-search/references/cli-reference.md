@@ -43,7 +43,7 @@ sifta-cli find-people \
   --query "AI Agent engineer LLM observability Shanghai open source evidence" \
   --checkpoint "找上海 AI Agent/infra 工程师，有 LLM observability 开源证据" \
   --filter '{"titles":["AI Engineer","Infra Engineer"],"skills":["AI Agent","LLM observability"],"locations":["Shanghai"]}' \
-  --sources '["github","linkedin"]' \
+  --sources '["github"]' \
   --target-count 10
 ```
 
