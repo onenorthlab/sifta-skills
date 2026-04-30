@@ -9,7 +9,7 @@
 推荐用 `skills` CLI 全局安装：
 
 ```bash
-npx skills add onenorthkaton/sifta-skills -y -g
+npx skills add git@github.com:onenorthlab/sifta-skills.git -y -g
 ```
 
 然后安装 Sifta CLI：
@@ -48,7 +48,7 @@ sifta-cli update
 全局安装：
 
 ```bash
-git clone https://github.com/onenorthkaton/sifta-skills.git /tmp/sifta-skills
+git clone git@github.com:onenorthlab/sifta-skills.git /tmp/sifta-skills
 mkdir -p "$HOME/.claude/skills"
 cp -R /tmp/sifta-skills/sifta-search "$HOME/.claude/skills/"
 ```
@@ -63,7 +63,7 @@ cp -R /tmp/sifta-skills/sifta-search .claude/skills/
 ### Codex
 
 ```bash
-git clone https://github.com/onenorthkaton/sifta-skills.git /tmp/sifta-skills
+git clone git@github.com:onenorthlab/sifta-skills.git /tmp/sifta-skills
 mkdir -p "${CODEX_HOME:-$HOME/.codex}/skills"
 cp -R /tmp/sifta-skills/sifta-search "${CODEX_HOME:-$HOME/.codex}/skills/"
 ```
