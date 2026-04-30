@@ -10,6 +10,7 @@ Agent 应解析 stdout，并把 stderr 视为状态或调试输出。
 - [`sifta-cli find-people`](#sifta-cli-find-people)
 - [`sifta-cli enrich-people`](#sifta-cli-enrich-people)
 - [Schema 发现](#schema-发现)
+- [更新 CLI 和 Skill](#更新-cli-和-skill)
 - [输出处理](#输出处理)
 
 ## 认证与状态
@@ -34,6 +35,31 @@ CLI 会把凭据写入 `~/.sifta-cli/config.json`：
 ```bash
 npm install -g @sifta/cli@latest
 ```
+
+## 更新 CLI 和 Skill
+
+CLI 输出 JSON 时，如果发现新版本，顶层会追加 `_notice.update`，只包含远端最新版本号：
+
+```json
+{ "_notice": { "update": { "cli": "0.0.3" } } }
+```
+
+`update` 里只出现有更新的组件版本。Agent 应先完成当前请求，再向用户说明有新版本并提示更新命令。
+普通业务命令只读取本地版本缓存；`sifta-cli update --check --json` 才会主动联网刷新缓存。
+
+检查更新：
+
+```bash
+sifta-cli update --check --json
+```
+
+同步更新 CLI 和 `sifta-search` skill：
+
+```bash
+sifta-cli update
+```
+
+更新完成后，重启 agent 或新开会话，让新 skill 生效。
 
 ## `sifta-cli search`
 

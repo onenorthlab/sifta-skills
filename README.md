@@ -30,6 +30,13 @@ sifta-cli auth "<SIFTA_API_KEY>" --base-url https://siftapi.onenorthdev.com
 sifta-cli status
 ```
 
+检查并更新 CLI 与 Skill：
+
+```bash
+sifta-cli update --check --json
+sifta-cli update
+```
+
 安装或认证完成后，重启 OpenClaw、Claude Code、Codex，或开启一个新会话。
 
 ## 手动安装
@@ -106,5 +113,7 @@ rm -rf .claude/skills/sifta-search
 **找不到 `sifta-cli`？** 执行 `npm install -g @sifta/cli@latest`。
 
 **未认证？** 执行 `sifta-cli auth "<SIFTA_API_KEY>" --base-url https://siftapi.onenorthdev.com`。
+
+**收到 `_notice.update`？** 先完成当前搜索，再执行 `sifta-cli update`，然后重启 agent 或新开会话。
 
 **Skill 没有出现？** 确认 `sifta-search/SKILL.md` 直接位于 agent 的 skills 目录下，然后重启 agent。

@@ -1,7 +1,7 @@
 ---
 name: sifta-search
 metadata:
-  version: 0.0.1
+  version: 0.0.3
   tags: [sifta-search, recruiting, sourcing, candidates]
 description: >
   在 AI 行业垂直招聘场景使用 Sifta 做 candidate sourcing、candidate search
@@ -58,6 +58,27 @@ Sifta 当前使用 CLI 模式。
 | CLI/API schema 变化                     | `sifta-cli tools` 查看 schema，然后改用当前明确命令                                       |
 
 默认解析 JSON stdout。不要把 `--pretty` 用于 agent 解析；它只适合人工查看。
+
+## 更新检查
+
+Sifta CLI 的 JSON 输出可能包含 `_notice.update`，例如：
+
+```json
+{ "_notice": { "update": { "cli": "0.0.3" } } }
+```
+
+这里的版本号表示需要更新的远端最新版本；只出现有更新的组件。当你在任意命令结果中看到 `_notice.update` 时，
+不要影响当前候选人结果解析；先完成用户当前 sourcing 请求，再告知用户有新版本，
+并提议执行：
+
+```bash
+sifta-cli update
+```
+
+如果用户同意，执行 `sifta-cli update`。更新完成后提醒用户：重启 agent 或新开会话，
+以加载最新的 `sifta-search` skill。
+
+普通业务命令只读取本地版本缓存；`sifta-cli update --check --json` 才会主动联网刷新缓存。
 
 ## 来源策略
 
