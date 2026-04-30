@@ -130,8 +130,9 @@ sifta-cli enrich-people \
 | `--sources <json>` | 否 | 要使用的来源 JSON 字符串数组。 |
 | `--pretty` | 否 | 人类可读输出。不要用于 agent 解析。 |
 
-当前 API 可能会在某些来源尚未实现补全时返回 warnings。应把 warnings 告知用户，不要
-过度承诺。
+当前 v1 支持 GitHub 和 LinkedIn 补全。GitHub 需要明确 `githubUrl`；LinkedIn 有
+`linkedinUrl` 时读取公开 profile 内容，没有 URL 时可用姓名、公司、地点做 LinkedIn
+people search 兜底。其他来源可能返回 warnings，应把 warnings 告知用户，不要过度承诺。
 
 ## Schema 发现
 
