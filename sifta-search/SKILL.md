@@ -1,20 +1,30 @@
 ---
 name: sifta-search
 metadata:
-  version: 0.0.3
-  tags: [sifta-search, recruiting, sourcing, candidates]
+    version: 0.0.3
+    tags: [sifta-search, recruiting, sourcing, candidates]
 description: >
-  在 AI 行业垂直招聘场景使用 Sifta 做 candidate sourcing、candidate search
-  和公开 profile enrichment。用户要寻找、筛选、补全或评估 AI 工程师/开发者、
-  具身智能人才、超级个体/独立开发者、创始人、AI 产品经理、GTM/GMT/出海/AI 营销人才、
-  研究型论文人才时使用。本 skill 不适用于这些画像之外的通用找人、公司情报、
-  销售线索、触达、ATS、KOL 合作或普通网页研究。
+    在 AI 行业垂直招聘场景使用 Sifta 做 candidate sourcing、candidate search
+    和公开 profile enrichment。用户要寻找、筛选、补全或评估 AI 工程师/开发者、
+    具身智能人才、超级个体/独立开发者、创始人、AI 产品经理、GTM/GMT/出海/AI 营销人才、
+    研究型论文人才时使用。本 skill 不适用于这些画像之外的通用找人、公司情报、
+    销售线索、触达、ATS、KOL 合作或普通网页研究。
 ---
 
 # Sifta People Search
 
 Sifta 是面向 AI 行业垂直招聘 sourcing 的候选人搜索工具。它不是通用网页搜索、
-公司情报、销售线索、触达、ATS 或 KOL 合作工具。
+公司情报、销售线索、触达、ATS、KOL 合作或独立 agent runtime。
+
+本 skill 面向 Codex、Hermes、Claude Code、OpenClaw 等宿主 agent。宿主 agent 通常已经
+具备网页搜索、论文阅读、公司新闻检索、代码阅读和多步推理能力；这些通用能力不需要
+由 Sifta 重复实现。Sifta 只补招聘 sourcing 中更专用、更需要结构化约束的部分：
+
+- 候选人渠道：GitHub、LinkedIn 以及服务端支持的公开 profile / people search。
+- 招聘语义：把用户随意描述转成项目内候选人判断。
+- 证据结构：区分 academic、career、engineering、network 证据。
+- 项目适配：判断候选人在本项目下是全职候选、负责人、顾问、推荐人、标杆还是暂缓。
+- 反馈闭环：把用户反馈转成下一轮搜索约束。
 
 使用 Sifta 的目标是：把招聘画像转成一份紧凑、可解释、有公开证据支撑的候选人
 列表。工作流要保持收敛：搜索公开候选人来源，总结匹配理由，标注不确定性，不
@@ -58,6 +68,69 @@ Sifta 当前使用 CLI 模式。
 | CLI/API schema 变化                     | `sifta-cli tools` 查看 schema，然后改用当前明确命令                                       |
 
 默认解析 JSON stdout。不要把 `--pretty` 用于 agent 解析；它只适合人工查看。
+真实验证、eval 或排查渠道输入时，可以追加 `--trace`，读取脱敏后的 `toolTrace`；
+日常候选人搜索不要默认输出 trace。
+
+## 宿主 agent 分工
+
+不要把 Sifta 当作通用 web search。
+
+- 行业背景、论文列表、公司新闻、竞品图谱、融资新闻、项目主页阅读：优先使用宿主 agent 自带搜索/浏览能力。
+- 候选人召回、公开 profile 证据、GitHub/LinkedIn people search、结构化候选人输出：使用 Sifta CLI / API。
+- 宿主 agent 通过通用搜索得到的论文、公司、实验室、项目、repo、dataset 可以作为 source map 输入，但不要直接把网页结果当候选人。
+- 论文、公司页、实验室页、项目页、repo、dataset 和普通 web 来源只能进入 `sourceMap` / `evidenceLog` / `warnings`；除非进一步找到 GitHub、LinkedIn、X 或用户明确提供的个人 profile，否则不能进入候选人列表。
+- 当用户只是在问行业信息、公司信息、论文解释或普通网页研究时，不要调用 Sifta；只有进入招聘候选人 sourcing / enrichment 时才调用。
+
+复杂项目的推荐顺序：
+
+1. 先理解项目目标：岗位、职能、职级、地域、must-have、avoid。
+2. 如需要，先用宿主 agent 原生搜索建立 source map：paper、company、lab、project、repo、dataset。
+3. 再调用 `sifta-cli find-people` 搜索候选人；`--query` 写面向候选人渠道的紧凑自然语言，不写通用网页搜索语法。
+4. 把原始用户输入放入 `--checkpoint`，不要放改写后的 query。
+5. 解析 JSON 输出，优先使用 `people`、`searchStrategy`、`sourceMap`、`evidenceLog`、`crmExport` 和 `warnings`。
+
+## Project-aware sourcing
+
+真实招聘不是一次关键词搜索。对于技术合伙人、Head of WAM、研究科学家、GTM/增长负责人等复杂画像，应形成项目上下文：
+
+```json
+{
+	"project": "某具身智能公司 - WAM 技术合伙人",
+	"target_roles": ["技术合伙人", "Head of WAM", "科学家顾问"],
+	"geo_bias": "华人生态优先",
+	"must_have": ["WAM/VLA/robot data/simulation 至少一项强证据"],
+	"avoid": ["只会写论文但没有系统/工程/组织信号的人"]
+}
+```
+
+候选人输出应回答“这个人在本项目下适合做什么”，而不只是“这个人是谁”。强人也可能只是顾问、推荐人或标杆，不一定进入全职候选池。
+
+### Research-map assisted sourcing
+
+WAM/VLA、具身智能、世界模型、机器人数据、仿真、研究科学家和科学顾问类需求，先建立来源地图再找人。
+
+推荐路径：
+
+- `paper-first`：从论文、project page、共同作者、通讯作者找线索。
+- `company-first`：从具身智能、自动驾驶、机器人数据、仿真平台公司找负责人或工程化人才。
+- `person-first`：从已知候选人的共同作者、前同事、学生、collaborator 扩展。
+- `graph-neighbor`：从共同维护项目、共同出现在 benchmark/data paper 的人扩展。
+- `advisor-entry`：PI、产业科学家、founder 可作为顾问或推荐人入口。
+
+调用 Sifta 时，`--query` 应带上项目目标、强证据、地域偏好和已经发现的 source map 线索；`--mode research` 可以用于提示服务端这是研究型寻访，但论文/网页研究本身优先由宿主 agent 完成。
+
+### Company-map assisted GTM/Growth sourcing
+
+AI video、AI animation、AI avatar、creator tool、GTM、增长、商业化、partnerships、global operations 类需求，不要直接搜一句泛化 people query。先建立相似公司/赛道公司池，再从公司池转 LinkedIn/Sifta 查询。
+
+推荐路径：
+
+1. 用宿主 agent 搜索或用户给出的信息建立公司池，例如 AI video、AI animation、AI avatar、creator tool、海外竞品、相邻公司。
+2. 生成候选人 query：角色 + 公司相似度 + 市场/地域信号 + seniority。
+3. 使用 LinkedIn/Sifta 找人。
+4. 输出时区分商业化角色匹配、公司相似度、地域/市场信号、资历和证据风险。
+
+不要推断 relocation、签证、薪资或触达意愿；这些只能写成待确认风险。
 
 ## 更新检查
 
@@ -100,6 +173,8 @@ sifta-cli update
   Google Scholar 是辅助证据，不是最终候选人主来源。
 - Twitter/X 和小红书属于可选公开信号来源。只有用户提供已知 handle、要求公开内容
   信号，或 Sifta API 明确暴露这些来源时才使用；不要把 KOL 合作当作本 skill 的主路径。
+- 宿主 agent 的通用搜索结果可以作为 source map 或背景材料，但最终候选人必须来自 Sifta
+  返回的 people/profile 结果或用户明确提供的候选人线索。
 
 如果用户请求的来源没有被支持或 API 结果显示未执行该来源，要明确说明。
 
@@ -109,6 +184,8 @@ Skill / agent 负责把用户原始 query 转成搜索计划：
 
 - 始终把用户本轮原始输入原样放入 `--checkpoint`；`--query` 只放面向 connector 的紧凑搜索词。
 - `--checkpoint` 不要写复述、翻译、总结或筛选后的搜索词；它必须能还原用户实际说的话。
+- 中文用户输入下，`--query` 应使用中文自然语言，保留中文岗位、方向、地区和证据信号。不要先发纯英文关键词串，也不要把上海翻译成 `Shanghai`、把产品经理/增长/商业化翻译成 `product manager` / `growth` / `commercial`；WAM/VLA/LLM/AI Agent/GTM/DevRel 这类专有缩写可以保留。
+- `--query` 不要写 `site:`、`LinkedIn profile only`、逗号关键词堆叠或通用网页搜索语法。
 - 多轮对话中，`--checkpoint` 使用触发本次搜索的用户原文；如果需要保留上下文，把必要上下文并入
   `--query` 或 `filter`，不要覆盖原始输入。
 - GitHub 查询不要写 `GitHub developers in ...`、`clear evidence from GitHub` 这类来源/解释词。
@@ -141,14 +218,28 @@ Skill / agent 负责把用户原始 query 转成搜索计划：
 
 1. 用一句话复述候选人目标。
 2. 先归类到 7 类 AI 行业画像之一，再根据目标证据选择来源和 mode。
-3. 运行最小可用 CLI 命令，不传 `--pretty`。
-4. 解析 JSON stdout，把 stderr 视为状态或调试信息。
-5. 输出紧凑候选人列表，包含 profile 链接、匹配理由、证据和风险提示。
-6. 区分证据和推断，标注过期、缺失或较弱的证据。
-7. 如果结果较弱，说明原因，并给出一个更窄的后续查询建议。
+3. 如果是研究型或公司图谱型需求，先用宿主 agent 原生搜索建立 source map；不要把通用网页搜索外包给 Sifta。
+4. 运行最小可用 CLI 命令，不传 `--pretty`。
+5. 解析 JSON stdout，把 stderr 视为状态或调试信息。
+6. 输出紧凑候选人列表，包含 profile 链接、匹配理由、证据、风险提示和下一步动作。
+7. 区分证据和推断，标注过期、缺失或较弱的证据。
+8. 如果结果较弱，说明原因，并给出一个更窄的后续查询建议。
 
 遇到复杂场景、无结果或弱结果恢复时，再参考
 [references/workflow-patterns.md](references/workflow-patterns.md)。
+
+## 结构字段口径
+
+结构化字段要跟候选人的主要公开证据一致，不要被目标公司、技术名词或单个头衔关键词带偏。先判断这名候选人为什么被召回，再写 `functionCategory`、`careerStage` 和人才池：
+
+- 工程证据：代码、模型、infra、SDK、系统实现、开源贡献是主要证据时，归入对应工程类，例如 `Agent/LLM工程`、`WAM/VLA模型`、`数据仿真评测`、`机器人控制落地` 或 `视频世界模型`。
+- 产品证据：产品规划、产品运营、roadmap、PM、product lead、AI product、平台产品或应用产品是主要证据时，归入 `AI产品/平台`。不要只因为产品涉及 Agent、LLM、大模型或机器人，就归到工程类。
+- GTM 证据：增长、市场、商业化、开发者社区、partnerships、DevRel 或出海是主要证据时，归入 `GTM/增长/DevRel`。不要只因为公司是 AI 产品公司，就归为产品岗。
+- 战略证据：战略规划、商业分析、投资、经营分析、CEO Office 或 corporate development 是主要证据时，归入 `战略/CEO Office/商业分析`。
+- 研究和顾问证据：论文、实验室、PI、产业科学家、推荐人入口或资源网络是主要证据时，按 `科学顾问资源网络` 或具体研究方向归类，并用 `顾问推荐人池` / `产业标杆池` / `观察池` 表达招聘可用性。
+- Founder / co-founder / C-level 是可用性和职级信号，不是自动分类规则。只有用户明确找创始人/高管，或主要匹配证据就是创业/高管身份时，才使用 `产业高管创业者`；否则根据实际职能证据归类，并在 `whyNot` / `risks` 说明全职可用性不确定。
+
+提交结构字段前，必须对照证据包做一致性检查：如果工程证据为空，且主要公开证据在职业经历中体现为产品规划、产品运营、roadmap、PM、product lead、平台产品或应用产品，则不能填工程类，应填 `AI产品/平台`。不要把用户目标里的 `Agent`、`LLM`、`大模型`、`智能体`、`机器人` 等技术方向词当作候选人的工程职能证据。
 
 ## 输出规则
 
@@ -164,6 +255,7 @@ Skill / agent 负责把用户原始 query 转成搜索计划：
   `AI PM`、`GTM/GMT` 或 `研究型人才`。
 - 必要时按置信度分组：强匹配、可能匹配、弱匹配。
 - 传达 API 返回的 warnings。
+- 如果 API 返回 `searchStrategy`、`sourceMap`、`evidenceLog` 或 `crmExport`，优先用这些结构化字段解释搜索路径和证据，不要只看 `summaryMarkdown`。
 - 不要编造邮箱、电话、薪资、是否愿意搬迁、在职状态或私人联系方式。
 - 除非 Sifta 返回 same-person hint，或有明确公开证据，否则不要断言跨渠道 profile
   是同一个人；不确定时写成“可能匹配”。
@@ -203,6 +295,13 @@ Skill / agent 负责把用户原始 query 转成搜索计划：
 如果搜索没有返回候选人，不要断言不存在这类候选人。应说明“这次搜索没有返回候选人”，
 并提出具体调整：放宽 title、去掉地点、切换来源、补充公司/domain 线索，或在论文证据
 相关时使用 `--mode research`。
+
+如果结果质量弱，先判断是哪一层的问题：
+
+- 宿主搜索/source map 不足：补论文、公司池、实验室或相邻公司线索。
+- CLI/API 输入不合格：重写 `--query`、`--filter`、`--sources`，保留原始 `--checkpoint`。
+- API/provider 覆盖不足：向用户说明来源限制，不要编造候选人。
+- 候选人项目适配弱：降低优先级，放入顾问推荐人池、观察池或 warnings，并写清 `why_not`。
 
 ## 详细参考
 

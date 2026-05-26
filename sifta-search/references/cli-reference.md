@@ -16,7 +16,7 @@ Agent 应解析 stdout，并把 stderr 视为状态或调试输出。
 ## 认证与状态
 
 ```bash
-sifta-cli auth "<provided-by-sifta>" --base-url "https://api.sifta.onenorthdev.com"
+sifta-cli auth "<provided-by-sifta>" --base-url "https://sifta.onenorthdev.com/api"
 sifta-cli status
 ```
 
@@ -24,9 +24,9 @@ CLI 会把凭据写入 `~/.sifta-cli/config.json`：
 
 ```json
 {
-  "base_url": "https://api.sifta.onenorthdev.com",
-  "api_key": "xxxx",
-  "version": "0.0.1"
+	"base_url": "https://sifta.onenorthdev.com/api",
+	"api_key": "xxxx",
+	"version": "0.0.1"
 }
 ```
 
@@ -67,7 +67,7 @@ sifta-cli update
 `--checkpoint` 保存用户本轮原始输入。
 
 ```bash
-sifta-cli search "AI Agent engineer infra open source Shanghai" \
+sifta-cli search "上海 AI Agent 工程师 infra 开源项目" \
   --checkpoint "上海 AI Agent 工程师，偏 infra，有开源项目" \
   --limit 10 \
   --sources '["github"]' \
@@ -76,14 +76,14 @@ sifta-cli search "AI Agent engineer infra open source Shanghai" \
 
 参数：
 
-| 参数 | 必填 | 说明 |
-| --- | --- | --- |
-| `<query>` | 是 | 候选人搜索文本。 |
+| 参数                  | 必填       | 说明                                                 |
+| --------------------- | ---------- | ---------------------------------------------------- |
+| `<query>`             | 是         | 候选人搜索文本。                                     |
 | `--checkpoint <text>` | Agent 必填 | 用户本轮原始输入；不要写复述、翻译或压缩后的搜索词。 |
-| `--limit <n>` | 否 | 搜索结果数量，1-50。 |
-| `--sources <json>` | 否 | 候选人来源 JSON 字符串数组。 |
-| `--mode <mode>` | 否 | `default` 或 `research`。 |
-| `--json` | 否 | JSON 输出。 |
+| `--limit <n>`         | 否         | 搜索结果数量，1-50。                                 |
+| `--sources <json>`    | 否         | 候选人来源 JSON 字符串数组。                         |
+| `--mode <mode>`       | 否         | `default` 或 `research`。                            |
+| `--json`              | 否         | JSON 输出。                                          |
 
 ## `sifta-cli find-people`
 
@@ -91,7 +91,7 @@ sifta-cli search "AI Agent engineer infra open source Shanghai" \
 
 ```bash
 sifta-cli find-people \
-  --query "AI Agent engineer LLM observability Shanghai open source evidence" \
+  --query "上海 AI Agent 工程师 LLM observability 开源证据" \
   --checkpoint "找上海 AI Agent/infra 工程师，有 LLM observability 开源证据" \
   --filter '{"titles":["AI Engineer","Infra Engineer"],"skills":["AI Agent","LLM observability"],"locations":["Shanghai"]}' \
   --sources '["github"]' \
@@ -100,25 +100,25 @@ sifta-cli find-people \
 
 参数：
 
-| 参数 | 必填 | 说明 |
-| --- | --- | --- |
-| `--query <text>` | 是 | 给 connector 的主搜索文本。 |
+| 参数                  | 必填       | 说明                                                 |
+| --------------------- | ---------- | ---------------------------------------------------- |
+| `--query <text>`      | 是         | 给 connector 的主搜索文本。                          |
 | `--checkpoint <text>` | Agent 必填 | 用户本轮原始输入；不要写复述、翻译或压缩后的搜索词。 |
-| `--filter <json>` | 否 | 结构化筛选条件 JSON 对象。 |
-| `--target-count <n>` | 否 | 目标候选人数，1-50。 |
-| `--sources <json>` | 否 | 候选人来源 JSON 字符串数组。 |
-| `--mode <mode>` | 否 | `default` 或 `research`。 |
-| `--pretty` | 否 | 人类可读输出。不要用于 agent 解析。 |
+| `--filter <json>`     | 否         | 结构化筛选条件 JSON 对象。                           |
+| `--target-count <n>`  | 否         | 目标候选人数，1-50。                                 |
+| `--sources <json>`    | 否         | 候选人来源 JSON 字符串数组。                         |
+| `--mode <mode>`       | 否         | `default` 或 `research`。                            |
+| `--pretty`            | 否         | 人类可读输出。不要用于 agent 解析。                  |
 
 当前支持的 filter 字段：
 
-| 字段 | 类型 | 示例 |
-| --- | --- | --- |
-| `titles` | `string[]` | `["AI Engineer", "Product Manager"]` |
-| `locations` | `string[]` | `["Shanghai", "Remote China"]` |
-| `skills` | `string[]` | `["AI Agent", "embodied AI"]` |
-| `companies` | `string[]` | `["Qwen", "ByteDance"]` |
-| `seniorities` | `string[]` | `["senior", "staff"]` |
+| 字段          | 类型       | 示例                                 |
+| ------------- | ---------- | ------------------------------------ |
+| `titles`      | `string[]` | `["AI Engineer", "Product Manager"]` |
+| `locations`   | `string[]` | `["Shanghai", "Remote China"]`       |
+| `skills`      | `string[]` | `["AI Agent", "embodied AI"]`        |
+| `companies`   | `string[]` | `["Qwen", "ByteDance"]`              |
+| `seniorities` | `string[]` | `["senior", "staff"]`                |
 
 ## `sifta-cli enrich-people`
 
@@ -138,23 +138,23 @@ sifta-cli enrich-people \
 
 已知候选人字段：
 
-| 字段 | 说明 |
-| --- | --- |
-| `githubUrl` | 公开 GitHub profile URL。 |
-| `linkedinUrl` | 公开 LinkedIn profile URL。 |
-| `twitterHandle` | 公开 Twitter/X handle。 |
-| `xiaohongshuUrl` | 公开小红书 profile URL。 |
-| `name` | 没有 URL/handle 时使用的候选人姓名。 |
-| `company` | 用于消除重名歧义。 |
-| `location` | 用于消除重名歧义。 |
+| 字段             | 说明                                 |
+| ---------------- | ------------------------------------ |
+| `githubUrl`      | 公开 GitHub profile URL。            |
+| `linkedinUrl`    | 公开 LinkedIn profile URL。          |
+| `twitterHandle`  | 公开 Twitter/X handle。              |
+| `xiaohongshuUrl` | 公开小红书 profile URL。             |
+| `name`           | 没有 URL/handle 时使用的候选人姓名。 |
+| `company`        | 用于消除重名歧义。                   |
+| `location`       | 用于消除重名歧义。                   |
 
 参数：
 
-| 参数 | 必填 | 说明 |
-| --- | --- | --- |
-| `--people <json>` | 是 | 已知候选人对象 JSON 数组，最多 10 个。 |
-| `--sources <json>` | 否 | 要使用的来源 JSON 字符串数组。 |
-| `--pretty` | 否 | 人类可读输出。不要用于 agent 解析。 |
+| 参数               | 必填 | 说明                                   |
+| ------------------ | ---- | -------------------------------------- |
+| `--people <json>`  | 是   | 已知候选人对象 JSON 数组，最多 10 个。 |
+| `--sources <json>` | 否   | 要使用的来源 JSON 字符串数组。         |
+| `--pretty`         | 否   | 人类可读输出。不要用于 agent 解析。    |
 
 当前 v1 支持 GitHub 和 LinkedIn 补全。GitHub 需要明确 `githubUrl`；LinkedIn 有
 `linkedinUrl` 时读取公开 profile 内容，没有 URL 时可用姓名、公司、地点做 LinkedIn
@@ -170,9 +170,9 @@ sifta-cli tools
 
 工具名：
 
-| 工具 | 用途 |
-| --- | --- |
-| `find_people` | 搜索招聘候选人。 |
+| 工具            | 用途                               |
+| --------------- | ---------------------------------- |
+| `find_people`   | 搜索招聘候选人。                   |
 | `enrich_people` | 用公开证据补全已知候选人 profile。 |
 
 ## 输出处理
@@ -181,24 +181,24 @@ sifta-cli tools
 
 ```json
 {
-  "searchId": "srch_...",
-  "query": "...",
-  "mode": "default",
-  "executedSources": ["github", "linkedin"],
-  "people": [
-    {
-      "id": "github:example",
-      "source": "github",
-      "displayName": "Example",
-      "profileUrl": "https://github.com/example",
-      "headline": "optional",
-      "location": "optional",
-      "matchReasons": ["..."],
-      "riskFlags": [],
-      "raw": {}
-    }
-  ],
-  "warnings": []
+	"searchId": "srch_...",
+	"query": "...",
+	"mode": "default",
+	"executedSources": ["github", "linkedin"],
+	"people": [
+		{
+			"id": "github:example",
+			"source": "github",
+			"displayName": "Example",
+			"profileUrl": "https://github.com/example",
+			"headline": "optional",
+			"location": "optional",
+			"matchReasons": ["..."],
+			"riskFlags": [],
+			"raw": {}
+		}
+	],
+	"warnings": []
 }
 ```
 
@@ -206,5 +206,39 @@ Agent 处理规则：
 
 - 解析 stdout 为 JSON。
 - 相关时向用户展示 `warnings`。
-- 使用 `profileUrl`、`matchReasons`、`raw.evidences` 和 `riskFlags` 作为证据。
+- 使用 `profileUrl`、`matchReasons`、`raw.evidence`、`raw.evidencePacket`、`riskFlags` 和 `evidenceLog` 作为证据。
+- 如果返回 `sourcingProject`、`searchStrategy`、`sourceMap`、`feedbackIngest` 或 `crmExport`，优先使用这些结构化字段解释搜索路径、项目判断、反馈约束和 CRM 导出字段。
 - 不要编造 JSON 中不存在的字段。
+
+结构化字段说明：
+
+| 字段              | 说明                                                      |
+| ----------------- | --------------------------------------------------------- |
+| `sourcingProject` | 本轮项目目标、目标角色、地域偏好、must-have、avoid 和假设 |
+| `searchStrategy`  | Agent 使用的搜索路径，例如 company-first、linkedin-first  |
+| `sourceMap`       | 论文、公司、实验室、项目、repo、dataset 等来源地图        |
+| `evidenceLog`     | 候选人级证据日志，包含 candidateKey、source、url、claim   |
+| `feedbackIngest`  | 用户反馈转成的下一轮约束、排除项和扩展种子                |
+| `crmExport`       | 适合飞书 Base / CSV 的稳定字段导出                        |
+
+本地真实验证：
+
+```bash
+SIFTA_API_BASE_URL="http://localhost:3000/api" \
+SIFTA_API_KEY="<local public api key>" \
+sifta-cli find-people \
+  --query "在上海的 AI Agent 产品经理或产品负责人，具备大模型应用、智能体平台或 Agent 产品规划经验" \
+  --checkpoint "我们要找上海 AI Agent 产品经理，最好有大模型应用、智能体平台或字节相关背景，帮我找 3 个候选人。" \
+  --sources '["linkedin"]' \
+  --target-count 3 \
+  --trace
+```
+
+验证时必须检查：
+
+- `query` 是否保留用户语言、岗位、方向、地区和证据信号。
+- `checkpoint` 是否是用户原始目标，而不是改写后的搜索词。
+- `executedSources` 是否符合 `--sources` 或 skill 选择。
+- `toolTrace[].request` 是否展示每个渠道真实收到的输入；trace 已脱敏，但仍只用于调试和 eval。
+- `people[].raw`、`evidenceLog`、`crmExport` 是否能支撑候选人判断。
+- `warnings` 是否说明未满足的偏好、证据缺口或下一步扩展方向。
