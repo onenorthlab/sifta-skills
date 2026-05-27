@@ -21,7 +21,7 @@ npm install -g @sifta/cli@latest
 配置 API key：
 
 ```bash
-sifta-cli auth "<SIFTA_API_KEY>" --base-url https://siftapi.onenorthdev.com
+sifta-cli auth "<SIFTA_API_KEY>" --base-url https://sifta.onenorthdev.com/api
 ```
 
 检查状态：
@@ -74,8 +74,8 @@ cp -R /tmp/sifta-skills/sifta-search "${CODEX_HOME:-$HOME/.codex}/skills/"
 
 ## 可用 Skill
 
-| Skill | 作用 |
-| --- | --- |
+| Skill                            | 作用                                                |
+| -------------------------------- | --------------------------------------------------- |
 | [`/sifta-search`](sifta-search/) | 搜索、筛选和补全 AI 招聘候选人的公开 profile 与证据 |
 
 ## 卸载
@@ -112,7 +112,7 @@ rm -rf .claude/skills/sifta-search
 
 **找不到 `sifta-cli`？** 执行 `npm install -g @sifta/cli@latest`。
 
-**未认证？** 执行 `sifta-cli auth "<SIFTA_API_KEY>" --base-url https://siftapi.onenorthdev.com`。
+**未认证？** 执行 `sifta-cli auth "<SIFTA_API_KEY>" --base-url https://sifta.onenorthdev.com/api`。
 
 **收到 `_notice.update`？** 先完成当前搜索，再执行 `sifta-cli update`，然后重启 agent 或新开会话。
 
