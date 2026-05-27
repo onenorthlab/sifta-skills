@@ -1,7 +1,7 @@
 ---
 name: sifta-search
 metadata:
-    version: 0.0.4
+    version: 0.0.5
     tags: [sifta-search, recruiting, sourcing, candidates]
 description: >
     在 AI 行业垂直招聘场景使用 Sifta 做 candidate sourcing、candidate search
