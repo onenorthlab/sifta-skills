@@ -167,8 +167,11 @@ sifta-cli update
 - 用户显式指定来源后，所有重试、失败恢复和替代命令都必须保留相同 `--sources`；
   不要退回默认来源，否则会混入 GitHub。
 - LinkedIn 由服务端通过 Exa People Search 执行，底层请求必须使用 `category: "people"`；
-  query 应写成角色、地点、公司、领域词组成的自然语言语义查询，而不是追加
-  `LinkedIn profile only` 这类网页搜索限定词。
+  query 应写成自然语言语义查询，让 Exa 结合 role、skill、company、location、seniority
+  等 people 属性召回；不要写逗号关键词串、布尔语法、网页搜索限定词，也不要追加
+  `LinkedIn profile only`。例如：
+  “在 AI video、AI avatar 或 AI creator tool 公司负责 GTM、增长或商业化的人，最好有
+  Tavus、HeyGen、Runway、Pika、Captions、Viggle 或相邻公司经验”。
 - 只有当论文证据有助于识别候选人时才使用 `--mode research`。arXiv 和
   Google Scholar 是辅助证据，不是最终候选人主来源。
 - Twitter/X 和小红书属于可选公开信号来源。只有用户提供已知 handle、要求公开内容
