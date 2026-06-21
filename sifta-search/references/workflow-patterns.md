@@ -223,7 +223,7 @@ sifta-cli find-people \
 - 区分论文作者证据、工程 profile 证据和招聘可用性。
 - 如果只找到论文作者但没有公开职业/profile 线索，说明它只是研究线索。
 - 不要编造邮箱、机构归属或当前在职状态。
-- 强学术 PI、头部 founder 或产业标杆不一定是全职候选；应放入顾问推荐人池、产业标杆池或 warnings，并解释 `why_not`。
+- 强学术 PI、头部 founder 或产业标杆不一定是全职候选；应放入顾问推荐人池、产业标杆池或 warnings，并解释 `whyNot`。
 - 结果中应检查 `searchStrategy`、`sourceMap`、`evidenceLog` 和 `crmExport`，不要只读候选人摘要。
 
 ## 7. 已知 profile 或 handle 补全

@@ -304,7 +304,7 @@ Skill / agent 负责把用户原始 query 转成搜索计划：
 - 宿主搜索/source map 不足：补论文、公司池、实验室或相邻公司线索。
 - CLI/API 输入不合格：重写 `--query`、`--filter`、`--sources`，保留原始 `--checkpoint`。
 - API/provider 覆盖不足：向用户说明来源限制，不要编造候选人。
-- 候选人项目适配弱：降低优先级，放入顾问推荐人池、观察池或 warnings，并写清 `why_not`。
+- 候选人项目适配弱：降低优先级，放入顾问推荐人池、观察池或 warnings，并写清 `whyNot`。
 
 ## 详细参考
 
