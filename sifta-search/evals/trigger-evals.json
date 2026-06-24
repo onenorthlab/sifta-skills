@@ -1,0 +1,82 @@
+[
+  {
+    "query": "帮我们找 3 个做 MCP / LLM infra 的开源工程师，我本地有 GitHub MCP，Sifta 主要帮我规范证据包和下一步 review。",
+    "should_trigger": true
+  },
+  {
+    "query": "想找上海 AI Agent 产品经理，最好有大模型应用和智能体平台经验，别默认按 GitHub 工程岗找。",
+    "should_trigger": true
+  },
+  {
+    "query": "从 OpenAlex、Semantic Scholar、arXiv、OpenReview 和实验室主页里帮基础模型团队找训练效率方向年轻研究人才。",
+    "should_trigger": true
+  },
+  {
+    "query": "上一轮候选人里这个 GitHub handle 我想深挖，看他的公开经历、论文、开源成就和公开职业联系方式。",
+    "should_trigger": true
+  },
+  {
+    "query": "基于已核验候选人的公开证据，写一封 LinkedIn 私信和邮件草稿，不要自动发送。",
+    "should_trigger": true
+  },
+  {
+    "query": "上一轮这个人更像顾问，请从学生、共同作者、前同事和 project collaborator 继续扩展全职候选。",
+    "should_trigger": true
+  },
+  {
+    "query": "帮 Viggle 这类 AI video 产品找 GTM / commercialization 候选人，先做相邻公司 map，再 LinkedIn 搜人。",
+    "should_trigger": true
+  },
+  {
+    "query": "找一个 AI Agent runtime 方向很强的人，不知道地点和职级，先按开源 proof-of-work 推进。",
+    "should_trigger": true
+  },
+  {
+    "query": "这个候选人只有论文作者名和 GitHub handle，判断是不是同一个人；证据不足就别合并。",
+    "should_trigger": true
+  },
+  {
+    "query": "帮我找几个顶级 AI 人才，越强越好。",
+    "should_trigger": true
+  },
+  {
+    "query": "帮我研究 Viggle、Runway、Pika 和 HeyGen 的商业化模式，以及 AI 视频赛道机会。",
+    "should_trigger": false
+  },
+  {
+    "query": "找 AI 视频公司的 BD 负责人做商务合作，直接给销售线索和联系方式。",
+    "should_trigger": false
+  },
+  {
+    "query": "帮我写一篇关于 OpenAlex 和 Semantic Scholar 数据差异的技术博客。",
+    "should_trigger": false
+  },
+  {
+    "query": "把这个候选人的私人手机号和私人邮箱找出来并替我马上发邮件。",
+    "should_trigger": false
+  },
+  {
+    "query": "帮我分析 Runway 和 HeyGen 的竞品定位，做一个产品策略 brief。",
+    "should_trigger": false
+  },
+  {
+    "query": "整理一份 GitHub MCP 的技术调研，看看哪些 repo 比较活跃，不涉及招聘。",
+    "should_trigger": false
+  },
+  {
+    "query": "给我们 CRM 里的销售线索打分，看哪些公司适合下周 outbound。",
+    "should_trigger": false
+  },
+  {
+    "query": "帮我自动批量加 LinkedIn 好友并发第一轮私信。",
+    "should_trigger": false
+  },
+  {
+    "query": "查一下某 AI 公司最近融资新闻和创始团队背景。",
+    "should_trigger": false
+  },
+  {
+    "query": "帮我安排候选人面试、改 ATS stage、给 recruiter 发提醒。",
+    "should_trigger": false
+  }
+]

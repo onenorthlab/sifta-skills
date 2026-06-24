@@ -15,6 +15,7 @@
 | 增长、市场、商业化、DevRel       | `GTM/增长/DevRel`               | 不要只因为所在公司是 AI 产品公司就归产品岗                   |
 | 战略规划、商业分析、投资         | `战略/CEO Office/商业分析`      | 需要职业 profile 或公开经历支撑                              |
 | 论文、实验室、PI、产业科学家     | `科学顾问资源网络` 或具体研究类 | 强学术人物可能是顾问、推荐人、产业标杆，不一定进入全职候选池 |
+| 年轻高潜、博士后期/实习、竞赛和论文信号 | `基础模型研究/研究工程` 或具体研究类 | 必须同时核验个人 profile、贡献强度和公开实现或职业阶段       |
 | founder / co-founder / C-level   | 由主要职能决定                  | 创业/高管身份是可用性和职级信号，不是自动分类规则            |
 
 提交结构字段前做一致性检查：
@@ -24,6 +25,11 @@
 - 主要证据是增长、市场、商业化、开发者社区、partnerships、DevRel 或出海时，应填
   `GTM/增长/DevRel`。
 - 只有论文作者但缺少职业/profile 线索时，说明是研究线索或顾问入口，不包装成完整全职候选人。
+- Academic graph 学术通道下，年轻、博士、顶会论文或竞赛奖项都只是入口信号；没有个人
+  profile、公开实现、项目贡献或职业阶段证据时，只能进入 source map 或待核验线索。
+- Academic graph 学术通道下，如果方案没有说明 OpenAlex、Google Scholar、Semantic Scholar
+  或同级 broad graph / broad recall 来源是否已检查，必须写 Coverage Warning；Google Scholar
+  不应被写成官方 API connector。
 
 ## 2. 候选人输出格式
 
@@ -32,12 +38,24 @@
 推荐结构：
 
 ```markdown
-目标：<原始候选人目标>
-来源：<executedSources>
+Project Card：
+- 目标：<原始候选人目标>
+- Assumptions：<缺失信息和保守假设>
 
-| #   | 候选人 | 画像 / 方向 | 来源                 | 概况                | 匹配理由                  | 风险                       |
-| --- | ------ | ----------- | -------------------- | ------------------- | ------------------------- | -------------------------- |
-| 1   | <name> | <persona>   | [GitHub](profileUrl) | <headline/location> | <evidence-backed reasons> | <missing or weak evidence> |
+Source Map：
+- executedSources：<executedSources>
+- searched：<GitHub / LinkedIn / OpenAlex / Scholar / company map ...>
+- pending：<仍需补充的来源>
+
+Candidate Buckets：
+| # | 候选人 | Bucket | 来源 | 概况 | Evidence grade | Weakness | Next action |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | <name> | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | [GitHub](profileUrl) | <headline/location> | A/B/C | <missing evidence> | <action> |
+
+Fit Proof Packet：
+| Candidate | Requirement | Evidence | Source | Confidence | Weakness | Next action |
+| --- | --- | --- | --- | --- | --- | --- |
+| <name> | <must-have> | <public evidence> | <url/source> | identity=high, fit=medium, evidence=A | <gap> | <action> |
 
 Coverage Warnings：
 
@@ -56,8 +74,23 @@ Next Action：
 - 不把长段解释塞进表格；确实需要时，在表格后增加“补充说明”。
 - 不使用 `候选人：`、`画像：`、`来源：` 这种逐条字段块格式。
 - 在飞书、OpenClaw、CLI、Codex 等渠道中都优先输出 Markdown 表格。
+- 每个候选人必须有 Fit Proof Packet；没有 evidence/source/confidence/weakness 时不算完整交付。
 
-## 3. 结果解释
+## 3. Fit Proof Packet
+
+候选人 proof-of-fit 采用 `requirement -> evidence -> source -> confidence -> weakness -> next action`。
+详细标准见 [fit-proof-packet.md](fit-proof-packet.md)。
+
+证据等级：
+
+| 等级 | 说明 | 输出口径 |
+| --- | --- | --- |
+| A | 个人 profile 与目标证据直接匹配，来源可追溯 | 可进入候选表 |
+| B | 强 source-map 或单一 profile 证据，缺交叉验证 | 待复核候选，必须 warning |
+| C | repo owner、论文作者、公司/实验室成员或关键词命中 | source-map lead 或待核验线索 |
+| Reject | 身份冲突、非公开信息、无关或不可追溯 | 不进候选表 |
+
+## 4. 结果解释
 
 优先使用这些结构解释结果：
 
@@ -74,7 +107,7 @@ Next Action：
 除非 Sifta 返回 same-person hint，或有明确公开证据，否则不要断言跨渠道 profile 是同一个人；
 不确定时写成“可能匹配”。
 
-## 4. Coverage Warnings
+## 5. Coverage Warnings
 
 必须向用户传达 API 返回的 warnings，尤其是：
 
@@ -91,7 +124,14 @@ repository fallback 的口径：
 - 如果有明确个人 profile、公司/经历信号和强开源项目证据，可以作为待复核候选进入候选池。
 - 即使进入候选池，也必须保留 coverage warning，提示人工验证 repo owner 是否为候选人本人。
 
-## 5. 失败恢复
+academic graph fallback 的口径：
+
+- paper / lab / advisor / coauthor / competition / project 只能解释从哪里继续找人。
+- 一作、共一作、竞赛奖项或博士阶段可以提高优先级，但不能替代身份、职业阶段和工程/研究贡献核验。
+- PI、导师、通讯作者或头部科学家优先进入顾问/推荐人/产业标杆池；除非用户明确找顾问或科学家全职，并且有 profile 证据支持。
+- 如果只找到论文和机构，不输出完整候选人表；应输出 Source Map、待核验线索和下一步 profile/enrichment 动作。
+
+## 6. 失败恢复
 
 命令参数或 schema 变化：
 
@@ -110,7 +150,8 @@ repository fallback 的口径：
 
 - 说明是“弱线索 / 待复核”，不能作为完成交付。
 - 优先在同一来源下重写 `--query`、扩大 `--target-count`、补充明确公司或项目线索，或放入 source map。
-- 不要用普通网页搜索绕过 Sifta 质量门，临时找一个看似更强的人填候选人列表。
+- 可以使用宿主 agent native search 补证据或扩展 source map，但不能绕过 Sifta 质量门，临时找一个
+  看似更强的人填候选人列表。
 
 质量问题归因：
 
@@ -123,7 +164,7 @@ repository fallback 的口径：
 | 候选人质量弱但输入正确                  | 覆盖不足 / query pattern | 调 query、补 source map、人工 review                   |
 | schema 字段缺失                         | API contract             | 修 structured candidates / CRM export                  |
 
-## 6. 更新检查
+## 7. 更新检查
 
 Sifta CLI 的 JSON 输出可能包含 `_notice.update`：
 
@@ -137,4 +178,4 @@ Sifta CLI 的 JSON 输出可能包含 `_notice.update`：
 sifta-cli update
 ```
 
-更新后提醒用户重启 agent 或新开会话，以加载最新 `sifta-search` skill。
+更新后提醒用户重启 agent 或新开会话，以加载最新 Sifta skill suite。
