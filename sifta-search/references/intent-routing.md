@@ -3,7 +3,7 @@
 本文件定义 `sifta-search` 如何把用户自然语言转成 sourcing 动作。目标是少问问题、但不在关键
 边界上误路由。Router 只选择单一最佳 route，不做业务执行。
 
-## 1. 最小招聘 Brief
+## 1. 最小 Project Brief Gate
 
 先把用户输入压缩成 Project Card。缺项可以写入 Assumptions，只有硬阻塞项才追问。
 
@@ -40,6 +40,7 @@
 只问一个短问题；不要倾倒菜单。命中本节任一硬阻塞时必须 **hard stop**：
 本轮回复只给一个最小澄清问题和一句为什么需要它；不要继续输出 Project Card、Source Map、
 CLI 命令、候选人搜索 workflow、候选人分桶或 Fit Proof Packet。
+Hard stop 优先级高于 Project Card 输出、route skill 读取和 CLI 命令生成。
 
 | 阻塞点 | 最小问题 |
 | --- | --- |
@@ -81,6 +82,7 @@ user input
   -> Project Card
   -> route
   -> source map recipe
+  -> lead state: source-map lead / profile lead / candidate / rejected
   -> native search or CLI connector decision
   -> source-specific query / checkpoint
   -> Fit Proof Packet
@@ -92,6 +94,7 @@ user input
 - `checkpoint` 保留用户原始目标，不写改写后的关键词。
 - `query` 按来源合同写：GitHub 英文技术词，LinkedIn/GTM 保留用户语言，academic 是 source-map 种子。
 - source map 线索不是候选人；只有个人 profile / GitHub / LinkedIn / 个人主页 / 用户明确 profile 才能进候选人。
+- 非个人来源永远不能直接进入 candidate；必须先完成 identity 和 evidence gate。
 - 候选人必须输出 Fit Proof Packet；不能只给 summary。
 - 如果本轮被判定为非招聘公司/市场研究，必须显式写清“这不是 candidate sourcing”，并使用宿主
   agent 原生研究路径；最多补一句“如果要转招聘，可把 company map 改写成 GTM/Product recruiting input”。

@@ -7,6 +7,7 @@ description: >
     用于 AI 产品经理、平台产品、Agent 产品、GTM、增长、商业化、
     developer marketing、DevRel 和 company-map 辅助招聘。该 skill 保留用户自然语言
     人才画像进入 LinkedIn people search，并避免把非工程职能误路由到 GitHub。
+    普通 company map、销售 lead、市场分析、渠道合作/KOL 或非招聘商业调研不要使用。
 ---
 
 # Sifta LinkedIn Product and GTM
@@ -20,14 +21,16 @@ source map，尤其适用于 DevRel、developer marketing、open-source communit
 
 ## Workflow
 
-1. 使用 CLI 时先运行 `sifta-cli status`。
-2. 保留用户原始请求作为 `--checkpoint`。
-3. `--query` 使用用户语言，保留岗位、城市、公司、职能和市场信号。
-4. 使用 `--sources '["linkedin"]'`。
-5. GTM / company-map 场景先建立或复用 company / sector map，再转 people search。
-6. DevRel / developer marketing 如果需要 GitHub 或社区证据，把它作为 source-map 辅助；不要把
+1. 先确认岗位族是 Product/GTM/DevRel 或可从用户目标推断；不要因 AI/Agent/LLM 自动转工程。
+2. 使用 CLI 时先运行 `sifta-cli status`。
+3. 保留用户原始请求作为 `--checkpoint`。
+4. `--query` 使用用户语言，保留岗位、城市、公司、职能和市场信号。
+5. 使用 `--sources '["linkedin"]'`。
+6. GTM / company-map 场景先建立或复用 company / sector map，再转 people search。
+7. company/sector map 只是 `source-map lead`；LinkedIn/职业 profile + 职能证据后才是 candidate。
+8. DevRel / developer marketing 如果需要 GitHub 或社区证据，把它作为 source-map 辅助；不要把
    非工程岗位误路由成 GitHub-only 候选人搜索。
-7. 输出 Candidate Buckets 和 Fit Proof Packet；产品/GTM 候选人也必须有职业证据和 weakness。
+9. 输出 Candidate Buckets 和 Fit Proof Packet；产品/GTM 候选人也必须有职业证据和 weakness。
 
 Product example:
 
@@ -60,8 +63,10 @@ sifta-cli find-people \
 
 ## References
 
-- CLI contract: [../sifta-search/references/cli-reference.md](../sifta-search/references/cli-reference.md)
-- Query rules: [../sifta-search/references/query-contract.md](../sifta-search/references/query-contract.md)
-- Source map recipes: [../sifta-search/references/source-map-recipes.md](../sifta-search/references/source-map-recipes.md)
-- Fit proof packet: [../sifta-search/references/fit-proof-packet.md](../sifta-search/references/fit-proof-packet.md)
-- Output rules: [../sifta-search/references/output-quality.md](../sifta-search/references/output-quality.md)
+| Reference | 何时读取 |
+| --- | --- |
+| [CLI contract](../sifta-search/references/cli-reference.md) | 调用 LinkedIn connector、auth/status/schema 失败 |
+| [Query rules](../sifta-search/references/query-contract.md) | 写 LinkedIn/Product/GTM query 或拆 mixed-source feedback |
+| [Source map recipes](../sifta-search/references/source-map-recipes.md) | company map、adjacent company pool 或 DevRel 社区证据 |
+| [State gate](../sifta-search/references/project-brief-and-state.md) | company/sector lead 升级候选前 |
+| [Fit proof](../sifta-search/references/fit-proof-packet.md) / [Output rules](../sifta-search/references/output-quality.md) | 输出候选表和 Coverage Warnings |

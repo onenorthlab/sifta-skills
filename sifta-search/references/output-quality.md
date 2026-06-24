@@ -3,6 +3,18 @@
 本文件给 `sifta-search` 主 skill 提供详细执行口径。主 skill 只负责 router 和高优先级规则；
 这里记录结构字段、输出格式和失败恢复细节。
 
+## 0. Lead -> Candidate 状态机
+
+| 状态 | 说明 | 升级门槛 |
+| --- | --- | --- |
+| `sourceMapLead` | paper、repo、company、lab、project、dataset、coauthor 等入口线索 | 找到个人 profile、GitHub、LinkedIn、个人主页、lab bio 或用户明确 profile |
+| `profileLead` | 已有个人 profile，但 fit 或身份交叉证据不足 | identity 至少 medium，并有与 requirement 相关的公开证据 |
+| `candidate` | 可进入候选表的人 | evidence graded，bucket 明确，Fit Proof Packet 完整 |
+| `rejected` | 身份冲突、隐私、非公开数据、无关或证据不可追溯 | 写明拒绝/排除原因，不为凑数保留 |
+
+paper/repo/company/lab leads 不能直接变候选人。弱结果优先回到 source map / profile
+verification，不要临时补一个看似更强的人填候选人列表。
+
 ## 1. 结构字段口径
 
 结构化字段要跟候选人的主要公开证据一致，不要被用户目标里的技术词或单个头衔关键词带偏。
@@ -48,14 +60,14 @@ Source Map：
 - pending：<仍需补充的来源>
 
 Candidate Buckets：
-| # | 候选人 | Bucket | 来源 | 概况 | Evidence grade | Weakness | Next action |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | <name> | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | [GitHub](profileUrl) | <headline/location> | A/B/C | <missing evidence> | <action> |
+| # | 候选人/Lead | State | Bucket | 来源 | 概况 | Evidence grade | Weakness | Next action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | <name> | candidate / sourceMapLead | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | [GitHub](profileUrl) | <headline/location> | A/B/C | <missing evidence> | <action> |
 
 Fit Proof Packet：
-| Candidate | Requirement | Evidence | Source | Confidence | Weakness | Next action |
-| --- | --- | --- | --- | --- | --- | --- |
-| <name> | <must-have> | <public evidence> | <url/source> | identity=high, fit=medium, evidence=A | <gap> | <action> |
+| Candidate/Lead | State | Requirement | Evidence | Source | Confidence | Weakness | Next action |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| <name> | candidate | <must-have> | <public evidence> | <url/source> | identity=high, fit=medium, evidence=A | <gap> | <action> |
 
 Coverage Warnings：
 
@@ -115,6 +127,8 @@ Next Action：
 - 指定来源没有执行或没有返回候选人。
 - `priority=C` 或 `evidenceStatus=缺职业工程证据`。
 - repository fallback returned repo-owner leads。
+- source-map lead 被降级，或缺少 profile verification。
+- Project Brief 缺失但用 Assumptions 推进。
 - 候选人分类不确定。
 - 证据只来自单一 profile，缺少交叉验证。
 

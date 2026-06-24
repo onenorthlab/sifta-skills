@@ -7,6 +7,7 @@ description: >
     用于已知候选人或 candidate dossier 之后的 recruiting outreach copy：DM、email、
     LinkedIn message、referral intro、follow-up 文案。用户要求基于候选人公开证据、
     项目/岗位、触达渠道、语气和限制生成可人工确认的触达草稿时使用。
+    非招聘营销文案、销售邮件、KOL 合作、自动发送、联系方式抓取或私人信息请求不要使用。
 ---
 
 # Sifta Outreach Copy
@@ -15,22 +16,22 @@ description: >
 ## Workflow
 
 1. 先读取或复用 candidate dossier、上一轮候选人表、用户提供的公开 profile / evidence。
-2. 确认项目 / 岗位、触达渠道、语气、约束和不可说内容；缺失但风险可控时写入 Assumptions。
-3. 从公开证据中选择 1-2 个 personalization angle：项目、开源贡献、论文、产品经历、社区影响或职业方向。
-4. 生成 2-3 个渠道版本，例如 short DM、email、LinkedIn message、referral intro、follow-up。
-5. 保留每个个性化句子的证据来源，不把弱证据包装成确定事实。
+2. 必须有候选人公开证据、项目/岗位和触达渠道；缺候选人证据时 hard stop 或转 dossier/enrichment。
+3. 确认语气、约束和不可说内容；缺失但风险可控时写入 Assumptions。
+4. 从公开证据中选择 1-2 个 personalization angle：项目、开源贡献、论文、产品经历、社区影响或职业方向。
+5. 生成 2-3 个渠道版本，保留每个个性化句子的证据来源，不把弱证据包装成确定事实。
 6. 给出人工确认清单：事实、称谓、渠道、链接、合规和发送前需要用户确认的点。
 
 ## Required Inputs
 
 | Input | Required | Notes |
 | --- | --- | --- |
-| 候选人公开证据 | yes | dossier、GitHub、LinkedIn public profile、个人主页、论文、repo、公开访谈等 |
+| 候选人公开证据 | hard gate | dossier、GitHub、LinkedIn public profile、个人主页、论文、repo、公开访谈等；无证据只能写 generic template |
 | 项目 / 岗位 | yes | 公司 / 团队、岗位、方向、must-have、location / remote 如已知 |
 | 触达渠道 | yes | email、LinkedIn、X/DM、referral intro、follow-up 等 |
 | 语气 | yes | founder-style、professional、warm、concise、technical、low-pressure 等 |
 | 约束 | yes | 长度、语言、是否提公司名、是否提岗位名、是否需要 CTA |
-| 不可说内容 | yes | 薪资、签证、入职时间、公司资源、候选人隐私、竞争对手等限制 |
+| 不可说内容 | default-safe | 薪资、签证、入职时间、公司资源、候选人隐私、竞争对手等限制 |
 
 ## Message Angle
 
@@ -82,8 +83,7 @@ Next Action：
 
 ## References
 
-- CLI contract: [../sifta-search/references/cli-reference.md](../sifta-search/references/cli-reference.md)
-- Query rules: [../sifta-search/references/query-contract.md](../sifta-search/references/query-contract.md)
-- Source map recipes: [../sifta-search/references/source-map-recipes.md](../sifta-search/references/source-map-recipes.md)
-- Fit proof packet: [../sifta-search/references/fit-proof-packet.md](../sifta-search/references/fit-proof-packet.md)
-- Output rules: [../sifta-search/references/output-quality.md](../sifta-search/references/output-quality.md)
+| Reference | 何时读取 |
+| --- | --- |
+| [Fit proof](../sifta-search/references/fit-proof-packet.md) / [Output rules](../sifta-search/references/output-quality.md) | 选择 personalization evidence，写 Risks/Do-not-say |
+| [CLI contract](../sifta-search/references/cli-reference.md) / [State gate](../sifta-search/references/project-brief-and-state.md) / [Query rules](../sifta-search/references/query-contract.md) | 需要 `enrich-people`、缺证据转 dossier 或修 enrichment 输入 |

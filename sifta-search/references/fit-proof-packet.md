@@ -8,6 +8,7 @@
 
 | 字段 | 含义 |
 | --- | --- |
+| state | `source-map lead` / `profile lead` / `verified candidate` / `rejected` |
 | requirement | 用户需求或转写后的筛选条件 |
 | evidence | 公开证据，必须能指向 source |
 | source | GitHub / LinkedIn / paper / homepage / repo / talk / company bio 等 |
@@ -23,6 +24,9 @@
 | B | 有强 source-map 或单一 profile 证据，但缺少交叉验证 | 可以作为待复核候选，必须 warning |
 | C | repo owner、论文作者、公司/实验室成员、关键词命中等弱线索 | 只能 source-map 或待核验线索 |
 | Reject | 身份冲突、非公开信息、与岗位无关、证据无法追溯 | 不进候选表 |
+
+C 级只能作为 lead；B 级可进入待复核候选；A 级才可作为强推荐。隐私、自动发送、
+无个人 profile、身份冲突或非公开数据是 dealbreaker，直接 Reject 或 hard stop。
 
 ## 3. 接受门
 
@@ -51,14 +55,14 @@ Source Map：
 - pending: ...
 
 Candidate Buckets：
-| 候选人 | Bucket | Evidence grade | Why fit | Weakness | Next action |
-| --- | --- | --- | --- | --- | --- |
-| ... | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | A/B/C | ... | ... | ... |
+| 候选人/Lead | State | Bucket | Evidence grade | Why fit | Weakness | Next action |
+| --- | --- | --- | --- | --- | --- | --- |
+| ... | verified candidate / source-map lead | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | A/B/C | ... | ... | ... |
 
 Fit Proof Packet：
-| Candidate | Requirement | Evidence | Source | Confidence | Weakness | Next action |
-| --- | --- | --- | --- | --- | --- | --- |
-| ... | ... | ... | ... | identity=high, fit=medium, evidence=A | ... | ... |
+| Candidate/Lead | State | Requirement | Evidence | Source | Confidence | Weakness | Next action |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| ... | verified candidate | ... | ... | ... | identity=high, fit=medium, evidence=A | ... | ... |
 
 Coverage Warnings：
 - ...

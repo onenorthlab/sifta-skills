@@ -7,6 +7,7 @@ description: >
     用于 AI 工程候选人 sourcing，特别是用户要求开源证据、GitHub profile、
     AI Agent、MCP、LLM infra、SDK、runtime、observability、RAG/embedding infra、
     模型应用基础设施、repo contributors、package registry 或 developer proof-of-work 候选人时使用。
+    非招聘 repo 调研、公司技术分析、开源项目评估、KOL 合作、PM/GTM 或纯论文综述不要使用。
 ---
 
 # Sifta GitHub Engineering
@@ -19,13 +20,15 @@ channel，不是 exclusive channel：论文、项目页、Papers with Code、com
 
 ## Workflow
 
-1. 先判断执行面：宿主 agent 的 native GitHub search / GitHub MCP / `gh` 足够时优先使用它们。
-2. 需要 Sifta 统一 JSON、trace、review loop，或用户明确要求 Sifta CLI 时，再运行 `sifta-cli status`。
-3. 保留用户原始请求作为 `--checkpoint`。
-4. `--query` 只放英文技术关键词和角色词，例如 `AI Agent MCP LLM infra engineer open source`。
-5. 使用 `--sources '["github"]'`；不要因为 0 result 自动切到 LinkedIn 或 X。若需要外部补充，
+1. 先确认这是招聘目标；缺 geo、seniority 或数量不阻塞，写入 Assumptions 后推进。
+2. 先判断执行面：宿主 agent 的 native GitHub search / GitHub MCP / `gh` 足够时优先使用它们。
+3. 需要 Sifta 统一 JSON、trace、review loop，或用户明确要求 Sifta CLI 时，再运行 `sifta-cli status`。
+4. 保留用户原始请求作为 `--checkpoint`。
+5. `--query` 只放英文技术关键词和角色词，例如 `AI Agent MCP LLM infra engineer open source`。
+6. 使用 `--sources '["github"]'`；不要因为 0 result 自动切到 LinkedIn 或 X。若需要外部补充，
    先把 paper/project/company/person leads 写入 `sourceMap` 和 Coverage Warnings。
-6. 输出 Candidate Buckets 和 Fit Proof Packet，显式写 Coverage Warnings。
+7. repo/topic/package 命中先是 `source-map lead`；有个人 profile、贡献深度和身份交叉信号后才升级候选。
+8. 输出 Candidate Buckets 和 Fit Proof Packet，显式写 Coverage Warnings。
 
 ```bash
 sifta-cli find-people \
@@ -56,8 +59,10 @@ Agent/MCP/LLM infra 真实召回时，优先使用能指向实现型贡献的 se
 
 ## References
 
-- CLI contract: [../sifta-search/references/cli-reference.md](../sifta-search/references/cli-reference.md)
-- Query rules: [../sifta-search/references/query-contract.md](../sifta-search/references/query-contract.md)
-- Source map recipes: [../sifta-search/references/source-map-recipes.md](../sifta-search/references/source-map-recipes.md)
-- Fit proof packet: [../sifta-search/references/fit-proof-packet.md](../sifta-search/references/fit-proof-packet.md)
-- Output rules: [../sifta-search/references/output-quality.md](../sifta-search/references/output-quality.md)
+| Reference | 何时读取 |
+| --- | --- |
+| [CLI contract](../sifta-search/references/cli-reference.md) | 调用 CLI、auth/status/schema 失败或需要 trace |
+| [Query rules](../sifta-search/references/query-contract.md) | 写 GitHub query、修 sources 或处理 0 result |
+| [Source map recipes](../sifta-search/references/source-map-recipes.md) | repo fallback、awesome-list、paper/project leads 较多 |
+| [State gate](../sifta-search/references/project-brief-and-state.md) | 判断 source-map lead 能否升级候选 |
+| [Fit proof](../sifta-search/references/fit-proof-packet.md) / [Output rules](../sifta-search/references/output-quality.md) | 输出候选表和 Coverage Warnings |

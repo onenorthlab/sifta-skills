@@ -6,19 +6,23 @@
 
 - GitHub-first / LinkedIn-first / academic-first 是主证据渠道，不是唯一渠道。
 - source map 用来发现入口；候选人必须再经过个人 profile 验证。
+- source map 不是候选人池。paper、repo、company、lab、project、dataset 等都先是 `source-map lead`。
 - 本地 agent 原生搜索、GitHub MCP、`gh`、浏览器和学术搜索可优先使用。
 - CLI 只在需要 token/auth、结构化 connector、profile enrichment、trace、review feedback 或稳定 JSON 时使用。
 
+升级条件：`source-map lead -> identity checked -> evidence graded -> candidate bucketed`。每条 lead
+至少写 `lead`、`sourceFamily`、`whyRelevant`、`conversionBlocker`、`nextVerification`。
+
 ## 2. Role Source Map
 
-| 人才方向 | 主来源 | 辅助来源 | 进入候选人的最低证据 | CLI 适用 |
-| --- | --- | --- | --- | --- |
-| Engineering | GitHub profile、repo、contributors、issues/PR、package registry | Papers with Code、technical blog、project page、company page、LinkedIn | 个人 profile + 工程 proof-of-work + 与目标相关的 repo/project/贡献 | 需要 GitHub token-backed JSON、trace、review loop 时 |
-| Product / PM | LinkedIn、职业 profile、product ownership、company/team background | 产品页、launch、media、GitHub/X 公开表达、社区 | 职业 profile + 产品/平台/roadmap/ownership 证据 | LinkedIn people search、profile enrichment |
-| GTM / Growth / DevRel | LinkedIn、company map、adjacent company pool | product launches、community、media、events、GitHub/X public posts | 职业 profile + GTM/增长/商业化/社区/DevRel 证据 | LinkedIn connector、company-map assisted search |
-| AI Research | OpenAlex、Google Scholar、Semantic Scholar、arXiv/OpenReview、Papers with Code | lab pages、personal homepage、advisor/coauthor graph、competitions、GitHub | 个人主页/GitHub/LinkedIn/profile + 论文/项目/实现/职业阶段证据 | 需要 research trace 或结构化候选人时 |
-| Known candidate dossier | 用户给的 GitHub/LinkedIn/主页/论文作者/候选人 key | company bio、talk、podcast、patent、media、Scholar/OpenAlex | same-person confidence + 公开来源链路 | `enrich-people` |
-| Outreach | 已核验 dossier / candidate table /公开证据 | 项目 brief、岗位、渠道、语气、不可说内容 | 不新增候选人；只使用已核验证据 | 通常不用 CLI，除非先补 enrichment |
+| 人才方向 | 初始状态 | 主来源 | 辅助来源 | 进入候选人的最低证据 | CLI 适用 |
+| --- | --- | --- | --- | --- | --- |
+| Engineering | source-map lead / profile lead | GitHub profile、repo、contributors、issues/PR、package registry | Papers with Code、technical blog、project page、company page、LinkedIn | 个人 profile + 工程 proof-of-work + 与目标相关的 repo/project/贡献 | 需要 GitHub token-backed JSON、trace、review loop 时 |
+| Product / PM | profile lead | LinkedIn、职业 profile、product ownership、company/team background | 产品页、launch、media、GitHub/X 公开表达、社区 | 职业 profile + 产品/平台/roadmap/ownership 证据 | LinkedIn people search、profile enrichment |
+| GTM / Growth / DevRel | source-map lead / profile lead | LinkedIn、company map、adjacent company pool | product launches、community、media、events、GitHub/X public posts | 职业 profile + GTM/增长/商业化/社区/DevRel 证据 | LinkedIn connector、company-map assisted search |
+| AI Research | source-map lead | OpenAlex、Google Scholar、Semantic Scholar、arXiv/OpenReview、Papers with Code | lab pages、personal homepage、advisor/coauthor graph、competitions、GitHub | 个人主页/GitHub/LinkedIn/profile + 论文/项目/实现/职业阶段证据 | 需要 research trace 或结构化候选人时 |
+| Known candidate dossier | profile lead | 用户给的 GitHub/LinkedIn/主页/论文作者/候选人 key | company bio、talk、podcast、patent、media、Scholar/OpenAlex | same-person confidence + 公开来源链路 | `enrich-people` |
+| Outreach | verified candidate | 已核验 dossier / candidate table /公开证据 | 项目 brief、岗位、渠道、语气、不可说内容 | 不新增候选人；只使用已核验证据 | 通常不用 CLI，除非先补 enrichment |
 
 ## 3. Engineering Recipe
 

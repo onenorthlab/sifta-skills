@@ -9,6 +9,7 @@ description: >
     research engineer、PhD intern、early-career researcher，以及论文、实验室、
     OpenAlex、Google Scholar、Semantic Scholar、arXiv/OpenReview、Papers with Code、
     导师/共同作者、竞赛信号驱动的招聘。Google Scholar 只作为浏览器/人工召回入口，不假设官方 API。
+    论文综述、学术趋势、实验室调研或引用网络分析本身不要使用，除非要转成招聘 source map。
 ---
 
 # Sifta Academic Graph
@@ -19,18 +20,19 @@ description: >
 
 ## Workflow
 
-1. 先用宿主 agent 原生学术 / web 搜索建立 source map，不要从泛 people search 开始。
+1. 先确认是招聘或候选人池目标；只缺地域、职级或数量时写 Assumptions 后推进。
+2. 先用宿主 agent 原生学术 / web 搜索建立 source map，不要从泛 people search 开始。
    优先综合 OpenAlex、Google Scholar、Semantic Scholar、arXiv/OpenReview、Papers with Code、
    lab/project/homepage，而不是只搜单一论文库。
-2. 覆盖至少两个路径：`paper-first`、`lab-first`、`coauthor-graph`、`competition-signal`、
+3. 覆盖至少两个路径：`paper-first`、`lab-first`、`coauthor-graph`、`competition-signal`、
    `graph-neighbor`、`advisor-entry`。
-3. 把 Google Scholar 当作浏览器/人工 broad recall 或经用户批准的第三方入口；不要假设
+4. 把 Google Scholar 当作浏览器/人工 broad recall 或经用户批准的第三方入口；不要假设
    Sifta 或 Google 提供官方 Scholar API。
-4. 需要 Sifta 统一 JSON、trace 或 research connector 时，再运行 `sifta-cli status` 并使用
+5. 需要 Sifta 统一 JSON、trace 或 research connector 时，再运行 `sifta-cli status` 并使用
    `--mode research`。
-5. 把 source-map leads 转成 GitHub、LinkedIn、个人主页或用户提供的 profile 证据。
-6. 在身份未验证前，paper/lab/advisor/coauthor/competition/project leads 只能进入 `sourceMap`。
-7. 输出时区分年轻高潜全职候选、顾问/推荐人入口、产业标杆、待核验和排除项，并给 Fit Proof Packet。
+6. 按状态升级：paper/lab/coauthor lead -> identity-checked profile lead -> contribution-checked candidate -> bucket。
+7. 在身份未验证前，paper/lab/advisor/coauthor/competition/project leads 只能进入 `sourceMap`。
+8. 输出时区分年轻高潜全职候选、顾问/推荐人入口、产业标杆、待核验和排除项，并给 Fit Proof Packet。
 
 ```bash
 sifta-cli find-people \
@@ -55,6 +57,7 @@ sifta-cli find-people \
 ## Quality Gates
 
 - 论文作者不是候选人，直到找到个人 profile 并核验身份。
+- 没有个人 profile 时不要输出完整 Candidate Buckets，只输出 Source Map 和 profile-verification action。
 - Academic graph 输出必须说明至少两个 source families；如果没有使用 OpenAlex、Google Scholar、
   Semantic Scholar 中任一 broad graph / broad recall 来源，需要写 Coverage Warning。
 - `--mode research` 或 CLI people fallback 不能替代 academic source stack。CLI 若返回 LinkedIn/GitHub
@@ -76,8 +79,10 @@ sifta-cli find-people \
 
 ## References
 
-- CLI contract: [../sifta-search/references/cli-reference.md](../sifta-search/references/cli-reference.md)
-- Query rules: [../sifta-search/references/query-contract.md](../sifta-search/references/query-contract.md)
-- Source map recipes: [../sifta-search/references/source-map-recipes.md](../sifta-search/references/source-map-recipes.md)
-- Fit proof packet: [../sifta-search/references/fit-proof-packet.md](../sifta-search/references/fit-proof-packet.md)
-- Output rules: [../sifta-search/references/output-quality.md](../sifta-search/references/output-quality.md)
+| Reference | 何时读取 |
+| --- | --- |
+| [Source map recipes](../sifta-search/references/source-map-recipes.md) | 默认优先读，用于 academic-first 路径和 source families |
+| [State gate](../sifta-search/references/project-brief-and-state.md) | paper/lab/coauthor lead 升级候选前 |
+| [CLI contract](../sifta-search/references/cli-reference.md) | 需要 `--mode research`、trace 或 CLI auth/schema |
+| [Query rules](../sifta-search/references/query-contract.md) | 写 research query 或拆 source-specific next request |
+| [Fit proof](../sifta-search/references/fit-proof-packet.md) / [Output rules](../sifta-search/references/output-quality.md) | 输出候选表和 Coverage Warnings |

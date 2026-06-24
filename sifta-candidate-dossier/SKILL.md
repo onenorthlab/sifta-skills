@@ -5,14 +5,16 @@ metadata:
     tags: [sifta-search, recruiting, sourcing, enrichment, dossier]
 description: >
     用于已知候选人 deep-dive、profile enrichment 和 candidate dossier。用户给出候选人姓名、
-    GitHub、LinkedIn、个人主页、论文作者、上一轮候选人或候选人 key，并希望查联系方式、过往经历、
-    公开信息、成就、论文、开源贡献、产品/GTM 成果或风险缺口时使用。
+    GitHub、LinkedIn、个人主页、论文作者、上一轮候选人或候选人 key，并希望查公开职业联系方式、
+    过往经历、公开信息、成就、论文、开源贡献、产品/GTM 成果或风险缺口时使用。
+    不用于继续找新人、私人信息挖掘、背景调查、auth-gated 数据或自动触达。
 ---
 
 # Sifta Candidate Dossier
 
 用户已经有一个明确候选人，想深挖他的公开信息、经历、成就、联系方式或风险时使用本 skill。
 这不是 sourcing 扩展，不要把 deep-dive 变成继续找更多人。
+没有可消歧 identity 时 hard stop，只问用户补 GitHub、LinkedIn、个人主页、公司或地点线索。
 
 ## Workflow
 
@@ -72,8 +74,10 @@ Next Action：
 
 ## References
 
-- CLI contract: [../sifta-search/references/cli-reference.md](../sifta-search/references/cli-reference.md)
-- Query rules: [../sifta-search/references/query-contract.md](../sifta-search/references/query-contract.md)
-- Source map recipes: [../sifta-search/references/source-map-recipes.md](../sifta-search/references/source-map-recipes.md)
-- Fit proof packet: [../sifta-search/references/fit-proof-packet.md](../sifta-search/references/fit-proof-packet.md)
-- Output rules: [../sifta-search/references/output-quality.md](../sifta-search/references/output-quality.md)
+| Reference | 何时读取 |
+| --- | --- |
+| [CLI contract](../sifta-search/references/cli-reference.md) | 需要 `enrich-people`、auth/status/schema 或 trace |
+| [State gate](../sifta-search/references/project-brief-and-state.md) | ambiguous identity -> profile lead -> verified person |
+| [Source map recipes](../sifta-search/references/source-map-recipes.md) | 补公开来源 checklist 或 academic/GitHub 线索 |
+| [Fit proof](../sifta-search/references/fit-proof-packet.md) | dossier 要转招聘 fit 判断 |
+| [Output rules](../sifta-search/references/output-quality.md) / [Query rules](../sifta-search/references/query-contract.md) | 输出风险或修 enrichment 输入 |
