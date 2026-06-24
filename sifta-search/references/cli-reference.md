@@ -6,9 +6,11 @@ Agent 应解析 stdout，并把 stderr 视为状态或调试输出。
 ## 目录
 
 - [认证与状态](#认证与状态)
+- [命令与 Connector 边界](#命令与-connector-边界)
 - [`sifta-cli search`](#sifta-cli-search)
 - [`sifta-cli find-people`](#sifta-cli-find-people)
 - [`sifta-cli enrich-people`](#sifta-cli-enrich-people)
+- [Query 合同](#query-合同)
 - [Schema 发现](#schema-发现)
 - [更新 CLI 和 Skill](#更新-cli-和-skill)
 - [输出处理](#输出处理)
@@ -35,6 +37,24 @@ CLI 会把凭据写入 `~/.sifta-cli/config.json`：
 ```bash
 npm install -g @sifta/cli@latest
 ```
+
+## 命令与 Connector 边界
+
+Sifta CLI 是本地 agent 的 command/connector 层。它只负责访问 Sifta Public API、返回稳定
+JSON、暴露 schema 和 trace；不承担 planner、memory、通用搜索或候选人策略。
+
+| 命令 / 接入           | 类型           | 写入行为                              | Agent 规则                                     |
+| --------------------- | -------------- | ------------------------------------- | ---------------------------------------------- |
+| `sifta-cli status`    | 只读           | 读取本地认证和远端可达性              | 每个会话首次调用前先运行                       |
+| `sifta-cli tools`     | 只读           | 读取 Public API schema                | CLI/API 合约变化或命令失败时先运行             |
+| `find-people`         | 只读搜索       | 不创建 Web session/run                | 用于候选人召回；默认解析 JSON stdout           |
+| `enrich-people`       | 候选人补全     | 用户级 API key 下可能写入 session/run | 只用于已知 profile/handle/name 的补证据        |
+| 未来写回命令          | 高风险写操作   | 写 ATS/CRM/外部系统                   | 必须先向用户确认对象、字段、内容和目标系统     |
+| 可选 MCP thin wrapper | 本地工具适配层 | 复用 CLI/Public API                   | 只包装现有 command，不实现第二套 agent runtime |
+
+如果宿主 agent 支持 MCP，MCP 工具也应保持 thin wrapper：复用同一套 Public API、用户级 API
+key、schema、trace 和 warnings；不要在 MCP server 内增加独立 planner、长期 memory、provider
+密钥管理或候选人排序策略。
 
 ## 更新 CLI 和 Skill
 
@@ -67,7 +87,7 @@ sifta-cli update
 `--checkpoint` 保存用户本轮原始输入。
 
 ```bash
-sifta-cli search "上海 AI Agent 工程师 infra 开源项目" \
+sifta-cli search "AI Agent MCP LLM infra engineer open source" \
   --checkpoint "上海 AI Agent 工程师，偏 infra，有开源项目" \
   --limit 10 \
   --sources '["github"]' \
@@ -91,24 +111,50 @@ sifta-cli search "上海 AI Agent 工程师 infra 开源项目" \
 
 ```bash
 sifta-cli find-people \
-  --query "上海 AI Agent 工程师 LLM observability 开源证据" \
+  --query "AI Agent MCP LLM observability infra engineer open source" \
   --checkpoint "找上海 AI Agent/infra 工程师，有 LLM observability 开源证据" \
   --filter '{"titles":["AI Engineer","Infra Engineer"],"skills":["AI Agent","LLM observability"],"locations":["Shanghai"]}' \
+  --feedback '[{"feedback":"上一轮候选人更像顾问，请从学生、共同作者、前同事继续扩展全职候选"}]' \
   --sources '["github"]' \
   --target-count 10
 ```
 
 参数：
 
-| 参数                  | 必填       | 说明                                                 |
-| --------------------- | ---------- | ---------------------------------------------------- |
-| `--query <text>`      | 是         | 给 connector 的主搜索文本。                          |
-| `--checkpoint <text>` | Agent 必填 | 用户本轮原始输入；不要写复述、翻译或压缩后的搜索词。 |
-| `--filter <json>`     | 否         | 结构化筛选条件 JSON 对象。                           |
-| `--target-count <n>`  | 否         | 目标候选人数，1-50。                                 |
-| `--sources <json>`    | 否         | 候选人来源 JSON 字符串数组。                         |
-| `--mode <mode>`       | 否         | `default` 或 `research`。                            |
-| `--pretty`            | 否         | 人类可读输出。不要用于 agent 解析。                  |
+| 参数                  | 必填       | 说明                                                               |
+| --------------------- | ---------- | ------------------------------------------------------------------ |
+| `--query <text>`      | 是         | 给 connector 的主搜索文本。                                        |
+| `--checkpoint <text>` | Agent 必填 | 用户本轮原始输入；不要写复述、翻译或压缩后的搜索词。               |
+| `--filter <json>`     | 否         | 结构化筛选条件 JSON 对象。                                         |
+| `--feedback <json>`   | 否         | 人工审查反馈 JSON 数组；通常由 `pnpm sifta:review-feedback` 生成。 |
+| `--target-count <n>`  | 否         | 目标候选人数，1-50。                                               |
+| `--sources <json>`    | 否         | 候选人来源 JSON 字符串数组。                                       |
+| `--mode <mode>`       | 否         | `default` 或 `research`。                                          |
+| `--trace`             | 否         | 返回脱敏 `toolTrace`，用于 eval、真实 smoke 和渠道输入排查。       |
+| `--pretty`            | 否         | 人类可读输出。不要用于 agent 解析。                                |
+
+`--query` 必须符合 source-specific contract，详见
+[query-contract.md](query-contract.md)。简要规则：
+
+- GitHub：英文技术关键词 + 工程角色词，例如 `AI Agent MCP LLM infra engineer open source`。
+- LinkedIn / 产品 / GTM：用户语言的自然人才画像，保留中文岗位、地区、公司和职能信号。
+- Research-map：先保留 paper/lab/company/project/repo/dataset source-map 线索，再转候选人渠道。
+- X：只有用户明确授权 X / public posts / community signal 时使用。
+
+`--feedback` 用于多轮 review loop。Agent 不要手写复杂长 prompt；优先从人工填写的
+`feedback-template.json` 运行：
+
+```bash
+pnpm sifta:review-feedback --out <review-dir> <review-dir>/feedback-template.json
+```
+
+然后复制 `next-search.json` 或 `next-search.md` 中生成的 `sifta-cli find-people`
+命令。反馈会进入服务端 `feedbackIngest`，用于影响下一轮 `searchStrategy`、候选人分桶、
+`whyNot` 和 `nextAction`。
+
+如果上一轮 review 同时包含 GitHub 和 LinkedIn，`sifta:review-feedback` 会生成多条
+source-specific request。Agent 应分别执行需要的来源命令，不要把 GitHub 英文 query 和
+LinkedIn 中文画像合并成一条混合来源命令。
 
 当前支持的 filter 字段：
 
@@ -119,6 +165,41 @@ sifta-cli find-people \
 | `skills`      | `string[]` | `["AI Agent", "embodied AI"]`        |
 | `companies`   | `string[]` | `["Qwen", "ByteDance"]`              |
 | `seniorities` | `string[]` | `["senior", "staff"]`                |
+
+## Query 合同
+
+详细规则见 [query-contract.md](query-contract.md)。这里给最常见的三类命令。
+
+GitHub 工程岗：
+
+```bash
+sifta-cli find-people \
+  --query "AI Agent MCP LLM infra engineer open source" \
+  --checkpoint "找 1 个有 AI Agent、MCP 或 LLM infra 的工程候选人，优先 GitHub。" \
+  --sources '["github"]' \
+  --target-count 1 \
+  --trace
+```
+
+LinkedIn 产品岗：
+
+```bash
+sifta-cli find-people \
+  --query "上海 AI Agent 产品经理，具备大模型应用、智能体平台或 Agent 产品规划经验" \
+  --checkpoint "我们要找上海 AI Agent 产品经理，最好有大模型应用、智能体平台或字节相关背景。" \
+  --sources '["linkedin"]' \
+  --target-count 1 \
+  --trace
+```
+
+Review feedback loop：
+
+```bash
+pnpm sifta:review-feedback --out <review-dir>/next <review-dir>/feedback-template.json
+```
+
+生成的下一轮 GitHub query 必须是短技术关键词；完整人工反馈必须在 `--feedback` JSON 中。
+如果 `next-search.json` 有多条 `cases`，按 `request.sources` 分别执行对应来源。
 
 ## `sifta-cli enrich-people`
 
@@ -224,7 +305,7 @@ Agent 处理规则：
 本地真实验证：
 
 ```bash
-SIFTA_API_BASE_URL="http://localhost:3000/api" \
+SIFTA_API_BASE_URL="http://localhost:3311/api" \
 SIFTA_API_KEY="<local public api key>" \
 sifta-cli find-people \
   --query "在上海的 AI Agent 产品经理或产品负责人，具备大模型应用、智能体平台或 Agent 产品规划经验" \

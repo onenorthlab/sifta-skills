@@ -53,11 +53,22 @@ sifta-cli find-people --query "video generation multimodal diffusion text-to-vid
 ## 2. 具身智能人才
 
 覆盖机器人、自动驾驶、感知、控制、仿真、VLA、具身模型相关工程师或岗位。职业经历和论文
-通常同等重要，默认 GitHub + LinkedIn；论文证据明显重要时使用 research mode。
+通常同等重要，但不要把同一个 query 同时打到 GitHub 和 LinkedIn。先按来源拆成
+GitHub 工程证据或 LinkedIn 职业 profile；论文证据明显重要时使用 research mode。
 
 ```bash
-sifta-cli find-people --query "具身智能 机器人 VLA control simulation engineer GitHub LinkedIn evidence" \
+sifta-cli find-people --query "embodied AI robotics VLA control simulation engineer open source" \
   --checkpoint "找具身智能方向人才，机器人/VLA/仿真/控制都可以，有公开工程或职业证据" \
+  --sources '["github"]' \
+  --target-count 10
+```
+
+需要 LinkedIn 职业 profile 时另起一轮：
+
+```bash
+sifta-cli find-people --query "具身智能 机器人 VLA 仿真 控制方向工程师或研究负责人，有公开职业经历" \
+  --checkpoint "找具身智能方向人才，机器人/VLA/仿真/控制都可以，有公开工程或职业证据" \
+  --sources '["linkedin"]' \
   --target-count 10
 ```
 
@@ -157,7 +168,7 @@ sifta-cli find-people --query "负责 AI developer marketing、社区增长或 D
   --target-count 10
 ```
 
-Company-map assisted 查询：
+Company-map assisted GTM/Growth sourcing：
 
 ```bash
 sifta-cli find-people \
@@ -218,6 +229,9 @@ sifta-cli find-people \
   --target-count 10
 ```
 
+这类 `--mode research` 的 query 是 source-map 种子，不等于最终候选人渠道 query。转入
+GitHub 时改写成英文技术/角色词；转入 LinkedIn 时保留中文职业画像。
+
 验证方式：
 
 - 区分论文作者证据、工程 profile 证据和招聘可用性。
@@ -255,8 +269,9 @@ sifta-cli enrich-people \
 先用 `find-people` 得到候选人，再基于返回证据人工式 triage。
 
 ```bash
-sifta-cli find-people --query "上海 AI Agent 工程师 infra 开源项目证据" \
+sifta-cli find-people --query "AI Agent LLM infra engineer open source" \
   --checkpoint "上海 AI Agent 工程师，偏 infra，有开源项目" \
+  --sources '["github"]' \
   --target-count 10
 ```
 
@@ -287,8 +302,9 @@ Triage 规则：
 示例：
 
 ```bash
-sifta-cli find-people --query "中国 AI 工程师 Agent LLM 平台 公开项目经验" \
+sifta-cli find-people --query "AI Agent LLM platform engineer open source" \
   --checkpoint "中国 AI 工程师，有 agent、LLM 平台或公开项目经验" \
+  --sources '["github"]' \
   --target-count 10
 ```
 
