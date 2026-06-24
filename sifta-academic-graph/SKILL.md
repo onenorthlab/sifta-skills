@@ -1,7 +1,7 @@
 ---
 name: sifta-academic-graph
 metadata:
-    version: 0.0.5
+    version: 0.0.6
     tags: [sifta-search, recruiting, sourcing, research, academic-graph]
 description: >
     用于 academic graph sourcing，覆盖 foundation model、math、code、

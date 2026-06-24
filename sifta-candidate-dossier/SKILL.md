@@ -1,7 +1,7 @@
 ---
 name: sifta-candidate-dossier
 metadata:
-    version: 0.0.5
+    version: 0.0.6
     tags: [sifta-search, recruiting, sourcing, enrichment, dossier]
 description: >
     用于已知候选人 deep-dive、profile enrichment 和 candidate dossier。用户给出候选人姓名、

@@ -1,7 +1,7 @@
 ---
 name: sifta-search
 metadata:
-    version: 0.0.5
+    version: 0.0.6
     tags: [sifta-search, recruiting, sourcing, candidates]
 description: >
     用于 AI 行业招聘 sourcing、候选人筛选、公开 profile enrichment、
@@ -24,7 +24,7 @@ Sifta 是 AI 行业招聘 sourcing 增强层，不是通用网页搜索、公司
 - 具身智能人才：机器人、自动驾驶、感知、控制、仿真、VLA、具身模型。
 - 超级个体 / founder：独立开发者、一人公司、AI startup 创始人。
 - AI 产品经理：大模型产品、Agent 产品、平台产品、Qwen/字节等团队相关 PM。
-- GTM/GMT/出海/营销：增长、商业化、developer marketing、社区增长、AI 产品营销。
+- GTM/增长/出海/营销：增长、商业化、developer marketing、社区增长、AI 产品营销。
 - 研究型 / 学术图谱人才：OpenAlex、Scholar、Semantic Scholar、arXiv/OpenReview、实验室、项目页和个人主页证据。
 - 已知候选人 deep-dive：查公开经历、成就、职业联系方式、风险缺口和 candidate dossier。
 - 候选人触达文案：基于已核验证据写 DM、email、LinkedIn message、referral intro 或 follow-up。
@@ -64,8 +64,12 @@ Sifta 是 AI 行业招聘 sourcing 增强层，不是通用网页搜索、公司
 | 已知 GitHub / LinkedIn URL   | `enrich-people --people '[...]'`                  | 只补全公开 profile 证据，避免重名误合并    |
 | 已知候选人 deep-dive         | candidate dossier / enrichment                    | 只查公开信息；联系方式限公开职业渠道       |
 | 候选人触达文案               | outreach copy                                     | 只生成草稿；不自动发送；不编造关系或承诺   |
-| 模糊招聘目标                 | 读 `intent-routing.md`                            | 硬阻塞时 hard stop，只问一个短问题；可推断时直接推进 |
+| 模糊招聘目标                 | Project Brief gate；必要时读 `intent-routing.md`  | 硬阻塞时 hard stop，只问一个短问题；可推断时直接推进 |
 | 不清楚是否招聘               | 先问一个短问题                                    | hard stop；不把客户、创作者、公司或销售线索混成候选人 |
+
+## 3.5 Project Brief gate
+
+执行前先压缩成 Project Brief；可推断就写 Assumptions 推进，只有 hard stop 才问一个短问题。Hard stop 包括：不清楚是否招聘、role family 完全不可推断、deep-dive 无可消歧 profile、要求私人联系方式/自动发送、或多 route 成本差异大且范围未定。详细字段、最小问题和 source-map lead -> candidate 状态机见 [references/project-brief-and-state.md](references/project-brief-and-state.md)。
 
 ## 4. Route skills
 
@@ -83,16 +87,12 @@ Sifta 是 AI 行业招聘 sourcing 增强层，不是通用网页搜索、公司
 复杂项目顺序：
 
 1. 先理解项目目标：岗位、职能、职级、地域、must-have、avoid。
-2. 模糊时按 `intent-routing.md` 判断：可推断就写 Assumptions；只有硬阻塞才追问。硬阻塞时本轮
-   hard stop，只问一个最小问题，不输出 source map、CLI 命令、候选人搜索 workflow 或候选人分桶。
-3. 如需要，先用宿主 agent 建立 source map：paper、company、lab、advisor、coauthor、
-   competition、project、repo、dataset。
+2. 模糊时按 `intent-routing.md` 判断：可推断就写 Assumptions；hard stop 只问一个最小问题。
+3. 如需要，先用宿主 agent 建立 source map：paper、company、lab、advisor、coauthor、repo、dataset。
 4. 选择执行面：native search 足够时按 Sifta 质量门交付；需要 connector/trace/review 时调用 CLI。
-5. 如果调用 CLI，`--query` 必须符合来源合同，不写通用网页搜索语法；`--checkpoint` 必须放用户
-   本轮原始目标，不放改写后的 query。
+5. 调 CLI 时，`--query` 必须符合来源合同；`--checkpoint` 必须放用户本轮原始目标。
 6. 人工 review 后继续找时，优先使用 `pnpm sifta:review-feedback` 生成 `--feedback` JSON。
-7. 解析 JSON 输出，优先读 `people`、`searchStrategy`、`sourceMap`、`evidenceLog`、`crmExport`
-   和 `warnings`。
+7. 解析 JSON 时优先读 `people`、`searchStrategy`、`sourceMap`、`evidenceLog`、`crmExport` 和 `warnings`。
 8. 最终输出必须包含 Fit Proof Packet：requirement -> evidence -> source -> confidence -> weakness -> next action。
 
 ## 5. 命令选择
@@ -161,7 +161,8 @@ sifta-cli status
 固定包含：
 
 - Project Card：用户原始目标、Assumptions、must-have / avoid。
-- Source Map：已用来源和待补来源。
+- Source Map：已用来源和待补来源；每条 lead 至少包含 `lead`、`sourceFamily`、`whyRelevant`、
+  `conversionBlocker`、`nextVerification`。
 - Candidate Buckets：全职候选、顾问/推荐人、产业标杆、待核验或排除项。
 - Fit Proof Packet：requirement、evidence、source、confidence、weakness、next action。
 - Coverage Warnings：API warnings、provider 失败、召回不足、证据弱、分类不确定。
@@ -172,5 +173,5 @@ sifta-cli status
 
 ## 9. 参考
 
-按需读取：`references/cli-reference.md`、`references/intent-routing.md`、`references/source-map-recipes.md`、`references/query-contract.md`、`references/fit-proof-packet.md`、`references/workflow-patterns.md`、`references/output-quality.md`。
+按需读取：`references/cli-reference.md`、`references/intent-routing.md`、`references/project-brief-and-state.md`、`references/source-map-recipes.md`、`references/query-contract.md`、`references/fit-proof-packet.md`、`references/workflow-patterns.md`、`references/output-quality.md`。
 评估集：`evals/evals.json`；Trigger gate：`scripts/evaluate-trigger-domain.mjs`。

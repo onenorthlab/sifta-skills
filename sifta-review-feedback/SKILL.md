@@ -1,7 +1,7 @@
 ---
 name: sifta-review-feedback
 metadata:
-    version: 0.0.5
+    version: 0.0.6
     tags: [sifta-search, recruiting, sourcing, review, feedback]
 description: >
     用于 Sifta 候选人搜索后的 review feedback：用户给出人工反馈、要求继续找、

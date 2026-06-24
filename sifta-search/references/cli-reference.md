@@ -3,11 +3,13 @@
 这些命令只用于招聘候选人 sourcing。除非传入 `--pretty`，CLI stdout 默认是 JSON。
 Agent 应解析 stdout，并把 stderr 视为状态或调试输出。
 
+当前 CLI 没有 `sifta-cli search` 命令。不要在 skill、eval、报告或用户可复制命令里推荐
+`sifta-cli search`；候选人搜索统一使用 `sifta-cli find-people`。
+
 ## 目录
 
 - [认证与状态](#认证与状态)
 - [命令与 Connector 边界](#命令与-connector-边界)
-- [`sifta-cli search`](#sifta-cli-search)
 - [`sifta-cli find-people`](#sifta-cli-find-people)
 - [`sifta-cli enrich-people`](#sifta-cli-enrich-people)
 - [Query 合同](#query-合同)
@@ -100,30 +102,6 @@ sifta-cli update
 ```
 
 更新完成后，重启 agent 或新开会话，让新 skill 生效。
-
-## `sifta-cli search`
-
-简单自然语言候选人搜索入口。Agent 如果已经把用户输入改写成 connector query，必须同时传
-`--checkpoint` 保存用户本轮原始输入。
-
-```bash
-sifta-cli search "AI Agent MCP LLM infra engineer open source" \
-  --checkpoint "上海 AI Agent 工程师，偏 infra，有开源项目" \
-  --limit 10 \
-  --sources '["github"]' \
-  --json
-```
-
-参数：
-
-| 参数                  | 必填       | 说明                                                 |
-| --------------------- | ---------- | ---------------------------------------------------- |
-| `<query>`             | 是         | 候选人搜索文本。                                     |
-| `--checkpoint <text>` | Agent 必填 | 用户本轮原始输入；不要写复述、翻译或压缩后的搜索词。 |
-| `--limit <n>`         | 否         | 搜索结果数量，1-50。                                 |
-| `--sources <json>`    | 否         | 候选人来源 JSON 字符串数组。                         |
-| `--mode <mode>`       | 否         | `default` 或 `research`。                            |
-| `--json`              | 否         | JSON 输出。                                          |
 
 ## `sifta-cli find-people`
 

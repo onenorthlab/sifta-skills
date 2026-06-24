@@ -1,7 +1,7 @@
 ---
 name: sifta-linkedin-product-gtm
 metadata:
-    version: 0.0.5
+    version: 0.0.6
     tags: [sifta-search, recruiting, sourcing, linkedin, product, gtm]
 description: >
     用于 AI 产品经理、平台产品、Agent 产品、GTM、增长、商业化、

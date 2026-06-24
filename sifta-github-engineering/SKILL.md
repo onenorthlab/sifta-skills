@@ -1,7 +1,7 @@
 ---
 name: sifta-github-engineering
 metadata:
-    version: 0.0.5
+    version: 0.0.6
     tags: [sifta-search, recruiting, sourcing, github, engineering]
 description: >
     用于 AI 工程候选人 sourcing，特别是用户要求开源证据、GitHub profile、

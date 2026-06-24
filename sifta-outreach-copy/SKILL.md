@@ -1,7 +1,7 @@
 ---
 name: sifta-outreach-copy
 metadata:
-    version: 0.0.5
+    version: 0.0.6
     tags: [sifta-search, recruiting, outreach, copy]
 description: >
     用于已知候选人或 candidate dossier 之后的 recruiting outreach copy：DM、email、
