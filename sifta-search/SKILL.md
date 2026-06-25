@@ -109,12 +109,18 @@ sifta-cli status
 | --------------------------------- | ----------------------------------------------------------------------------------------- |
 | 候选人搜索                        | `sifta-cli find-people --query "<query>" --checkpoint "<原始用户目标>" --target-count 10` |
 | 明确 title/skill/location/company | `sifta-cli find-people --query "<query>" --checkpoint "<原始用户目标>" --filter '{...}'`  |
+| 保存到 Web 历史                   | `sifta-cli find-people --query "<query>" --checkpoint "<原始用户目标>" --save`            |
+| 新增或低频 API 字段               | `sifta-cli find-people --input '{"query":"...","checkpoint":"..."}'`                      |
 | 已知 profile 或 handle 补全       | `sifta-cli enrich-people --people '[...]'`                                                |
 | CLI/API schema 变化或命令失败     | `sifta-cli tools`，再按当前 schema 重建命令                                               |
 
 默认解析 JSON stdout。不要把 `--pretty` 用于 agent 解析；它只适合人工查看。真实验证、eval
 或渠道输入排查时追加 `--trace`；日常搜索不要默认输出 trace。详细命令见
 [references/cli-reference.md](references/cli-reference.md)。
+
+`find-people` 默认只返回本轮 JSON，不写 Web 历史。用户明确要求“保存、落库、同步到 Web、稍后在 Web 查看”，或 agent 判断这轮结果已通过基本质量门、值得沉淀给用户复核时，追加 `--save`。保存成功后 JSON 会包含 `persisted.webPath`，最终回复应给出该 Web 回看路径。探索性宽召回、弱证据候选或尚未 review 的试探查询不要默认 `--save`。
+
+为减少 CLI 后续变动，只有高频、稳定字段才优先用独立 flag。Public API 新增字段、临时实验字段或低频字段优先通过 `--input` JSON 传完整请求；显式命令行 flag 会覆盖 `--input` 中的同名字段。
 
 不要静默打开浏览器，不要请求服务端供应商密钥。未认证时按 CLI 参考处理用户级 API key。
 

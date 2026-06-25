@@ -48,6 +48,8 @@ npm install -g @sifta/cli@latest
 Sifta CLI 是本地 agent 的 command/connector 层。它只负责访问 Sifta Public API、返回稳定
 JSON、暴露 schema 和 trace；不承担 planner、memory、通用搜索或候选人策略。
 
+CLI 稳定性原则：高频、长期稳定的参数才加独立 flag；Public API 新增字段、临时实验字段或低频字段优先通过 `--input` JSON 传入完整请求。显式命令行 flag 会覆盖 `--input` 中的同名字段。
+
 边界判断：
 
 - GitHub 工程证据：宿主 agent 可优先使用 native GitHub search、GitHub MCP、`gh` 或浏览器；
@@ -59,14 +61,14 @@ JSON、暴露 schema 和 trace；不承担 planner、memory、通用搜索或候
 - LinkedIn people search、已知 profile enrichment 和跨轮反馈闭环，是 Sifta CLI/API 的主要
   增强面。
 
-| 命令 / 接入           | 类型           | 写入行为                              | Agent 规则                                     |
-| --------------------- | -------------- | ------------------------------------- | ---------------------------------------------- |
-| `sifta-cli status`    | 只读           | 读取本地认证和远端可达性              | 使用 CLI connector 前运行                      |
-| `sifta-cli tools`     | 只读           | 读取 Public API schema                | CLI/API 合约变化或命令失败时先运行             |
-| `find-people`         | 只读搜索       | 不创建 Web session/run                | 用于候选人召回；默认解析 JSON stdout           |
-| `enrich-people`       | 候选人补全     | 用户级 API key 下可能写入 session/run | 只用于已知 profile/handle/name 的补证据        |
-| 未来写回命令          | 高风险写操作   | 写 ATS/CRM/外部系统                   | 必须先向用户确认对象、字段、内容和目标系统     |
-| 可选 MCP thin wrapper | 本地工具适配层 | 复用 CLI/Public API                   | 只包装现有 command，不实现第二套 agent runtime |
+| 命令 / 接入           | 类型           | 写入行为                                    | Agent 规则                                     |
+| --------------------- | -------------- | ------------------------------------------- | ---------------------------------------------- |
+| `sifta-cli status`    | 只读           | 读取本地认证和远端可达性                    | 使用 CLI connector 前运行                      |
+| `sifta-cli tools`     | 只读           | 读取 Public API schema                      | CLI/API 合约变化或命令失败时先运行             |
+| `find-people`         | 候选人搜索     | 默认不创建 Web session/run；`--save` 时写入 | 用于候选人召回；默认解析 JSON stdout           |
+| `enrich-people`       | 候选人补全     | 用户级 API key 下可能写入 session/run       | 只用于已知 profile/handle/name 的补证据        |
+| 未来写回命令          | 高风险写操作   | 写 ATS/CRM/外部系统                         | 必须先向用户确认对象、字段、内容和目标系统     |
+| 可选 MCP thin wrapper | 本地工具适配层 | 复用 CLI/Public API                         | 只包装现有 command，不实现第二套 agent runtime |
 
 使用 CLI 前先读：
 
@@ -116,22 +118,53 @@ sifta-cli find-people \
   --filter '{"titles":["AI Engineer","Infra Engineer"],"skills":["AI Agent","LLM observability"],"locations":["Shanghai"]}' \
   --feedback '[{"feedback":"上一轮候选人更像顾问，请从学生、共同作者、前同事继续扩展全职候选"}]' \
   --sources '["github"]' \
-  --target-count 10
+  --target-count 10 \
+  --save
 ```
 
 参数：
 
-| 参数                  | 必填       | 说明                                                               |
-| --------------------- | ---------- | ------------------------------------------------------------------ |
-| `--query <text>`      | 是         | 给 connector 的主搜索文本。                                        |
-| `--checkpoint <text>` | Agent 必填 | 用户本轮原始输入；不要写复述、翻译或压缩后的搜索词。               |
-| `--filter <json>`     | 否         | 结构化筛选条件 JSON 对象。                                         |
-| `--feedback <json>`   | 否         | 人工审查反馈 JSON 数组；通常由 `pnpm sifta:review-feedback` 生成。 |
-| `--target-count <n>`  | 否         | 目标候选人数，1-50。                                               |
-| `--sources <json>`    | 否         | 候选人来源 JSON 字符串数组。                                       |
-| `--mode <mode>`       | 否         | `default` 或 `research`。                                          |
-| `--trace`             | 否         | 返回脱敏 `toolTrace`，用于 eval、真实 smoke 和渠道输入排查。       |
-| `--pretty`            | 否         | 人类可读输出。不要用于 agent 解析。                                |
+| 参数                  | 必填     | 说明                                                                       |
+| --------------------- | -------- | -------------------------------------------------------------------------- |
+| `--input <json>`      | 否       | 完整 `find_people` 请求 JSON 对象；显式 flag 会覆盖同名字段。              |
+| `--query <text>`      | 请求必填 | 给 connector 的主搜索文本；可由 `--input.query` 提供。                     |
+| `--checkpoint <text>` | 请求必填 | 用户本轮原始输入；可由 `--input.checkpoint` 提供。不要写复述或压缩搜索词。 |
+| `--filter <json>`     | 否       | 结构化筛选条件 JSON 对象。                                                 |
+| `--feedback <json>`   | 否       | 人工审查反馈 JSON 数组；由 agent 根据上一轮结果和用户反馈整理。            |
+| `--target-count <n>`  | 否       | 目标候选人数，1-50。                                                       |
+| `--sources <json>`    | 否       | 候选人来源 JSON 字符串数组。                                               |
+| `--mode <mode>`       | 否       | `default` 或 `research`。                                                  |
+| `--save`              | 否       | 保存本轮结果到 Web `/sourcing` 历史；等价于 Public API `persist: true`。   |
+| `--trace`             | 否       | 返回脱敏 `toolTrace`，用于渠道输入或工具调用排查。                         |
+| `--pretty`            | 否       | 人类可读输出。不要用于 agent 解析。                                        |
+
+默认不要 `--save`：探索性宽召回、弱证据结果或尚未 review 的试探查询只保留 JSON。用户明确要求保存、落库、同步到 Web、稍后回看，或 agent 判断本轮结果已通过基本质量门、值得沉淀给用户复核时，追加 `--save`。保存成功后 JSON 会包含：
+
+```json
+{
+	"persisted": {
+		"sessionId": "session_id",
+		"runId": "run_id",
+		"candidateCount": 3,
+		"webPath": "/sourcing?sessionId=session_id"
+	}
+}
+```
+
+最终回复应把 `persisted.webPath` 作为 Web 回看路径给用户。`--save` 只写入当前用户 API key 所属账号，不接受 CLI 传入 `userId`。
+
+`--input` 用于减少 CLI 后续变动。下面两条命令等价，后一种适合 API 增加低频字段或临时实验字段时使用：
+
+```bash
+sifta-cli find-people \
+  --query "AI Agent MCP LLM infra engineer open source" \
+  --checkpoint "找上海 AI Agent 工程师" \
+  --sources '["github"]' \
+  --save
+
+sifta-cli find-people \
+  --input '{"query":"AI Agent MCP LLM infra engineer open source","checkpoint":"找上海 AI Agent 工程师","sources":["github"],"persist":true}'
+```
 
 `--sources` 必须是 JSON 字符串数组，例如 `--sources '["github"]'` 或
 `--sources '["linkedin"]'`。不要写 `--sources github`、`--sources linkedin` 或
@@ -250,11 +283,12 @@ sifta-cli enrich-people \
 
 参数：
 
-| 参数               | 必填 | 说明                                   |
-| ------------------ | ---- | -------------------------------------- |
-| `--people <json>`  | 是   | 已知候选人对象 JSON 数组，最多 10 个。 |
-| `--sources <json>` | 否   | 要使用的来源 JSON 字符串数组。         |
-| `--pretty`         | 否   | 人类可读输出。不要用于 agent 解析。    |
+| 参数               | 必填     | 说明                                                               |
+| ------------------ | -------- | ------------------------------------------------------------------ |
+| `--input <json>`   | 否       | 完整 `enrich_people` 请求 JSON 对象。                              |
+| `--people <json>`  | 请求必填 | 已知候选人对象 JSON 数组，最多 10 个；可由 `--input.people` 提供。 |
+| `--sources <json>` | 否       | 要使用的来源 JSON 字符串数组。                                     |
+| `--pretty`         | 否       | 人类可读输出。不要用于 agent 解析。                                |
 
 当前 v1 支持 GitHub 和 LinkedIn 补全。GitHub 需要明确 `githubUrl`；LinkedIn 有
 `linkedinUrl` 时读取公开 profile 内容，没有 URL 时可用姓名、公司、地点做 LinkedIn
