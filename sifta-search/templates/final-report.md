@@ -1,37 +1,38 @@
-# Sifta Final Report Template
+# Sifta 最终报告模板
 
-用于候选人搜索、source-map-first 搜索或 review-feedback 后的最终 Markdown 输出。不要输出原始 JSON。
+用于候选人搜索、来源地图优先搜索或人工反馈后二轮搜索的最终 Markdown 输出。不要输出原始 JSON。
 
 ```markdown
-Project Card：
+项目卡片：
 - 目标：<用户原始目标>
-- Assumptions：<缺失信息和保守假设>
-- Must-have：<硬条件>
-- Avoid：<排除项或风险>
+- 默认地域 / 地域约束：<用户未指定时写“中国/中文生态相关人才池优先（不做族裔推断；缺公开相关职业信号不进候选分桶）”>
+- 假设：<缺失信息和保守假设>
+- 必要条件：<硬条件>
+- 排除项：<排除项或风险>
 
-Source Map：
-| lead | sourceFamily | whyRelevant | conversionBlocker | nextVerification |
+来源地图：
+| 线索 | 来源类型 | 相关原因 | 转候选人阻塞点 | 下一步核验 |
 | --- | --- | --- | --- | --- |
-| ... | GitHub / LinkedIn / academic / company / lab / project | ... | identity/profile/evidence missing | ... |
+| ... | GitHub / LinkedIn / 学术 / 公司 / 实验室 / 项目 | ... | 身份/个人资料/证据缺失 | ... |
 
-Candidate Buckets：
-| # | 候选人 | State | Bucket | 来源 | 概况 | Evidence grade | Weakness | Next action |
+候选人分桶：
+| # | 候选人 | 状态 | 分桶 | 来源 | 概况 | 证据等级 | 风险 | 下一步 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | ... | candidate / rejected | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | [Profile](url) | ... | A/B/Reject | ... | ... |
+| 1 | ... | 候选人 / 已排除 / 地域未核验线索 | 全职候选 / 顾问/推荐人 / 产业标杆 / 待核验线索 | [个人资料](url) | ... | A / B / C / 证据不足 | ... | ... |
 
-Lead Queue：
-| lead | state | sourceFamily | whyRelevant | conversionBlocker | nextVerification |
+待核验线索：
+| 线索 | 状态 | 来源类型 | 相关原因 | 转候选人阻塞点 | 下一步核验 |
 | --- | --- | --- | --- | --- | --- |
-| ... | source-map lead | paper / repo / company / lab / project | ... | identity/profile/evidence missing | ... |
+| ... | 待核验线索 | 论文 / repo / 公司 / 实验室 / 项目 | ... | 身份/个人资料/证据缺失 | ... |
 
-Fit Proof Packet：
-| Candidate/Lead | State | Requirement | Evidence | Source | Confidence | Weakness | Next action |
+适配证明：
+| 候选人/线索 | 状态 | 要求 | 证据 | 来源 | 置信度 | 风险 | 下一步 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| ... | candidate | ... | ... | ... | identity=high, fit=medium, evidence=A | ... | ... |
+| ... | 候选人 | ... | ... | ... | 身份置信度高，适配度中，证据等级 A | ... | ... |
 
-Coverage Warnings：
-- <provider、source、identity、weak-result、classification 或 Project Brief warning>
+覆盖风险：
+- <API 警告、来源失败、召回不足、证据弱、身份不确定、分类不确定或项目简报风险>
 
-Next Action：
-- <停止条件，或后续用户批准后的扩展 / 人工 review / 补证据 / 触达草稿>
+下一步：
+- <停止条件，或用户批准后的扩展 / 人工反馈 / 补证据 / 触达草稿>
 ```

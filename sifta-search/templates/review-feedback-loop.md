@@ -1,37 +1,37 @@
-# Sifta Review Feedback Loop Template
+# Sifta 人工反馈闭环模板
 
-用于把人工 review 转成下一轮 source-specific request。
+用于把人工反馈整理成 `--feedback` JSON，并拆分下一轮按来源执行的搜索请求。
 
 ```markdown
-Previous Result：
-- Candidate summary：
-- Source map：
-- Known warnings：
+上一轮结果：
+- 候选人摘要：
+- 来源地图：
+- 覆盖风险：
 
-Human Feedback：
-| Candidate/Lead | Previous state | Feedback | New state | Reason |
+人工反馈：
+| 候选人/线索 | 原状态 | 反馈 | 新状态 | 原因 |
 | --- | --- | --- | --- | --- |
-| A | candidate | 更像顾问 | advisor/referrer | ... |
-| B | candidate | 产业标杆 | benchmark | ... |
-| C | sourceMapLead | 证据弱 | rejected/pending-lead | ... |
+| A | 候选人 | 更像顾问 | 顾问/推荐人 | ... |
+| B | 候选人 | 产业标杆 | 产业标杆 | ... |
+| C | 来源地图线索 | 证据弱 | 已排除/待核验线索 | ... |
 
-Next CLI request：
+下一轮 CLI 请求：
 ```bash
 sifta-cli find-people \
-  --query "<next source-specific query>" \
-  --checkpoint "<original user goal>" \
-  --feedback '[{"feedback":"上一轮候选人更像顾问，请继续找全职候选","constraints":["保留工程落地证据"],"exclusions":["纯论文 profile"]}]' \
+  --query "<符合来源合同的下一轮查询>" \
+  --checkpoint "<用户原始目标>" \
+  --feedback '[{"feedback":"上一轮候选人更像顾问，请继续找全职候选","constraints":["保留工程落地证据"],"exclusions":["纯论文资料"]}]' \
   --sources '["github"]'
 ```
 
-Next Requests：
-| Case | Sources | Query contract | Feedback preserved |
+下一轮请求拆分：
+| 来源路径 | 来源 | 查询合同 | 已保留反馈 |
 | --- | --- | --- | --- |
-| github-next | `["github"]` | English technical tokens | yes |
-| linkedin-next | `["linkedin"]` | User-language role/market profile | yes |
+| GitHub 下一轮 | `["github"]` | 英文技术关键词 | 是 |
+| LinkedIn 下一轮 | `["linkedin"]` | 用户语言的人才画像 | 是 |
 
-Guardrails：
-- Keep source-specific queries split.
-- Put long review in `--feedback`, not GitHub query.
-- Preserve prior warnings and exclusions.
+执行边界：
+- 保持不同来源的查询拆分。
+- 长反馈放进 `--feedback`，不要塞进 GitHub `--query`。
+- 保留上一轮覆盖风险和排除项。
 ```

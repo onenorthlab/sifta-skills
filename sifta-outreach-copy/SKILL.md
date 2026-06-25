@@ -4,86 +4,86 @@ metadata:
     version: 0.0.6
     tags: [sifta-search, recruiting, outreach, copy]
 description: >
-    用于已知候选人或 candidate dossier 之后的 recruiting outreach copy：DM、email、
-    LinkedIn message、referral intro、follow-up 文案。用户要求基于候选人公开证据、
+    用于已知候选人或候选人档案之后的招聘触达文案：DM、email、
+    LinkedIn 消息、引荐介绍、跟进文案。用户要求基于候选人公开证据、
     项目/岗位、触达渠道、语气和限制生成可人工确认的触达草稿时使用。
     非招聘营销文案、销售邮件、KOL 合作、自动发送、联系方式抓取或私人信息请求不要使用。
 ---
 
-# Sifta Outreach Copy
-用于已知候选人、上一轮候选人结果或 candidate dossier 之后的触达文案。目标是生成 evidence-backed、可人工确认的 recruiter / founder / hiring manager outreach 草稿，不做发送自动化，不做联系方式抓取。
+# Sifta 触达文案
+用于已知候选人、上一轮候选人结果或候选人档案之后的触达文案。目标是生成有证据支撑、可人工确认的招聘方 / 创始人 / 用人经理触达草稿，不做发送自动化，不做联系方式抓取。
 
-## Workflow
+## 执行流程
 
-1. 先读取或复用 candidate dossier、上一轮候选人表、用户提供的公开 profile / evidence。
-2. 必须有候选人公开证据、项目/岗位和触达渠道；缺候选人证据时 hard stop 或转 dossier/enrichment。
-3. 确认语气、约束和不可说内容；缺失但风险可控时写入 Assumptions。
-4. 从公开证据中选择 1-2 个 personalization angle：项目、开源贡献、论文、产品经历、社区影响或职业方向。
+1. 先读取或复用候选人档案、上一轮候选人表、用户提供的公开个人资料 / 证据。
+2. 必须有候选人公开证据、项目/岗位和触达渠道；缺候选人证据时硬停止，或转候选人档案/资料补全。
+3. 确认语气、约束和不可说内容；缺失但风险可控时写入“假设”。
+4. 从公开证据中选择 1-2 个个性化切入点：项目、开源贡献、论文、产品经历、社区影响或职业方向。
 5. 生成 2-3 个渠道版本，保留每个个性化句子的证据来源，不把弱证据包装成确定事实。
 6. 给出人工确认清单：事实、称谓、渠道、链接、合规和发送前需要用户确认的点。
 
-## Required Inputs
+## 必要输入
 
-| Input | Required | Notes |
+| 输入 | 是否必需 | 说明 |
 | --- | --- | --- |
-| 候选人公开证据 | hard gate | dossier、GitHub、LinkedIn public profile、个人主页、论文、repo、公开访谈等；只有用户明确要求通用模板时才写 generic template，否则缺证据必须转 dossier/enrichment 或 hard stop |
-| 项目 / 岗位 | yes | 公司 / 团队、岗位、方向、must-have、location / remote 如已知 |
-| 触达渠道 | yes | email、LinkedIn、X/DM、referral intro、follow-up 等 |
-| 语气 | yes | founder-style、professional、warm、concise、technical、low-pressure 等 |
-| 约束 | yes | 长度、语言、是否提公司名、是否提岗位名、是否需要 CTA |
-| 不可说内容 | default-safe | 薪资、签证、入职时间、公司资源、候选人隐私、竞争对手等限制 |
+| 候选人公开证据 | 硬门槛 | 候选人档案、GitHub、LinkedIn 公开资料、个人主页、论文、repo、公开访谈等；只有用户明确要求通用模板时才写通用模板，否则缺证据必须转候选人档案/资料补全或硬停止 |
+| 项目 / 岗位 | 是 | 公司 / 团队、岗位、方向、必要条件、地点 / 远程要求（如已知） |
+| 触达渠道 | 是 | email、LinkedIn、X/DM、引荐介绍、跟进等 |
+| 语气 | 是 | 创始人风格、专业、温和、简洁、技术向、低压力等 |
+| 约束 | 是 | 长度、语言、是否提公司名、是否提岗位名、是否需要行动请求 |
+| 不可说内容 | 默认安全约束 | 薪资、签证、入职时间、公司资源、候选人隐私、竞争对手等限制 |
 
-## Message Angle
+## 文案切入点
 
-- 只用公开、可引用、和岗位相关的证据做 personalization。
+- 只用公开、可引用、和岗位相关的证据做个性化。
 - 优先把候选人证据和项目需求连接起来，而不是堆砌赞美。
-- 保持低压力 CTA：询问是否愿意了解、是否方便 brief chat、是否可转给合适的人。
-- 对高不确定性证据使用柔性表述：`I noticed your public work on...`、`your profile suggests...`。
+- 保持低压力行动请求：询问是否愿意了解、是否方便简单聊聊、是否可转给合适的人。
+- 对高不确定性证据使用柔性表述：`I noticed your public work on...`、`your public materials suggest...`。
 
-## Safety Boundaries
+## 安全边界
 
 - 不自动发送，不点击发送按钮，不代替用户做最终确认。
-- 不抓取、猜测或生成私人联系方式；没有公开职业联系方式时只建议使用用户已有渠道或公开 profile。
+- 不抓取、猜测或生成私人联系方式；没有公开职业联系方式时只建议使用用户已有渠道或公开资料页。
 - 不编造与候选人的关系、内推关系、共同熟人或对方兴趣。
 - 不夸大公司资源、融资、团队、客户、影响力或岗位确定性。
 - 不承诺薪资、签证、入职时间、职级、title、offer 或面试结果。
 - 不使用敏感 / 私人信息，包括年龄、家庭、健康、住址、私人邮箱猜测、非公开社交内容。
 - 不暗示“我们一直关注你”“看过你很多活动轨迹”等过度了解。
 
-## Output Format
+## 输出格式
 
 ```markdown
 目标：<候选人 + 项目/岗位 + 渠道目标>
-Assumptions：
+假设：
 - <缺失输入和采用的保守假设>
 
-Message Strategy：
-- Angle: <为什么这个切入点和岗位相关>
-- Tone: <语气和长度策略>
-- CTA: <低压力下一步>
+文案策略：
+- 切入点：<为什么这个切入点和岗位相关>
+- 语气：<语气和长度策略>
+- 行动请求：<低压力下一步>
 
-Drafts：
-1. <Channel / version name>
+草稿：
+1. <渠道 / 版本名>
    <draft>
-2. <Channel / version name>
+2. <渠道 / 版本名>
    <draft>
-3. <Channel / version name, optional>
+3. <渠道 / 版本名，可选>
    <draft>
 
-Personalization Evidence：
-| Claim in copy | Public evidence | Confidence |
+个性化证据：
+| 文案主张 | 公开证据 | 置信度 |
 | --- | --- | --- |
-| ... | ... | high/medium/low |
+| ... | ... | 高/中/低 |
 
-Risks/Do-not-say：
+风险 / 不要说：
 - <不能说或需要人工确认的点>
-Next Action：
+下一步：
 - <发送前人工确认清单>
 ```
 
-## References
+## 参考
 
-| Reference | 何时读取 |
+| 参考文件 | 何时读取 |
 | --- | --- |
-| [Fit proof](../sifta-search/references/fit-proof-packet.md) / [Output rules](../sifta-search/references/output-quality.md) | 选择 personalization evidence，写 Risks/Do-not-say |
-| [CLI contract](../sifta-search/references/cli-reference.md) / [State gate](../sifta-search/references/project-brief-and-state.md) / [Query rules](../sifta-search/references/query-contract.md) | 需要 `enrich-people`、缺证据转 dossier 或修 enrichment 输入 |
+| [适配证明](../sifta-search/references/fit-proof-packet.md) / [输出规则](../sifta-search/references/output-quality.md) | 选择个性化证据，写风险 / 不要说 |
+| [CLI 合同](../sifta-search/references/cli-reference.md) / [状态门槛](../sifta-search/references/project-brief-and-state.md) / [查询规则](../sifta-search/references/query-contract.md) | 缺证据转候选人档案、补公开 profile 证据或修正 `find-people` 输入 |

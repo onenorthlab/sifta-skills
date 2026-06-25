@@ -1,19 +1,19 @@
 # 输出、质量门和失败恢复
 
-本文件给 `sifta-search` 主 skill 提供详细执行口径。主 skill 只负责 router 和高优先级规则；
+本文件给 `sifta-search` 主 Skill 提供详细执行口径。主 Skill 只负责分流和高优先级规则；
 这里记录结构字段、输出格式和失败恢复细节。
 
-## 0. Lead -> Candidate 状态机
+## 0. 线索 -> 候选人状态机
 
 | 状态 | 说明 | 升级门槛 |
 | --- | --- | --- |
-| `sourceMapLead` | paper、repo、company、lab、project、dataset、coauthor 等入口线索 | 找到个人 profile、GitHub、LinkedIn、个人主页、lab bio 或用户明确 profile |
-| `profileLead` | 已有个人 profile，但 fit 或身份交叉证据不足 | identity 至少 medium，并有与 requirement 相关的公开证据 |
-| `candidate` | 可进入候选表的人 | evidence graded，bucket 明确，Fit Proof Packet 完整 |
+| `sourceMapLead` | 论文、仓库、公司、实验室、项目、数据集、共同作者等入口线索 | 找到个人资料、GitHub、LinkedIn、个人主页、实验室简介或用户明确提供的个人资料 |
+| `profileLead` | 已有个人资料，但适配或身份交叉证据不足 | 身份置信度至少为中等，并有与用户要求相关的公开证据 |
+| `candidate` | 可进入候选表的人 | 已完成证据评级、分桶明确、适配证明包 完整 |
 | `rejected` | 身份冲突、隐私、非公开数据、无关或证据不可追溯 | 写明拒绝/排除原因，不为凑数保留 |
 
-paper/repo/company/lab leads 不能直接变候选人。弱结果优先回到 source map / profile
-verification，不要临时补一个看似更强的人填候选人列表。
+论文 / 仓库 / 公司 / 实验室线索不能直接变候选人。弱结果优先回到来源地图或个人资料核验，
+不要临时补一个看似更强的人填候选人列表。
 
 ## 1. 结构字段口径
 
@@ -25,23 +25,23 @@ verification，不要临时补一个看似更强的人填候选人列表。
 | 代码、模型、infra、SDK、开源贡献 | `Agent/LLM工程`、`WAM/VLA模型`  | 只有公开证据证明主要做工程实现时才归工程类                   |
 | 产品规划、PM、roadmap、平台产品  | `AI产品/平台`                   | 不要只因为产品涉及 Agent/LLM/大模型就归工程类                |
 | 增长、市场、商业化、DevRel       | `GTM/增长/DevRel`               | 不要只因为所在公司是 AI 产品公司就归产品岗                   |
-| 战略规划、商业分析、投资         | `战略/CEO Office/商业分析`      | 需要职业 profile 或公开经历支撑                              |
+| 战略规划、商业分析、投资         | `战略/CEO Office/商业分析`      | 需要职业资料或公开经历支撑                                   |
 | 论文、实验室、PI、产业科学家     | `科学顾问资源网络` 或具体研究类 | 强学术人物可能是顾问、推荐人、产业标杆，不一定进入全职候选池 |
-| 年轻高潜、博士后期/实习、竞赛和论文信号 | `基础模型研究/研究工程` 或具体研究类 | 必须同时核验个人 profile、贡献强度和公开实现或职业阶段       |
+| 年轻高潜、博士后期/实习、竞赛和论文信号 | `基础模型研究/研究工程` 或具体研究类 | 必须同时核验个人资料、贡献强度和公开实现或职业阶段           |
 | founder / co-founder / C-level   | 由主要职能决定                  | 创业/高管身份是可用性和职级信号，不是自动分类规则            |
 
 提交结构字段前做一致性检查：
 
-- 工程证据为空，且主要公开证据是产品规划、PM、product lead、平台产品或应用产品时，应填
+- 工程证据为空，且主要公开证据是产品规划、PM、产品负责人、平台产品或应用产品时，应填
   `AI产品/平台`。
 - 主要证据是增长、市场、商业化、开发者社区、partnerships、DevRel 或出海时，应填
   `GTM/增长/DevRel`。
-- 只有论文作者但缺少职业/profile 线索时，说明是研究线索或顾问入口，不包装成完整全职候选人。
-- Academic graph 学术通道下，年轻、博士、顶会论文或竞赛奖项都只是入口信号；没有个人
-  profile、公开实现、项目贡献或职业阶段证据时，只能进入 source map 或待核验线索。
-- Academic graph 学术通道下，如果方案没有说明 OpenAlex、Google Scholar、Semantic Scholar
-  或同级 broad graph / broad recall 来源是否已检查，必须写 Coverage Warning；Google Scholar
-  不应被写成官方 API connector。
+- 只有论文作者但缺少职业 / 个人资料线索时，说明是研究线索或顾问入口，不包装成完整全职候选人。
+- 学术图谱通道下，年轻、博士、顶会论文或竞赛奖项都只是入口信号；没有个人
+  资料、公开实现、项目贡献或职业阶段证据时，只能进入来源地图或待核验线索。
+- 学术图谱通道下，如果方案没有说明 OpenAlex、Google Scholar、Semantic Scholar
+  或同级广泛图谱 / 广泛召回来源是否已检查，必须写覆盖风险；Google Scholar
+  不应被写成官方 API 连接器。
 
 ## 2. 候选人输出格式
 
@@ -50,37 +50,37 @@ verification，不要临时补一个看似更强的人填候选人列表。
 推荐结构：
 
 ```markdown
-Project Card：
+项目简报：
 - 目标：<原始候选人目标>
-- Assumptions：<缺失信息和保守假设>
+- 假设：<缺失信息和保守假设>
 
-Source Map：
-- executedSources：<executedSources>
-- searched：<GitHub / LinkedIn / OpenAlex / Scholar / company map ...>
-- pending：<仍需补充的来源>
+来源地图：
+- 已执行来源：<executedSources>
+- 已查来源：<GitHub / LinkedIn / OpenAlex / Scholar / 公司地图 ...>
+- 待补来源：<仍需补充的来源>
 
-Candidate Buckets：
-| # | 候选人 | State | Bucket | 来源 | 概况 | Evidence grade | Weakness | Next action |
+候选人分桶：
+| # | 候选人 | 状态 | 分桶 | 来源 | 概况 | 证据等级 | 风险 / 弱项 | 下一步 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | <name> | candidate / rejected | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | [GitHub](profileUrl) | <headline/location> | A/B/Reject | <missing evidence> | <action> |
+| 1 | <name> | candidate / rejected | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | [GitHub](profileUrl) | <headline/location> | A/B/Reject | <缺失证据> | <下一步> |
 
-Lead Queue：
-| lead | state | sourceFamily | whyRelevant | conversionBlocker | nextVerification |
+待核验线索：
+| 线索 | 状态 | 来源类型 | 相关原因 | 转候选人阻塞点 | 下一步核验 |
 | --- | --- | --- | --- | --- | --- |
-| <lead> | source-map lead | paper / repo / company / lab / project | <why relevant> | identity/profile/evidence missing | <verification> |
+| <线索> | source-map lead | paper / repo / company / lab / project | <相关原因> | 身份/个人资料/证据缺失 | <核验动作> |
 
-Fit Proof Packet：
-| Candidate/Lead | State | Requirement | Evidence | Source | Confidence | Weakness | Next action |
+适配证明包：
+| 候选人/线索 | 状态 | 要求 | 证据 | 来源 | 置信度 | 弱点 | 下一步 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| <name> | candidate | <must-have> | <public evidence> | <url/source> | identity=high, fit=medium, evidence=A | <gap> | <action> |
+| <name> | candidate | <must-have> | <公开证据> | <url/source> | identity=high, fit=medium, evidence=A | <缺口> | <下一步> |
 
-Coverage Warnings：
+覆盖风险：
 
-- <warning>
+- <覆盖风险>
 
-Next Action：
+下一步：
 
-- <next action>
+- <下一步动作>
 ```
 
 格式要求：
@@ -91,20 +91,20 @@ Next Action：
 - 不把长段解释塞进表格；确实需要时，在表格后增加“补充说明”。
 - 不使用 `候选人：`、`画像：`、`来源：` 这种逐条字段块格式。
 - 在飞书、OpenClaw、CLI、Codex 等渠道中都优先输出 Markdown 表格。
-- 每个候选人必须有 Fit Proof Packet；没有 evidence/source/confidence/weakness 时不算完整交付。
+- 每个候选人必须有适配证明包；没有证据、来源、置信度和弱点时不算完整交付。
 
-## 3. Fit Proof Packet
+## 3. 适配证明包
 
-候选人 proof-of-fit 采用 `requirement -> evidence -> source -> confidence -> weakness -> next action`。
+候选人适配证明采用 `requirement -> evidence -> source -> confidence -> weakness -> next action`。
 详细标准见 [fit-proof-packet.md](fit-proof-packet.md)。
 
 证据等级：
 
 | 等级 | 说明 | 输出口径 |
 | --- | --- | --- |
-| A | 个人 profile 与目标证据直接匹配，来源可追溯 | 可进入候选表 |
-| B | 强 source-map 或单一 profile 证据，缺交叉验证 | 待复核候选，必须 warning |
-| C | repo owner、论文作者、公司/实验室成员或关键词命中 | source-map lead 或待核验线索 |
+| A | 个人资料与目标证据直接匹配，来源可追溯 | 可进入候选表 |
+| B | 强来源地图线索或单一个人资料证据，缺交叉验证 | 待复核候选，必须写覆盖风险 |
+| C | 仓库 owner、论文作者、公司/实验室成员或关键词命中 | 来源地图线索或待核验线索 |
 | Reject | 身份冲突、非公开信息、无关或不可追溯 | 不进候选表 |
 
 ## 4. 结果解释
@@ -121,67 +121,67 @@ Next Action：
 不要只看 `summaryMarkdown`。不要编造 JSON 中不存在的字段。不要编造邮箱、电话、薪资、
 搬迁意愿、在职状态或私人联系方式。
 
-除非 Sifta 返回 same-person hint，或有明确公开证据，否则不要断言跨渠道 profile 是同一个人；
+除非 Sifta 返回同人提示 (same-person hint)，或有明确公开证据，否则不要断言跨渠道个人资料是同一个人；
 不确定时写成“可能匹配”。
 
-## 5. Coverage Warnings
+## 5. 覆盖风险
 
 必须向用户传达 API 返回的 warnings，尤其是：
 
 - provider/network 失败。
 - 指定来源没有执行或没有返回候选人。
 - `priority=C` 或 `evidenceStatus=缺职业工程证据`。
-- repository fallback returned repo-owner leads。
-- source-map lead 被降级，或缺少 profile verification。
-- Project Brief 缺失但用 Assumptions 推进。
+- 仓库回退返回仓库 owner 线索。
+- 来源地图线索被降级，或缺少个人资料核验。
+- 项目简报缺失但用假设推进。
 - 候选人分类不确定。
-- 证据只来自单一 profile，缺少交叉验证。
+- 证据只来自单一个人资料，缺少交叉验证。
 
-repository fallback 的口径：
+仓库回退的口径：
 
-- 如果只有 repo 命中，缺少个人 profile、公司/经历或身份信号，只能作为 source-map 入口。
-- 如果有明确个人 profile、公司/经历信号和强开源项目证据，可以作为待复核候选进入候选池。
-- 即使进入候选池，也必须保留 coverage warning，提示人工验证 repo owner 是否为候选人本人。
+- 如果只有仓库命中，缺少个人资料、公司/经历或身份信号，只能作为来源地图入口。
+- 如果有明确个人资料、公司/经历信号和强开源项目证据，可以作为待复核候选进入候选池。
+- 即使进入候选池，也必须保留覆盖风险，提示人工验证仓库 owner 是否为候选人本人。
 
-academic graph fallback 的口径：
+学术图谱回退的口径：
 
-- paper / lab / advisor / coauthor / competition / project 只能解释从哪里继续找人。
+- 论文 / 实验室 / 导师 / 共同作者 / 竞赛 / 项目只能解释从哪里继续找人。
 - 一作、共一作、竞赛奖项或博士阶段可以提高优先级，但不能替代身份、职业阶段和工程/研究贡献核验。
-- PI、导师、通讯作者或头部科学家优先进入顾问/推荐人/产业标杆池；除非用户明确找顾问或科学家全职，并且有 profile 证据支持。
-- 如果只找到论文和机构，不输出完整候选人表；应输出 Source Map、待核验线索和下一步 profile/enrichment 动作。
+- PI、导师、通讯作者或头部科学家优先进入顾问/推荐人/产业标杆池；除非用户明确找顾问或科学家全职，并且有个人资料证据支持。
+- 如果只找到论文和机构，不输出完整候选人表；应输出来源地图、待核验线索和下一步个人资料核验 / 补全动作。
 
 ## 6. 失败恢复
 
-命令参数或 schema 变化：
+命令参数或结构变化：
 
 1. 运行 `sifta-cli tools`。
-2. 找到 `find_people` 或 `enrich_people` schema。
-3. 根据当前 schema 重建命令。
+2. 找到 `find_people` 结构。
+3. 根据当前结构重建命令。
 4. 使用明确 CLI 命令重试。
 
 无候选：
 
 - 不要断言不存在这类候选人。
 - 说明“这次搜索没有返回候选人”。
-- 给出具体调整：放宽 title、去掉地点、切换来源、补充公司/domain 线索，或在论文证据相关时使用 `--mode research`。
+- 给出具体调整：放宽头衔、去掉地点、切换来源、补充公司/领域线索，或在论文证据相关时使用 `--mode research`。
 
 弱结果：
 
 - 说明是“弱线索 / 待复核”，不能作为完成交付。
-- 优先在同一来源下重写 `--query`、扩大 `--target-count`、补充明确公司或项目线索，或放入 source map。
-- 可以使用宿主 agent native search 补证据或扩展 source map，但不能绕过 Sifta 质量门，临时找一个
+- 优先在同一来源下重写 `--query`、扩大 `--target-count`、补充明确公司或项目线索，或放入来源地图。
+- 可以使用宿主 Agent 原生搜索补证据或扩展来源地图，但不能绕过 Sifta 质量门，临时找一个
   看似更强的人填候选人列表。
 
 质量问题归因：
 
 | 现象                                    | 优先归因                 | 修复方向                                               |
 | --------------------------------------- | ------------------------ | ------------------------------------------------------ |
-| 渠道输入不符合 source-specific contract | Skill / query contract   | GitHub 改英文技术 query；LinkedIn/GTM 保留用户语言画像 |
-| 未授权调用 X                            | Sources / API visibility | 保留用户来源约束，检查 Public API source 选择          |
-| web/paper 线索进入候选人                | Source contract          | 修 Public API 或结果过滤                               |
-| provider `fetch failed`                 | Provider/network         | 写 warnings，不硬编码兜底候选人                        |
-| 候选人质量弱但输入正确                  | 覆盖不足 / query pattern | 调 query、补 source map、人工 review                   |
-| schema 字段缺失                         | API contract             | 修 structured candidates / CRM export                  |
+| 渠道输入不符合按来源定制的查询合同       | Skill / 查询合同         | GitHub 改英文技术查询；LinkedIn/GTM 保留用户语言画像   |
+| 未授权调用 X                            | 来源 / API 可见性        | 保留用户来源约束，检查 Public API 来源选择             |
+| 网页/论文线索进入候选人                 | 来源合同                 | 修 Public API 或结果过滤                               |
+| provider `fetch failed`                 | Provider / 网络          | 写 warnings，不硬编码兜底候选人                        |
+| 候选人质量弱但输入正确                  | 覆盖不足 / 查询模式      | 调整查询、补来源地图、人工审查                         |
+| 结构字段缺失                            | API 合同                 | 修结构化候选人 / CRM 导出                              |
 
 ## 7. 更新检查
 
@@ -191,10 +191,10 @@ Sifta CLI 的 JSON 输出可能包含 `_notice.update`：
 { "_notice": { "update": { "cli": "0.0.3" } } }
 ```
 
-不要影响当前候选人结果解析；先完成用户当前 sourcing 请求，再告知用户有新版本，并提议：
+不要影响当前候选人结果解析；先完成用户当前寻访请求，再告知用户有新版本，并提议：
 
 ```bash
 sifta-cli update
 ```
 
-更新后提醒用户重启 agent 或新开会话，以加载最新 Sifta skill suite。
+更新后提醒用户重启 Agent 或新开会话，以加载最新 Sifta 技能包。

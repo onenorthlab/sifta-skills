@@ -1,6 +1,6 @@
-# Fit Proof Packet
+# 适配证明包
 
-本文件定义如何证明候选人符合用户需求。Sifta 的输出必须让用户知道“为什么这个人值得看”，而不是只看到姓名和 profile。
+本文件定义如何证明候选人符合用户需求。Sifta 的输出必须让用户知道“为什么这个人值得看”，而不是只看到姓名和个人资料。
 
 ## 1. 固定结构
 
@@ -8,68 +8,68 @@
 
 | 字段 | 含义 |
 | --- | --- |
-| state | `source-map lead` / `profile lead` / `verified candidate` / `rejected` |
-| requirement | 用户需求或转写后的筛选条件 |
-| evidence | 公开证据，必须能指向 source |
-| source | GitHub / LinkedIn / paper / homepage / repo / talk / company bio 等 |
-| confidence | identity / fit / evidence 三类置信度 |
-| weakness | 未证明、不满足或需要人工核验的点 |
-| next action | 深挖、触达、继续扩展、转顾问/推荐人、排除 |
+| 状态 | `source-map lead` / `profile lead` / `verified candidate` / `rejected` |
+| 要求 | 用户需求或转写后的筛选条件 |
+| 证据 | 公开证据，必须能指向来源 |
+| 来源 | GitHub / LinkedIn / paper / homepage / repo / talk / company bio 等 |
+| 置信度 | 身份、适配度、证据三类置信度 |
+| 风险 / 弱项 | 未证明、不满足或需要人工核验的点 |
+| 下一步 | 深挖、触达、继续扩展、转顾问/推荐人、排除 |
 
 ## 2. 证据质量等级
 
 | 等级 | 说明 | 可作为强候选人吗 |
 | --- | --- | --- |
-| A | 个人 profile 与目标证据直接匹配，且来源可追溯 | 可以 |
-| B | 有强 source-map 或单一 profile 证据，但缺少交叉验证 | 可以作为待复核候选，必须 warning |
-| C | repo owner、论文作者、公司/实验室成员、关键词命中等弱线索 | 只能 source-map 或待核验线索 |
+| A | 个人资料与目标证据直接匹配，且来源可追溯 | 可以 |
+| B | 有强来源地图线索或单一个人资料证据，但缺少交叉验证 | 可以作为待复核候选，必须写覆盖风险 |
+| C | 仓库 owner、论文作者、公司/实验室成员、关键词命中等弱线索 | 只能进来源地图或待核验线索 |
 | Reject | 身份冲突、非公开信息、与岗位无关、证据无法追溯 | 不进候选表 |
 
-C 级只能作为 lead；B 级可进入待复核候选；A 级才可作为强推荐。隐私、自动发送、
-无个人 profile、身份冲突或非公开数据是 dealbreaker，直接 Reject 或 hard stop。
+C 级只能作为线索；B 级可进入待复核候选；A 级才可作为强推荐。隐私、自动发送、
+无个人资料、身份冲突或非公开数据是硬边界，直接排除或硬停止。
 
 ## 3. 接受门
 
 候选人进入候选表前必须满足：
 
-- identity confidence 至少 medium，或明确写成“待核验候选”。
-- 至少一个与 requirement 直接相关的公开证据。
-- source 链接或来源描述可追溯。
-- weakness 不为空；即使强候选也写未验证项。
-- 不输出私人联系方式猜测、薪资、求职意愿、relocation、签证、入职时间。
+- 身份置信度至少为中等，或明确写成“待核验候选”。
+- 至少一个与用户要求直接相关的公开证据。
+- 来源链接或来源描述可追溯。
+- 风险 / 弱项不为空；即使强候选也写未验证项。
+- 不输出私人联系方式猜测、薪资、求职意愿、搬迁意愿、签证、入职时间。
 
-Academic graph 的 paper / lab / advisor / coauthor / competition / project 线索必须先停在 source map；
-只有找到个人主页、GitHub、LinkedIn、Scholar profile、lab bio 或用户给出的 profile 后，才可进入候选表。
+学术图谱中的论文、实验室、导师、共同作者、竞赛和项目线索必须先停在来源地图；
+只有找到个人主页、GitHub、LinkedIn、Scholar 个人资料、实验室简介或用户给出的个人资料后，才可进入候选表。
 
 ## 4. 输出模板
 
 候选人表保持紧凑；证明细节放在表后。
 
 ```markdown
-Project Card：
+项目简报：
 - 目标：...
-- Assumptions：...
+- 假设：...
 
-Source Map：
-- searched: ...
-- pending: ...
+来源地图：
+- 已查来源：...
+- 待补来源：...
 
-Candidate Buckets：
-| 候选人 | State | Bucket | Evidence grade | Why fit | Weakness | Next action |
+候选人分桶：
+| 候选人 | 状态 | 分桶 | 证据等级 | 适配原因 | 风险 / 弱项 | 下一步 |
 | --- | --- | --- | --- | --- | --- | --- |
 | ... | verified candidate / rejected | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | A/B/Reject | ... | ... | ... |
 
-Lead Queue：
-| Lead | State | Source family | Why relevant | Conversion blocker | Next verification |
+待核验线索：
+| 线索 | 状态 | 来源类型 | 相关原因 | 转候选人阻塞点 | 下一步核验 |
 | --- | --- | --- | --- | --- | --- |
-| ... | source-map lead | paper / repo / company / lab / project | ... | identity/profile/evidence missing | ... |
+| ... | source-map lead | 论文 / 仓库 / 公司 / 实验室 / 项目 | ... | 身份 / 个人资料 / 证据缺失 | ... |
 
-Fit Proof Packet：
-| Candidate/Lead | State | Requirement | Evidence | Source | Confidence | Weakness | Next action |
+适配证明包：
+| 候选人/线索 | 状态 | 要求 | 证据 | 来源 | 置信度 | 风险 / 弱项 | 下一步 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | ... | verified candidate | ... | ... | ... | identity=high, fit=medium, evidence=A | ... | ... |
 
-Coverage Warnings：
+覆盖风险：
 - ...
 ```
 
@@ -77,8 +77,8 @@ Coverage Warnings：
 
 | 失败 | 处理 |
 | --- | --- |
-| 只有 summary，没有 evidence/source | 不算完成；补 Fit Proof Packet |
-| 论文作者直接当候选人 | 降级为 source-map lead，继续找 profile |
-| repo fallback 被强推 | 降级为 B/C，保留 warning |
-| LinkedIn 候选人只有 title 命中 | 写 fit=low/medium，要求补产品/增长/工程证据 |
-| outreach copy 没有 personalization evidence | 不能发送；退回补证据或写 generic 草稿 |
+| 只有摘要，没有证据/来源 | 不算完成；补适配证明包 |
+| 论文作者直接当候选人 | 降级为来源地图线索，继续找个人资料 |
+| 仓库回退被强推 | 降级为 B/C，保留覆盖风险 |
+| LinkedIn 候选人只有头衔命中 | 写适配度低/中，要求补产品/增长/工程证据 |
+| 触达文案没有个性化证据 | 不能发送；退回补证据或写通用草稿 |

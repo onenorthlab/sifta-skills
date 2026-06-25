@@ -1,83 +1,122 @@
-# Sifta Skills
+# Sifta 技能包
 
-面向 AI 招聘候选人 sourcing 的 agent skills。Sifta 是本地强 agent 的增强层，不替代
-Codex、Claude Code、OpenClaw 或 Cursor 的原生搜索、阅读和推理能力。
+Sifta 是给 Codex、Claude Code、OpenClaw、Cursor 等强 Agent 使用的 AI 招聘寻访增强层。
+它帮助 Agent 更稳定地做候选人搜索、公开证据整理、项目匹配和人工反馈后的二轮扩展。
 
-## 安装
+Sifta 不替代宿主 Agent 的原生搜索、阅读和推理能力，也不是 ATS、销售线索工具或自动触达
+系统。它只处理招聘寻访场景，只使用公开职业信息，触达内容只生成草稿。
 
-**用 Agent 安装（推荐）：** 把以下提示词发给 Agent，它会按文档自动完成安装和配置：
+## 1. 快速开始
 
-```
+### 1.1 用本地 Agent 安装（推荐）
+
+把下面的提示词发给你的 Agent：
+
+```text
 请阅读 https://sifta.onenorthdev.com/doc/cli-setup.md，按步骤为我安装并配置 Sifta CLI，密钥是：<SIFTA_API_KEY>
 ```
 
-**手动安装：**
+### 1.2 手动安装
 
 ```bash
 npx -y @sifta/cli@latest install
 ```
 
-**配置认证：**
+### 1.3 配置认证
 
 ```bash
-sifta-cli auth "<SIFTA_API_KEY>" --base-url https://sifta.onenorthdev.com/api
+sifta-cli auth "<SIFTA_API_KEY>"
 ```
 
-**验证：**
+### 1.4 验证
 
 ```bash
 sifta-cli status
 sifta-cli tools
 ```
 
-`install` 用于首次安装：持久化安装 Sifta CLI 并安装 Sifta skills。后续收到
-`_notice.update` 时再执行 `sifta-cli update`。
+安装完成后，重启 Agent 或新开会话。
 
-安装完成后重启 agent 或新开会话。
+## 2. 直接这样用
 
-## 可用 Skill
+安装完成后，不需要先理解每个技能名称。直接用自然语言描述你要找的人、要解决的问题、
+必须有的证据和偏好的约束。
 
-外部分发采用 router + 多个短 skill；不要把所有 sourcing 逻辑堆在一个 `SKILL.md` 里。
+| 目标                    | 可以这样说                                                              |
+| ----------------------- | ----------------------------------------------------------------------- |
+| 找 GitHub 工程候选人    | `帮我找 10 个做过 MCP / Agent 基础设施的开源工程师，优先有真实仓库证据` |
+| 找产品 / GTM / 增长人选 | `找几个做过 AI 开发者工具增长或商业化的人，偏早期团队经验`              |
+| 找研究型人才            | `帮我找 WAM/VLA 方向有论文和工程实现的年轻研究人才`                     |
+| 深挖已知候选人          | `帮我深挖这个 GitHub/LinkedIn 个人资料，整理公开证据、风险和适配度`     |
+| 基于反馈继续找          | `上一轮里 A 类更接近，但不要纯研究背景，继续找更偏产品落地的人`         |
+| 写触达草稿              | `基于这些候选人的公开证据，写一版 LinkedIn 私信草稿`                    |
 
-| Skill                                                        | 作用                                                                |
-| ------------------------------------------------------------ | ------------------------------------------------------------------- |
-| [`/sifta-search`](sifta-search/)                             | 总控 router，判断是否进入 Sifta 并选择具体短 skill                  |
-| [`/sifta-github-engineering`](sifta-github-engineering/)     | GitHub-first 工程和开源候选人                                       |
-| [`/sifta-linkedin-product-gtm`](sifta-linkedin-product-gtm/) | LinkedIn 产品、GTM、增长、商业化和 company-map                      |
-| [`/sifta-academic-graph`](sifta-academic-graph/)             | 学术图谱、研究型、基础模型、WAM/VLA 和 early-career research talent |
-| [`/sifta-candidate-dossier`](sifta-candidate-dossier/)       | 已知候选人 deep-dive、公开经历、成就、联系方式和风险缺口            |
-| [`/sifta-outreach-copy`](sifta-outreach-copy/)               | 私信、邮件、LinkedIn message、referral intro 和 follow-up 草稿      |
-| [`/sifta-review-feedback`](sifta-review-feedback/)           | 人工 review 反馈、二轮搜索和 mixed-source 拆分                      |
+用户不需要指定 GitHub、LinkedIn、论文库或具体连接器。Agent 会根据能力画像选择来源和
+执行面。
 
-## 能力边界
+## 3. 你会得到什么
 
-| 场景                               | 推荐执行面                                                                                  |
-| ---------------------------------- | ------------------------------------------------------------------------------------------- |
-| GitHub 工程候选人                  | 先用宿主 native GitHub search / GitHub MCP / `gh`；需要 Sifta trace 或 review loop 时用 CLI |
-| Academic graph / 学术通道          | 先用宿主 academic/web search 建 source map；需要结构化 research trace 时用 CLI              |
-| LinkedIn 产品、GTM、商业化         | 优先用 Sifta CLI/API connector                                                              |
-| 已知 profile enrichment            | 用 Sifta CLI/API 统一补证据                                                                 |
-| Candidate dossier / 已知候选人深挖 | 先做 identity resolution，只整理公开信息和公开职业联系方式                                  |
-| Outreach copy / 触达文案           | 只生成 evidence-backed 草稿；发送前必须人工确认                                             |
-| Review feedback 二轮               | 基于上一轮候选人和人工反馈，用 Sifta CLI 继续下一轮搜索                                     |
+Sifta 不是只返回一串名字。一次合格的寻访输出应该包含：
 
-无论是否调用 CLI，都必须按 Sifta 输出质量门交付：候选人必须有个人 profile 证据，source map
-线索不能直接变成候选人，coverage warnings 不能省略。联系方式只限公开职业联系方式；不要猜私人
-邮箱、手机号、住址或家庭信息。触达能力只生成草稿，不自动发送，不编造关系、共同熟人、薪资、
-签证、入职时间或公司资源承诺。
+| 模块       | 内容                                                 |
+| ---------- | ---------------------------------------------------- |
+| 项目简报   | 原始目标、假设、必要条件、排除项                     |
+| 来源地图   | 用过的来源、待补来源、线索为什么相关、下一步怎么核验 |
+| 候选人分桶 | 全职候选、顾问/推荐人、产业标杆、待核验或排除项      |
+| 适配证明   | 要求 -> 证据 -> 来源 -> 置信度 -> 风险 -> 下一步     |
+| 覆盖风险   | 召回不足、证据弱、来源失败、分类不确定等风险         |
+| 下一步     | 下一轮扩展、人工反馈、停止条件或触达草稿建议         |
 
-核心 shared references 位于 [`sifta-search/references`](sifta-search/references/)：
+如果某个人只有 repo、论文、公司新闻或项目页线索，但没有可核验的个人资料，应该留在
+“来源地图”或“待核验线索”，不能直接当作候选人推荐。
 
-| Reference               | 作用                                                                              |
-| ----------------------- | --------------------------------------------------------------------------------- |
-| `intent-routing.md`     | 模糊需求临界点、何时追问、何时直接推进                                            |
-| `source-map-recipes.md` | Engineering / Product / GTM / Research / Dossier / Outreach 来源地图              |
-| `query-contract.md`     | GitHub、LinkedIn、academic、review feedback 的 query / checkpoint 合同            |
-| `fit-proof-packet.md`   | requirement -> evidence -> source -> confidence -> weakness -> next action 证明包 |
-| `output-quality.md`     | 输出格式、coverage warning、失败恢复                                              |
+## 4. 能力边界
 
-## 常见问题
+| 场景                       | 推荐方式                                                                                 |
+| -------------------------- | ---------------------------------------------------------------------------------------- |
+| GitHub 工程候选人          | 先用宿主 Agent 的 GitHub 搜索 / GitHub MCP / `gh`；需要 Sifta 调用轨迹或反馈闭环时用 CLI |
+| 学术图谱 / 学术通道        | 先用宿主 Agent 的学术 / 网页搜索建来源地图；需要结构化研究轨迹时用 CLI                   |
+| LinkedIn 产品、GTM、商业化 | 优先使用 Sifta CLI/API 连接器                                                            |
+| 已知个人资料补全           | 用 Sifta CLI/API 统一补公开证据                                                          |
+| 候选人档案                 | 先做身份消歧，只整理公开经历、成就、公开职业联系方式和风险缺口                           |
+| 触达文案                   | 只生成有证据支撑的草稿；发送前必须人工确认                                               |
+| 人工反馈后二轮搜索         | 基于上一轮候选人和人工反馈继续搜索                                                       |
 
-**收到 `_notice.update`？** 先完成当前搜索，再执行 `sifta-cli update`，然后重启 agent 或新开会话。
+硬边界：
 
-**Skill 没有出现？** 确认 `sifta-search/SKILL.md` 和其它 `sifta-*` 目录直接位于 agent 的 skills 目录下，然后重启 agent。
+- 候选人必须有个人资料证据，来源地图线索不能直接变成候选人。
+- 联系方式只限公开职业联系方式，不猜私人邮箱、手机号、住址或家庭信息。
+- 触达能力只生成草稿，不自动发送。
+- 不编造关系、共同熟人、薪资、签证、入职时间或公司资源承诺。
+- 销售线索、KOL 合作、ATS 管理、录用 / offer 流程和批量外联不属于 Sifta 技能包范围。
+
+## 5. 给 Agent / 维护者
+
+外部分发采用“分流入口 + 多个场景技能”。`sifta-search` 是分流入口，其它技能负责单一场景。
+
+| 技能目录                                                     | 作用                                               |
+| ------------------------------------------------------------ | -------------------------------------------------- |
+| [`/sifta-search`](sifta-search/)                             | 分流入口，判断是否进入 Sifta，并选择具体场景技能   |
+| [`/sifta-github-engineering`](sifta-github-engineering/)     | GitHub 优先的工程和开源候选人                      |
+| [`/sifta-linkedin-product-gtm`](sifta-linkedin-product-gtm/) | LinkedIn 产品、GTM、增长、商业化和公司地图         |
+| [`/sifta-academic-graph`](sifta-academic-graph/)             | 学术图谱、研究型、基础模型、WAM/VLA 和早期研究人才 |
+| [`/sifta-candidate-dossier`](sifta-candidate-dossier/)       | 已知候选人深挖、公开经历、成就、联系方式和风险缺口 |
+| [`/sifta-outreach-copy`](sifta-outreach-copy/)               | 私信、邮件、LinkedIn 消息、引荐介绍和跟进草稿      |
+| [`/sifta-review-feedback`](sifta-review-feedback/)           | 人工反馈、二轮搜索和多来源拆分                     |
+
+## 6. 常见问题
+
+**技能没有出现？**
+
+确认 `sifta-search/SKILL.md` 和其它 `sifta-*` 目录直接位于 Agent 的 skills 目录下，然后重启
+Agent。
+
+**`sifta-cli status` 失败？**
+
+先确认已经执行过 `sifta-cli auth "<SIFTA_API_KEY>"`。
+如果仍失败，把 `sifta-cli status` 的原始错误交给 Agent 继续排查。
+
+**为什么有些线索没有进入候选人列表？**
+
+论文、代码仓库、公司页、项目页和数据集只能证明某个方向值得继续找人。除非进一步找到个人
+GitHub、LinkedIn、X 或用户明确提供的个人资料，否则不能直接转成候选人。

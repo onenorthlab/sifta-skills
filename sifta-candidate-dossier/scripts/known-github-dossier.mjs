@@ -60,14 +60,14 @@ const login = loginFrom(args.github);
 if (!login) {
   process.stdout.write(
     [
-      "# Known GitHub Candidate Dossier",
+      "# 已知 GitHub 候选人档案",
       "",
-      "Execution Contract",
+      "执行合同",
       "",
       "- STOP_AFTER_HELPER=true",
       "- HARD_STOP_AFTER_HELPER=true",
-      "- No lookup executed because no GitHub login was provided.",
-      "- Ask for one unambiguous GitHub, LinkedIn, homepage, company, or location signal.",
+      "- 未执行查询：缺少 GitHub login。",
+      "- 请用户补一个可消歧的 GitHub、LinkedIn、个人主页、公司或地点线索。",
       "",
     ].join("\n"),
   );
@@ -86,84 +86,84 @@ if (args.repo) {
 
 const publicRepos = Array.isArray(repos) ? repos : [];
 const lines = [
-  "# Known GitHub Candidate Dossier",
+  "# 已知 GitHub 候选人档案",
   "",
-  "Execution Contract",
+  "执行合同",
   "",
   "- STOP_AFTER_HELPER=true",
   "- HARD_STOP_AFTER_HELPER=true",
   "- NO_FALLBACK_WEB=true",
-  "- Same-turn fan-out allowed: no.",
-  "- Commands executed: GitHub profile + recent repos + optional repo PR sample.",
-  "- Forbidden same-turn actions: web search, raw README crawl, LinkedIn lookup, email search, extra repo sweep, or private contact inference.",
-  "- Do not open GitHub/social URLs from this helper in the same turn; use the URLs already printed below.",
-  "- Final answer must preserve exact headings: `Stop Condition` and `Coverage Warnings`.",
-  "- Treat next actions as later user-approved verification, not permission to continue in this turn.",
+  "- 同轮扩展：不允许。",
+  "- 已执行命令：GitHub 个人资料 + 最近仓库 + 可选仓库 PR 样本。",
+  "- 本轮禁止动作：网页搜索、raw README 爬取、LinkedIn 查询、邮箱搜索、额外仓库扫描或私人联系方式推断。",
+  "- 本轮不要打开辅助脚本输出的 GitHub/社交 URL；只使用下方已经打印的 URL。",
+  "- 最终答复必须保留标题：`停止条件` 和 `覆盖风险`。",
+  "- 下一步动作是用户后续批准后的核验动作，不是本轮继续执行许可。",
   "",
-  "Project Card",
+  "项目简报",
   "",
-  `- Input: ${mdEscape(args.github)}`,
-  `- Capability Brief: ${mdEscape(args.query || "known GitHub candidate dossier")}`,
-  `- Optional repo focus: ${mdEscape(args.repo || "none")}`,
+  `- 输入：${mdEscape(args.github)}`,
+  `- 深挖目标：${mdEscape(args.query || "已知 GitHub 候选人档案")}`,
+  `- 可选仓库焦点：${mdEscape(args.repo || "无")}`,
   "",
-  "Identity",
+  "身份核验",
   "",
-  "| Field | Value | Evidence | Confidence |",
+  "| 字段 | 值 | 证据 | 置信度 |",
   "| --- | --- | --- | --- |",
 ];
 
 if (user.error) {
-  lines.push(`| GitHub profile | ${mdEscape(login)} | ${mdEscape(user.error)} | low |`);
+  lines.push(`| GitHub 个人资料 | ${mdEscape(login)} | ${mdEscape(user.error)} | 低 |`);
 } else {
   lines.push(
-    `| GitHub profile | ${mdEscape(user.name || user.login)} (${mdEscape(user.login)}) | ${mdEscape(user.html_url)} | high for GitHub identity |`,
-    `| Public bio/company/location | ${truncate([user.bio, user.company, user.location].filter(Boolean).join(" / ") || "not public")} | GitHub public profile | medium |`,
-    `| Public professional contact | ${mdEscape(user.email || "未找到公开职业联系方式")} | GitHub public email field only | ${user.email ? "medium" : "n/a"} |`,
+    `| GitHub 个人资料 | ${mdEscape(user.name || user.login)} (${mdEscape(user.login)}) | ${mdEscape(user.html_url)} | GitHub 身份高置信度 |`,
+    `| 公开简介/公司/地点 | ${truncate([user.bio, user.company, user.location].filter(Boolean).join(" / ") || "未公开")} | GitHub 公开个人资料 | 中 |`,
+    `| 公开职业联系方式 | ${mdEscape(user.email || "未找到公开职业联系方式")} | 仅限 GitHub 公开邮箱字段 | ${user.email ? "中" : "不适用"} |`,
   );
 }
 
 lines.push(
   "",
-  "Public Evidence",
+  "公开证据",
   "",
-  "| Evidence | Source | Confidence | Weakness |",
+  "| 证据 | 来源 | 置信度 | 弱点 |",
   "| --- | --- | --- | --- |",
 );
 
 for (const repo of publicRepos.slice(0, args.maxRepos)) {
   lines.push(
-    `| Repo: ${mdEscape(repo.full_name)}; stars=${repo.stargazers_count}; updated=${repo.updated_at} | ${mdEscape(repo.html_url)} | medium | Repo ownership/contribution signal, not role or availability proof |`,
+    `| Repo: ${mdEscape(repo.full_name)}；stars=${repo.stargazers_count}；updated=${repo.updated_at} | ${mdEscape(repo.html_url)} | 中 | 仓库归属/贡献信号，不能证明角色或可用性 |`,
   );
 }
 
 for (const pr of prs.slice(0, args.maxPrs)) {
   lines.push(
-    `| PR: ${truncate(pr.title, 120)} | ${mdEscape(pr.html_url)} | medium | PR title proves public activity, not full contribution depth |`,
+    `| PR: ${truncate(pr.title, 120)} | ${mdEscape(pr.html_url)} | 中 | PR 标题只能证明公开活动，不能证明完整贡献深度 |`,
   );
 }
 
 if (!publicRepos.length && !prs.length) {
-  lines.push("| No public GitHub evidence in budget | GitHub API | low | Need another public profile or repo focus |");
+  lines.push("| 预算内没有公开 GitHub 证据 | GitHub API | 低 | 需要另一个公开个人资料或仓库焦点 |");
 }
 
 lines.push(
   "",
-  "Fit Proof Packet",
+  "适配证明包",
   "",
-  "| Requirement | Evidence | Source | Confidence | Weakness | Next action |",
+  "| 要求 | 证据 | 来源 | 置信度 | 弱点 | 下一步 |",
   "| --- | --- | --- | --- | --- | --- |",
-  `| ${mdEscape(args.query || "Known candidate public profile review")} | GitHub public profile and bounded repo/PR sample | ${mdEscape(user.html_url || `https://github.com/${login}`)} | medium | No LinkedIn/homepage/same-person cross-source verification in this pass | later user-approved pass: verify career profile or project ownership if needed |`,
+  `| ${mdEscape(args.query || "已知候选人公开个人资料审查")} | GitHub 公开个人资料和有限仓库/PR 样本 | ${mdEscape(user.html_url || `https://github.com/${login}`)} | 中 | 本轮没有 LinkedIn/个人主页/跨来源同人核验 | 用户后续批准后：必要时核验职业资料或项目归属 |`,
   "",
-  "Stop Condition",
+  "停止条件",
   "",
-  "- Helper output is final for this turn; do not continue profile/web verification without later user approval.",
+  "- 本辅助脚本输出就是本轮最终执行结果；没有用户后续批准，不要继续做个人资料或网页核验。",
   "",
-  "Coverage Warnings",
+  "覆盖风险",
   "",
-  "- This helper intentionally stops after bounded GitHub public evidence.",
-  "- It does not infer private email, phone, availability, salary, visa, relocation, or willingness to talk.",
-  "- Public professional contact is only the GitHub public email field when present; do not guess email formats.",
-  "- Candidate relevance still needs Owner review; this is evidence scaffolding, not approval.",
+  "- 本辅助脚本有意在有限 GitHub 公开证据后停止。",
+  "- 不推断私人邮箱、电话、可用性、薪资、签证、搬迁或沟通意愿。",
+  "- 公开职业联系方式只限 GitHub 公开邮箱字段；不要猜邮箱格式。",
+  "- 候选人相关性仍需 Owner 审查；这是证据脚手架，不是批准。",
 );
 
 process.stdout.write(`${lines.join("\n")}\n`);
