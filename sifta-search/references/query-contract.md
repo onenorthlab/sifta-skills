@@ -30,7 +30,7 @@ Sifta CLI/API 的连接器、调用轨迹、反馈闭环或稳定 JSON 时，再
 | `--checkpoint` | 保留用户原始目标，并追加默认地域假设 |
 | GitHub `--query` | 保持英文技术关键词和工程角色词，不写默认地域叙述；地域作为候选人升级门槛、核验项和覆盖风险 |
 | LinkedIn / 产品 / GTM `--query` | 在自然画像中加入“中国/中文生态/中国市场”中最贴合的表达 |
-| 学术来源地图 `--query` | 把 China / Chinese / 中国机构 / 中文社区 / 中国市场作为来源地图种子之一 |
+| 学术来源地图 `--query` | 把 China / Chinese-language / 中国机构 / 中文社区 / 中国市场作为来源地图种子之一 |
 | `--filter.locations` | 只在用户把地区说成硬条件时使用；默认地域不自动转成严格 location filter |
 
 默认地域应影响来源优先级、候选人排序和下一步核验，但不得静默删除来源地图里的强全球证据。
@@ -53,7 +53,7 @@ GitHub 传参分层：
 | `AI Agent MCP LLM infra engineer open source` | `--query` | GitHub 能直接消费的技术 / 仓库 / 角色语义 |
 | 用户原话、数量、默认地域/市场、必须条件、排除项 | `--checkpoint` | 用于 skill 解释任务和输出核验，不污染 GitHub 搜索词 |
 | 用户明确硬地点，例如 `上海`、`中国`、`Remote China` | `--filter.locations` 或下一轮定向查询 | 只有明确硬条件才结构化；默认地域不自动写 filter |
-| 默认中国/中文生态相关人才池 | 项目简报、`--checkpoint`、候选人升级门槛、覆盖风险 | 不凭姓名/照片/族裔推断；缺公开职业信号不进候选人分桶 |
+| 默认中国/中文生态相关人才池 | 项目简报、`--checkpoint`、候选人升级门槛、覆盖风险 | 不凭姓名、照片、外貌、口音、族裔或国籍推断；缺公开职业信号不进候选人分桶 |
 | 人工反馈或上一轮排除原因 | `--feedback` | 不拼进 GitHub 查询，避免 0 result 或错误召回 |
 
 推荐：
@@ -61,7 +61,7 @@ GitHub 传参分层：
 ```bash
 sifta-cli find-people \
   --query "AI Agent MCP LLM infra engineer open source" \
-  --checkpoint "找 1 个有 AI Agent、MCP 或 LLM infra 的工程候选人，优先 GitHub。默认地域/市场：中国/中文生态相关人才池优先；不做族裔推断。" \
+  --checkpoint "找 1 个有 AI Agent、MCP 或 LLM infra 的工程候选人，优先 GitHub。默认地域/市场：中国/中文生态相关人才池优先；不做族裔或国籍推断。" \
   --sources '["github"]'
 ```
 

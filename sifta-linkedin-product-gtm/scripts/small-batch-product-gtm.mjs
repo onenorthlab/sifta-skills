@@ -51,18 +51,9 @@ function outputBlocked(reason, nextAction) {
     [
       "# Product/GTM 小批量寻访",
       "",
-      "执行合同",
+      "结论",
       "",
-      "- STOP_AFTER_HELPER=true",
-      "- HARD_STOP_AFTER_HELPER=true",
-      "- NO_FALLBACK_WEB=true",
-      "- CLI find-people 是否完成：否。",
-      "- 本轮不要运行网页搜索、Exa、浏览器查找、公司核验或第二次 `sifta-cli find-people`。",
-      "- 最终答复只报告本辅助脚本失败原因和下一步；不要编造候选人，也不要用其它来源替换候选人。",
-      "",
-      "停止条件",
-      "",
-      "- 本辅助脚本输出就是本轮最终执行结果；没有用户后续批准，不要继续搜索。",
+      "- 本轮没有形成可交付候选人。",
       "",
       "覆盖风险",
       "",
@@ -89,8 +80,8 @@ try {
     const status = runJson(["status"], 20_000);
     if (!status.authenticated || !status.api_reachable) {
       outputBlocked(
-        "Sifta CLI 未认证或 API 不可达。",
-        "运行 `sifta-cli auth <user-api-key> --base-url <api-url>` 后重试本辅助脚本。",
+        "LinkedIn 连接器未认证或 API 不可达。",
+        "配置 Sifta 连接器认证后重试，或让用户批准改走计划输出。",
       );
       process.exit(0);
     }
@@ -118,26 +109,16 @@ try {
   const lines = [
     "# Product/GTM 小批量寻访",
     "",
-    "执行合同",
+    "结论",
     "",
-    "- STOP_AFTER_HELPER=true",
-    "- HARD_STOP_AFTER_HELPER=true",
-    "- NO_FALLBACK_WEB=true",
-    "- 同轮扩展：不允许。",
-    "- CLI 调用：1 次 status + 1 次 find-people。",
-    "- 本轮不要再次运行 `sifta-cli find-people`、网页搜索、Exa、公司核验、浏览器查找或 LinkedIn 抓取。",
-    "- 最终答复必须保留标题：`停止条件` 和 `覆盖风险`。",
-    "- 这份输出只是召回脚手架；候选人质量仍需人工/Owner 相关性审查。",
-    "",
-    "项目简报",
-    "",
+    people.length > 0
+      ? `- 本轮形成 ${people.length} 个 Product/GTM 待核验强线索。`
+      : "- 本轮没有形成可交付候选人。",
     `- 能力画像：${mdEscape(query)}`,
-    `- Checkpoint: ${mdEscape(checkpoint)}`,
-    `- 默认地域：${geoBias}`,
-    `- 目标数量：${args.targetCount}`,
-    "- 来源：linkedin",
+    `- 默认地域/市场：${geoBias}`,
+    "- 来源策略：LinkedIn 职业资料来源；缺少公开职业信号时不进候选人分桶。",
     "",
-    "候选人分桶",
+    "候选人分桶 / 来源地图",
     "",
     "| 分桶 | 线索 | 职能证据 | 来源 | 置信度 | 弱点 | 下一步 |",
     "| --- | --- | --- | --- | --- | --- | --- |",
@@ -155,7 +136,7 @@ try {
 
   if (people.length === 0) {
     lines.push(
-      "| 待核验线索 | 没有返回可用候选人 | 连接器在单次预算内没有返回候选人 | Sifta CLI | 低 | 召回失败 | 调整查询或请用户收窄项目简报 |",
+      "| 待核验线索 | 没有返回可用候选人 | 连接器在单次预算内没有返回候选人 | LinkedIn 职业资料来源 | 低 | 召回失败 | 调整查询或请用户收窄项目简报 |",
     );
   }
 
@@ -181,7 +162,7 @@ try {
 
   lines.push(
     "",
-    "适配证明包",
+    "适配证明",
     "",
     "| 候选人/线索 | 要求 | 证据 | 来源 | 置信度 | 弱点 | 下一步 |",
     "| --- | --- | --- | --- | --- | --- | --- |",
@@ -196,10 +177,6 @@ try {
 
   lines.push(
     "",
-    "停止条件",
-    "",
-    "- 本辅助脚本输出就是本轮最终执行结果；没有用户后续批准，不要继续搜索。",
-    "",
     "覆盖风险",
     "",
   );
@@ -209,15 +186,20 @@ try {
   lines.push(
     "- 不推断可用性、薪资、签证、搬迁、私人联系方式或沟通意愿。",
     "- 默认地域/市场对来源地图是排序和核验偏置，对候选人分桶是升级门槛；缺公开中国/中文生态相关职业信号的线索必须进入覆盖风险，不要包装成已满足。",
-    "- 本辅助脚本有意在一次连接器调用后停止；弱证据或单来源人选仍是 `待核验候选`。",
+    "- 本轮是单次小批量召回；弱证据或单来源人选仍是 `待核验候选`。",
     "- 结构化适配证明不是 Owner 相关性批准。",
-    "- 下一步动作是用户后续批准后的动作，不是本轮继续搜索许可。",
+    "",
+    "下一步",
+    "",
+    people.length > 0
+      ? "- 用户确认后，核验公开职业资料、公司角色和第二来源证据，再决定是否写触达草稿。"
+      : "- 用户确认后，收窄公司/产品方向或扩大同来源召回。",
   );
 
   process.stdout.write(`${lines.join("\n")}\n`);
 } catch (error) {
   outputBlocked(
-    `Product/GTM helper failed: ${String(error.message ?? error)}`,
-    "先输出计划，或检查 `sifta-cli status` 后重试；不要编造候选人。",
+    `Product/GTM 小批量召回失败：${String(error.message ?? error)}`,
+    "先输出计划，或检查连接器认证后重试；不要编造候选人。",
   );
 }

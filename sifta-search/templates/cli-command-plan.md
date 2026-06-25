@@ -8,7 +8,7 @@
 - 需要 CLI 的原因：<LinkedIn/Exa/X 连接器 / 稳定 JSON / 调用轨迹 / 人工反馈 / 回归验证 / 已知个人资料补全>
 - 默认地域：<用户未指定时写“中国/中文生态相关人才池优先；不做族裔推断”；只在用户明确硬地域时转成 filter>
 - 小批量门槛：<辅助脚本 / 直接 CLI / 不需要>
-- 停止条件：<STOP_AFTER_HELPER / 仅计划 / 硬停止 / 无>
+- 小批量边界：<完成后停止 / 仅计划 / 硬停止 / 无>
 - 同轮扩展：<除非用户批准第二轮，否则不扩展>
 
 预检：
@@ -31,7 +31,8 @@ sifta-cli find-people \
 - 缺省地域要进入项目简报、`--checkpoint` 和候选人升级门槛；GitHub 查询不加入地域叙述，LinkedIn/Product/GTM 和学术来源地图可加入自然语言地域/市场偏置。
 - CLI 只是薄连接器层：提供 Exa、LinkedIn、X、后续 ATS/CRM 或 direct API 的工具访问、结构化 JSON、schema、trace 和 warnings；不要把 skill workflow 再封装成 CLI 里的第二套 sourcing agent。
 - GitHub 不因为 token 成为 CLI 必经路径；优先使用宿主 Agent、`gh`、GitHub MCP 或用户自己的 `GH_TOKEN` / `GITHUB_TOKEN`。额度或认证不足时，提示用户配置宿主 GitHub 凭据。
-- 如果辅助脚本输出包含 `STOP_AFTER_HELPER=true`，基于该输出整理最终答案，本轮不要继续搜索。
+- 如果辅助脚本完成、失败或返回 0 人，基于该输出整理用户报告，本轮不要继续搜索。
+- 最终用户答复不要输出停止标记、脚本名、命令、参数、events、timing 或 `target-count`。
 
 预期 JSON 字段：
 - `people`
