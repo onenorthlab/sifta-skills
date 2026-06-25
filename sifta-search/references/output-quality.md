@@ -60,9 +60,14 @@ Source Map：
 - pending：<仍需补充的来源>
 
 Candidate Buckets：
-| # | 候选人/Lead | State | Bucket | 来源 | 概况 | Evidence grade | Weakness | Next action |
+| # | 候选人 | State | Bucket | 来源 | 概况 | Evidence grade | Weakness | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | <name> | candidate / sourceMapLead | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | [GitHub](profileUrl) | <headline/location> | A/B/C | <missing evidence> | <action> |
+| 1 | <name> | candidate / rejected | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | [GitHub](profileUrl) | <headline/location> | A/B/Reject | <missing evidence> | <action> |
+
+Lead Queue：
+| lead | state | sourceFamily | whyRelevant | conversionBlocker | nextVerification |
+| --- | --- | --- | --- | --- | --- |
+| <lead> | source-map lead | paper / repo / company / lab / project | <why relevant> | identity/profile/evidence missing | <verification> |
 
 Fit Proof Packet：
 | Candidate/Lead | State | Requirement | Evidence | Source | Confidence | Weakness | Next action |

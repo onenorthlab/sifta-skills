@@ -229,8 +229,8 @@
     {
       "id": 17,
       "name": "i6-prereq-local-runtime-status",
-      "prompt": "用本地 runtime 帮我验证 Sifta GitHub 工程候选人召回。先确认 API、auth、tools 都可用；如果不通，不要继续搜人。",
-      "expected_output": "Agent 在使用 CLI 前先检查 sifta-cli status 或等价 /api/v1/tools；未通过时 hard stop，不构造候选人，不切到 Web/SaaS runtime。",
+      "prompt": "我本地还没启动 Sifta 服务，也没有 user API key。能不能先用本地 runtime 直接跑 GitHub 工程候选人召回？",
+      "expected_output": "Agent 识别 prerequisites 缺失，要求先检查 sifta-cli status 或等价 /api/v1/tools；未通过时 hard stop，不构造候选人，不切到 Web/SaaS runtime。",
       "files": [],
       "expectations": [
         "回答先运行或要求运行 sifta-cli status，或等价检查 /api/v1/tools。",
@@ -257,7 +257,7 @@
     {
       "id": 19,
       "name": "i6-source-map-lead-to-candidate-gate",
-      "prompt": "我找到一个很强的论文、一个 lab page、一个 repo，但没有个人 GitHub/LinkedIn/homepage。帮我把它们转成候选人列表。",
+      "prompt": "我找到三个非人线索：paper lead=`Efficient Agent Runtime Systems`，lab lead=`Example AI Systems Lab / agent tooling page`，repo lead=`github.com/example/agent-runtime`。它们没有个人 GitHub/LinkedIn/homepage。帮我把它们转成候选人列表。",
       "expected_output": "Agent 区分 sourceMap leads 和 people candidates；没有个人 profile 证据不得入候选人池，只给 profile conversion gate 和下一步核验路径。",
       "files": [],
       "expectations": [
@@ -299,7 +299,7 @@
     {
       "id": 22,
       "name": "i6-review-feedback-state-migration",
-      "prompt": "上一轮 A 是 advisor/referrer，B 是产业标杆，C 是弱候选；下一轮请把 A 留在推荐人池、B 留作 benchmark、C 排除，并继续找全职候选。",
+      "prompt": "上一轮 review packet：A=Alex，状态 candidate bucketed，review reason 是更适合 advisor/referrer；B=Blair，状态 candidate bucketed，review reason 是产业标杆但不适合全职一号候选；C=Casey，状态 pending lead，review reason 是弱候选且证据不足。下一轮请把 A 留在推荐人池、B 留作 benchmark、C 排除，并继续找全职候选。",
       "expected_output": "Agent 使用 review-feedback route，输出状态迁移，并把反馈转为 feedbackIngest 或等价下一轮约束。",
       "files": [],
       "expectations": [
@@ -313,7 +313,7 @@
     {
       "id": 23,
       "name": "i6-source-specific-query-split",
-      "prompt": "上一轮 GitHub 和 LinkedIn 都跑过。GitHub 只保留 runtime/MCP 证据，LinkedIn 只保留 GTM/commercialization 证据，分别继续扩展。",
+      "prompt": "上一轮 artifact 摘要：GitHub 返回两条 source-map lead，证据分别是 agent runtime framework maintainer 和 MCP server implementation；LinkedIn 返回两条 source-map lead，证据分别是 AI video GTM lead 和 commercialization lead。下一轮 GitHub 只保留 runtime/MCP 证据，LinkedIn 只保留 GTM/commercialization 证据，分别继续扩展。",
       "expected_output": "Agent 拆成 GitHub 与 LinkedIn source-specific request；GitHub query 使用英文技术词，LinkedIn query 保留职能/市场画像。",
       "files": [],
       "expectations": [
@@ -336,6 +336,20 @@
         "回答可降级为 source-map leads 或待复核候选。",
         "回答建议保留同一来源调整 query、降低 target-count 或补 profile evidence。",
         "回答保留 Coverage Warnings，不把弱结果包装成完成交付。"
+      ]
+    },
+    {
+      "id": 25,
+      "name": "i6-review-feedback-missing-artifact-hard-stop",
+      "prompt": "上一轮 A 是 advisor/referrer，B 是产业标杆，C 是弱候选；下一轮继续找全职候选。",
+      "expected_output": "Agent 不凭 A/B/C 代号继续扩展；缺少上一轮 artifact 时 hard stop，只要求用户提供上一轮候选结果或 review packet。",
+      "files": [],
+      "expectations": [
+        "回答使用 review-feedback route 或等价判断。",
+        "回答 hard stop，不继续搜索或构造下一轮 query。",
+        "回答只问一个短问题，要求提供上一轮 artifact、review packet、候选结果或 source-map lead。",
+        "回答不把 A/B/C 代号重新包装成全职候选。",
+        "回答不输出完整 workflow。"
       ]
     }
   ]

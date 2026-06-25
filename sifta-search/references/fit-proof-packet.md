@@ -55,9 +55,14 @@ Source Map：
 - pending: ...
 
 Candidate Buckets：
-| 候选人/Lead | State | Bucket | Evidence grade | Why fit | Weakness | Next action |
+| 候选人 | State | Bucket | Evidence grade | Why fit | Weakness | Next action |
 | --- | --- | --- | --- | --- | --- | --- |
-| ... | verified candidate / source-map lead | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | A/B/C | ... | ... | ... |
+| ... | verified candidate / rejected | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | A/B/Reject | ... | ... | ... |
+
+Lead Queue：
+| Lead | State | Source family | Why relevant | Conversion blocker | Next verification |
+| --- | --- | --- | --- | --- | --- |
+| ... | source-map lead | paper / repo / company / lab / project | ... | identity/profile/evidence missing | ... |
 
 Fit Proof Packet：
 | Candidate/Lead | State | Requirement | Evidence | Source | Confidence | Weakness | Next action |

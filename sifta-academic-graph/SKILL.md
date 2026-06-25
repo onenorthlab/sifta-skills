@@ -10,6 +10,7 @@ description: >
     OpenAlex、Google Scholar、Semantic Scholar、arXiv/OpenReview、Papers with Code、
     导师/共同作者、竞赛信号驱动的招聘。Google Scholar 只作为浏览器/人工召回入口，不假设官方 API。
     论文综述、学术趋势、实验室调研或引用网络分析本身不要使用，除非要转成招聘 source map。
+    用户只要求 source map、升级门槛或不要只列论文作者时，plan-first 输出，不做 live search。
 ---
 
 # Sifta Academic Graph
@@ -18,29 +19,25 @@ description: >
 项目页、dataset 或开源实现时，使用 academic graph。公开材料里的学术线索只是入口，候选人
 必须再经过个人 profile 验证。
 
+工具前先判断执行权：如果用户没有明确说“现在搜索/跑一轮/列候选人/给候选人名单”，不要调用
+web search、browser、CLI、`gh`、`curl` 或任何 live validation。`给 source map`、`说明哪些线索能
+升级成候选人`、`不要只列论文作者` 是规划请求，直接输出方法和门槛后停止。
+
 ## Workflow
 
 1. 先确认是招聘或候选人池目标；只缺地域、职级或数量时写 Assumptions 后推进。
-2. 先用宿主 agent 原生学术 / web 搜索建立 source map，不要从泛 people search 开始。
+2. 默认 plan-first：用户没有明确要求“现在搜索/给候选人/列出候选人/跑一轮”时，只输出 source-map plan、query plan、profile conversion gate 和 Coverage Warnings；`找/挖/看看能不能`、`从论文/实验室里挖`、`给 source map`、`说明哪些线索能升级成候选人`、`不要只列论文作者` 都是规划请求，不做 live search。
+3. 明确执行时再用宿主 agent 原生学术 / web 搜索建立 source map，不要从泛 people search 开始。
    优先综合 OpenAlex、Google Scholar、Semantic Scholar、arXiv/OpenReview、Papers with Code、
    lab/project/homepage，而不是只搜单一论文库。
-3. 覆盖至少两个路径：`paper-first`、`lab-first`、`coauthor-graph`、`competition-signal`、
+4. 覆盖至少两个路径：`paper-first`、`lab-first`、`coauthor-graph`、`competition-signal`、
    `graph-neighbor`、`advisor-entry`。
-4. 把 Google Scholar 当作浏览器/人工 broad recall 或经用户批准的第三方入口；不要假设
+5. 把 Google Scholar 当作浏览器/人工 broad recall 或经用户批准的第三方入口；不要假设
    Sifta 或 Google 提供官方 Scholar API。
-5. 需要 Sifta 统一 JSON、trace 或 research connector 时，再运行 `sifta-cli status` 并使用
+6. 需要 Sifta 统一 JSON、trace 或 research connector 时，再运行 `sifta-cli status` 并使用
    `--mode research`。
-6. 按状态升级：paper/lab/coauthor lead -> identity-checked profile lead -> contribution-checked candidate -> bucket。
-7. 在身份未验证前，paper/lab/advisor/coauthor/competition/project leads 只能进入 `sourceMap`。
-8. 输出时区分年轻高潜全职候选、顾问/推荐人入口、产业标杆、待核验和排除项，并给 Fit Proof Packet。
-
-```bash
-sifta-cli find-people \
-  --query "LLM reasoning math code training efficiency young researcher PhD intern OpenAlex Google Scholar Semantic Scholar arXiv OpenReview Papers with Code lab project coauthor competition China" \
-  --checkpoint "<用户原始研究团队目标和基础能力/潜力要求；保留 Google Scholar 只作为浏览器/人工 broad recall，不假设官方 API>" \
-  --mode research \
-  --target-count 10
-```
+7. 按状态升级：paper/lab/coauthor lead -> identity-checked profile lead -> contribution-checked candidate -> bucket。
+8. 身份未验证前，paper/lab/advisor/coauthor/competition/project leads 只能进入 `sourceMap`；输出区分候选、顾问/推荐人、标杆、待核验和排除项。明确执行且需要 CLI 时再读 CLI reference。
 
 ## Academic Source Stack
 
@@ -69,7 +66,7 @@ sifta-cli find-people \
 
 ## Live Recall Guardrails
 
-- 先输出 `sourceMap`，再输出 `people`；如果还没形成 source map，不要急着给候选人名单。
+- 先输出 `sourceMap` / plan，再输出 `people`；如果还没形成 source map 或用户未明确要求执行，不要急着给候选人名单。
 - OpenAlex 噪声、Semantic Scholar API 429、Google Scholar 访问受限都要进入 Coverage Warnings；
   不要把 provider gap 包装成候选人质量证明。
 - 只有个人主页 / GitHub / LinkedIn / lab bio / Scholar profile 与论文或项目 evidence 可交叉验证时，

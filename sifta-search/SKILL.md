@@ -4,47 +4,47 @@ metadata:
     version: 0.0.6
     tags: [sifta-search, recruiting, sourcing, candidates]
 description: >
-    用于 AI 行业招聘 sourcing、候选人筛选、公开 profile enrichment、
-    academic graph sourcing、已知候选人 deep-dive、触达文案和人工 review feedback。
-    当用户要找 AI 工程、产品/GTM/DevRel、研究型、具身智能、founder/独立开发者、
-    或已知候选人证据时使用；普通公司研究、销售线索、KOL 合作、ATS 管理或通用网页研究不要使用。
+    用于两类情况：AI/前沿科技招聘 sourcing 找 candidate/人才/强人/Founder/Operator/GTM/DevRel/研究人选；
+    或任何找人/负责人/people lead 请求夹带私人邮箱、手机号、自动发送、批量外联时做 hard stop，不搜索。
+    明确不找候选人/不做 sourcing 的公司研究、市场研究、商业化模式、增长打法、JD、销售、合作/KOL、ATS 不要使用。
+    用户通常只描述想找什么样的人、能解决什么问题、做过什么结果或经历信号，不会关心 GitHub、LinkedIn、论文或具体头衔；
+    渠道选择是内部决策：按能力画像推断 Engineering、Product/GTM、Research、Founder/Operator、Dossier 或 Outreach，再决定 native search 或 Sifta CLI/API。
 ---
 
 # Sifta People Search
 
-Sifta 是 AI 行业招聘 sourcing 增强层，不是通用网页搜索、公司情报、销售线索、触达、ATS、KOL 合作或独立 agent runtime。
-本 skill 面向 Codex、Hermes、Claude Code、OpenClaw、Cursor 等宿主 agent；Sifta 只补候选人渠道、招聘语义、证据结构、项目适配和反馈闭环。
-把本 skill 当作 router 使用：用户描述招聘目标后，本地 agent 判断是否进入 Sifta sourcing，再选择一个最匹配的 route skill。Sifta CLI/API 是可选 command/connector 层，不是通用搜索替代品。
+Sifta 是 AI 行业招聘 sourcing 增强层，不是通用网页搜索、公司情报、销售线索、触达、ATS、KOL 合作或独立 agent runtime。本 skill 面向 Codex、Hermes、Claude Code、OpenClaw、Cursor 等宿主 agent；Sifta 只补候选人渠道、招聘语义、证据结构、项目适配和反馈闭环。Plan-first 是默认终态：用户没明确说“现在搜索/列候选人/跑一轮/执行”时，本轮只交付 plan/source map/hard stop，不调用 web search、browser、CLI、`gh` 或 `curl`。
+把本 skill 当作 router 使用：用户描述想找的人、要补的能力或候选人目标后，本地 agent 判断是否进入 Sifta sourcing，再选择一个最匹配的 route skill。Sifta CLI/API 是可选 command/connector 层，不是通用搜索替代品。
 
 ## 1. 触发范围
 
-只在用户目标是 AI 行业招聘 sourcing / enrichment / candidate review 时调用 Sifta：
+只在用户目标是 AI 行业找人、候选人筛选、公开信息补全、候选人复盘或触达草稿时调用 Sifta。用户不必说明渠道、数据库、source 或准确头衔；他们往往只说“找一个能把 X 做起来的人”。先按能力画像理解，再内部决定来源地图：
 
-- AI 工程师、开发者：AI Agent、LLM、视频大模型、语音模型、AI infra、应用层开发。
-- 具身智能人才：机器人、自动驾驶、感知、控制、仿真、VLA、具身模型。
-- 超级个体 / founder：独立开发者、一人公司、AI startup 创始人。
-- AI 产品经理：大模型产品、Agent 产品、平台产品、Qwen/字节等团队相关 PM。
-- GTM/增长/出海/营销：增长、商业化、developer marketing、社区增长、AI 产品营销。
-- 研究型 / 学术图谱人才：OpenAlex、Scholar、Semantic Scholar、arXiv/OpenReview、实验室、项目页和个人主页证据。
+- 搭系统 / 写核心代码 / 做开源 proof-of-work：Engineering / GitHub-first。
+- 把产品、增长、商业化、开发者生态或市场做起来：Product/GTM / career-profile-first。
+- 做基础模型、训练效率、VLA/WAM、机器人、论文或实验室方向：Research / academic source-map-first。
+- 0 到 1、founder-like、早期员工、合伙型人才：Founder/Operator，先判断主能力再路由。
 - 已知候选人 deep-dive：查公开经历、成就、职业联系方式、风险缺口和 candidate dossier。
 - 候选人触达文案：基于已核验证据写 DM、email、LinkedIn message、referral intro 或 follow-up。
 
 不要在这些场景调用 Sifta：
 
 - 普通网页研究、公司情报、行业分析、竞品分析、融资新闻解释。
+- 明确说不找候选人、不做 sourcing、只要公司研究 brief、商业化模式/增长打法或 JD 文案。
 - 销售线索、KOL 合作、ATS 管理、排期、offer、触达自动化。
 - 非 AI 行业画像，除非用户愿意改写成上述招聘画像之一。
+非招聘 sales/BD/partnership lead 请求，尤其要求私人邮箱、手机号或批量外联时，hard stop：不调用任何搜索工具，只问 `这是商务线索，不是招聘 sourcing；要改成招聘 BD/GTM 候选人 brief 吗？` 并说明不会继续搜索、输出业务 lead list 或协助批量发送。
 
 ## 2. 宿主 Agent 分工
 
 不要把 Sifta 当作通用 web search。
 
-- 行业背景、论文列表、公司新闻、竞品图谱、项目主页阅读：优先使用宿主 agent 原生搜索和阅读。
-- GitHub 工程证据：优先使用宿主 agent 的 native GitHub search、GitHub MCP、`gh` 或浏览器；
+- 执行模式下的行业背景、论文列表、公司新闻、竞品图谱、项目主页阅读：优先使用宿主 agent 原生搜索和阅读；plan-first 不搜索。
+- 执行模式下的 GitHub 工程证据：优先使用宿主 agent 的 native GitHub search、GitHub MCP、`gh` 或浏览器；
   需要统一 JSON、trace、review loop 或用户明确要求 Sifta connector 时，再使用 Sifta CLI/API。
-- 学术 source map：优先使用宿主 agent 原生学术 / web 搜索综合 academic source stack；Google Scholar
+- 执行模式下的学术 source map：优先使用宿主 agent 原生学术 / web 搜索综合 academic source stack；Google Scholar
   只作浏览器/人工 broad recall，不假设官方 API；需要结构化 research trace 时再走 CLI/API。
-- LinkedIn people search、已知 profile enrichment、跨轮 review feedback 和 CRM-style 输出：
+- 执行模式下的 LinkedIn people search、已知 profile enrichment、跨轮 review feedback 和 CRM-style 输出：
   优先使用 Sifta CLI/API，因为这些是 Sifta 当前最明确的 connector / structure 价值。
 - 论文、公司页、实验室页、项目页、repo、dataset 和普通 web 来源只能进入 `sourceMap` /
   `evidenceLog` / `warnings`；除非进一步找到 GitHub、LinkedIn、X 或用户明确提供的个人
@@ -54,13 +54,13 @@ Sifta 是 AI 行业招聘 sourcing 增强层，不是通用网页搜索、公司
 
 ## 3. 路由规则
 
-| 用户目标                     | 默认路径                                          | 关键要求                                   |
+| 用户画像 / 能力信号          | 默认路径                                          | 关键要求                                   |
 | ---------------------------- | ------------------------------------------------- | ------------------------------------------ |
-| AI 工程师 / 开发者 / infra   | native GitHub search；需要 trace 时用 `find-people --sources '["github"]'` | GitHub-first，不是 GitHub-only；保留开源项目和工程证据 |
-| 产品经理 / 平台产品 / AI PM  | `find-people --sources '["linkedin"]'`            | LinkedIn-first，不是 LinkedIn-only；产品证据归 `AI产品/平台` |
-| GTM / 增长 / 商业化 / DevRel | 先做 company map，再 LinkedIn people search       | 可用 GitHub/X/产品页做辅助 source map；不推断 relocation、签证、薪资或触达意愿 |
+| 搭系统 / 开源 / runtime / infra / SDK | native GitHub search；需要 trace 时用 `find-people --sources '["github"]'` | GitHub-first，不是 GitHub-only；保留开源项目和工程证据 |
+| 产品、平台、用户问题、PM-like ownership | 先给 LinkedIn source plan；明确执行时用 `find-people --sources '["linkedin"]'` | 不因 AI/Agent 词误转工程；产品证据归 `AI产品/平台` |
+| 增长、商业化、出海、开发者生态、community | 先给问题/市场/相邻公司/能力信号 map；明确执行时再做 people search | 用户不知道头衔不阻塞；title map 只是内部扩展，不当主输出锚点 |
 | WAM / VLA / 研究型复杂画像   | 先 source map，再候选人搜索；必要时 research mode | 区分全职候选、顾问、推荐人、产业标杆       |
-| 学术图谱 / 高潜研究人才      | 先 academic source stack，再候选人搜索            | 综合 OpenAlex/Scholar/Semantic Scholar 等；不把论文作者直接当候选人 |
+| 学术图谱 / 高潜研究人才      | 先输出 academic source-map plan；明确执行时再搜索  | 综合 OpenAlex/Scholar/Semantic Scholar 等；不把论文作者直接当候选人 |
 | 已知 GitHub / LinkedIn URL   | `enrich-people --people '[...]'`                  | 只补全公开 profile 证据，避免重名误合并    |
 | 已知候选人 deep-dive         | candidate dossier / enrichment                    | 只查公开信息；联系方式限公开职业渠道       |
 | 候选人触达文案               | outreach copy                                     | 只生成草稿；不自动发送；不编造关系或承诺   |
@@ -69,7 +69,7 @@ Sifta 是 AI 行业招聘 sourcing 增强层，不是通用网页搜索、公司
 
 ## 3.5 Project Brief gate
 
-执行前先压缩成 Project Brief；可推断就写 Assumptions 推进，只有 hard stop 才问一个短问题。Hard stop 包括：不清楚是否招聘、role family 完全不可推断、deep-dive 无可消歧 profile、要求私人联系方式/自动发送、或多 route 成本差异大且范围未定。详细字段、最小问题和 source-map lead -> candidate 状态机见 [references/project-brief-and-state.md](references/project-brief-and-state.md)。
+执行前先压缩成 Project Brief；可推断就写 Assumptions 推进，只有 hard stop 才问一个短问题。不要问用户“从什么渠道找”；source 是内部决策。Hard stop 包括：不清楚是否招聘、能力画像完全不可推断、deep-dive 无可消歧 profile、要求私人联系方式/自动发送，或用户明确要求马上执行付费 connector 但未授权。详细字段、最小问题和 source-map lead -> candidate 状态机见 [references/project-brief-and-state.md](references/project-brief-and-state.md)。
 
 ## 4. Route skills
 
@@ -86,9 +86,9 @@ Sifta 是 AI 行业招聘 sourcing 增强层，不是通用网页搜索、公司
 
 复杂项目顺序：
 
-1. 先理解项目目标：岗位、职能、职级、地域、must-have、avoid。
+1. 先理解项目目标：要找的人能解决什么问题、能力画像、职级、地域、must-have、avoid。
 2. 模糊时按 `intent-routing.md` 判断：可推断就写 Assumptions；hard stop 只问一个最小问题。
-3. 如需要，先用宿主 agent 建立 source map：paper、company、lab、advisor、coauthor、repo、dataset。
+3. 如需要，先规划 source map；但 plan-first 只规划，不调用 web search、browser、CLI 或 live validation，并必须说明下一步候选人验证路径、证据获取路径与 Coverage Warnings。Plan-first 输出后停止，不继续读命令 section 或执行搜索。
 4. 选择执行面：native search 足够时按 Sifta 质量门交付；需要 connector/trace/review 时调用 CLI。
 5. 调 CLI 时，`--query` 必须符合来源合同；`--checkpoint` 必须放用户本轮原始目标。
 6. 人工 review 后继续找时，优先使用 `pnpm sifta:review-feedback` 生成 `--feedback` JSON。
@@ -163,7 +163,7 @@ sifta-cli status
 - Project Card：用户原始目标、Assumptions、must-have / avoid。
 - Source Map：已用来源和待补来源；每条 lead 至少包含 `lead`、`sourceFamily`、`whyRelevant`、
   `conversionBlocker`、`nextVerification`。
-- Candidate Buckets：全职候选、顾问/推荐人、产业标杆、待核验或排除项。
+- Candidate Buckets：全职候选、顾问/推荐人、产业标杆、待核验或排除项；Lead Queue：paper/repo/company/lab/project leads，不能直接当候选人。
 - Fit Proof Packet：requirement、evidence、source、confidence、weakness、next action。
 - Coverage Warnings：API warnings、provider 失败、召回不足、证据弱、分类不确定。
 - Next Action：下一轮继续扩展、人工 review 或停止条件。

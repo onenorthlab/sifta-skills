@@ -7,6 +7,7 @@ description: >
     用于 AI 工程候选人 sourcing，特别是用户要求开源证据、GitHub profile、
     AI Agent、MCP、LLM infra、SDK、runtime、observability、RAG/embedding infra、
     模型应用基础设施、repo contributors、package registry 或 developer proof-of-work 候选人时使用。
+    用户只要 1-3 个强线索时，先用 bundled small-batch helper，不要手写多轮 gh/web search。
     非招聘 repo 调研、公司技术分析、开源项目评估、KOL 合作、PM/GTM 或纯论文综述不要使用。
 ---
 
@@ -21,22 +22,16 @@ channel，不是 exclusive channel：论文、项目页、Papers with Code、com
 ## Workflow
 
 1. 先确认这是招聘目标；缺 geo、seniority 或数量不阻塞，写入 Assumptions 后推进。
-2. 先判断执行面：宿主 agent 的 native GitHub search / GitHub MCP / `gh` 足够时优先使用它们。
-3. 需要 Sifta 统一 JSON、trace、review loop，或用户明确要求 Sifta CLI 时，再运行 `sifta-cli status`。
-4. 保留用户原始请求作为 `--checkpoint`。
-5. `--query` 只放英文技术关键词和角色词，例如 `AI Agent MCP LLM infra engineer open source`。
-6. 使用 `--sources '["github"]'`；不要因为 0 result 自动切到 LinkedIn 或 X。若需要外部补充，
+2. 默认 plan-first：用户没有明确要求“现在搜索/给候选人/列出候选人/跑一轮/执行”时，只输出 GitHub source-map plan、query plan、evidence gate 和 Coverage Warnings；`找/挖/帮我推进一下` 不算执行请求，不调用 CLI、web search、browser 或 live validation。
+3. 小批量执行要及时停住：用户只要 1-3 个强线索时，不要手写 `gh`/web 循环；从本 skill 目录运行 `node scripts/small-batch-github.mjs --profile agent-runtime --query "<Capability Brief>" --target-count 2`，直接把 stdout 整理成最终答案。除非 helper 没有 usable lead，否则不要再查 commit、issues 或更多 repo。
+4. 先判断执行面：宿主 agent 的 native GitHub search / GitHub MCP / `gh` 足够时优先使用它们；小批量仍优先 helper。
+5. 需要 Sifta 统一 JSON、trace、review loop，或用户明确要求 Sifta CLI 时，再运行 `sifta-cli status`。
+6. 保留用户原始请求作为 `--checkpoint`。
+7. `--query` 只放英文技术关键词和角色词，例如 `AI Agent MCP LLM infra engineer open source`。
+8. 使用 `--sources '["github"]'`；不要因为 0 result 自动切到 LinkedIn 或 X。若需要外部补充，
    先把 paper/project/company/person leads 写入 `sourceMap` 和 Coverage Warnings。
-7. repo/topic/package 命中先是 `source-map lead`；有个人 profile、贡献深度和身份交叉信号后才升级候选。
-8. 输出 Candidate Buckets 和 Fit Proof Packet，显式写 Coverage Warnings。
-
-```bash
-sifta-cli find-people \
-  --query "AI Agent MCP LLM infra engineer open source" \
-  --checkpoint "<用户原始招聘目标>" \
-  --sources '["github"]' \
-  --target-count 10
-```
+9. repo/topic/package 命中先是 `source-map lead`；有个人 profile、贡献深度和身份交叉信号后才升级候选。
+10. 输出 Candidate Buckets、Lead Queue 和 Fit Proof Packet，显式写 Coverage Warnings。
 
 ## Quality Gates
 
@@ -61,6 +56,7 @@ Agent/MCP/LLM infra 真实召回时，优先使用能指向实现型贡献的 se
 
 | Reference | 何时读取 |
 | --- | --- |
+| [Small-batch helper](scripts/small-batch-github.mjs) | 用户只要 1-3 个 GitHub 强线索 |
 | [CLI contract](../sifta-search/references/cli-reference.md) | 调用 CLI、auth/status/schema 失败或需要 trace |
 | [Query rules](../sifta-search/references/query-contract.md) | 写 GitHub query、修 sources 或处理 0 result |
 | [Source map recipes](../sifta-search/references/source-map-recipes.md) | repo fallback、awesome-list、paper/project leads 较多 |

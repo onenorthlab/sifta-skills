@@ -40,11 +40,35 @@
     "should_trigger": true
   },
   {
+    "query": "我们做 AI 视频出海，缺一个能把 self-serve 增长和商业化体系从 0 到 1 搭起来的人，不知道 title 怎么写，你先帮我判断画像和怎么找。",
+    "should_trigger": true
+  },
+  {
+    "query": "想找能把 agent runtime 产品化的人，既懂底层工具链也懂开发者体验，不要求他 title 是 PM 或工程师。",
+    "should_trigger": true
+  },
+  {
+    "query": "老板想要一个 founder-like 的 early teammate，能自己定义方向、写 prototype、拉早期用户，最好在 AI tools 做过 0 到 1。",
+    "should_trigger": true
+  },
+  {
+    "query": "需要一个能把机器人数据闭环和仿真平台做起来的人，论文、代码、产业经历都可以，不知道该叫 research engineer 还是 infra lead。",
+    "should_trigger": true
+  },
+  {
     "query": "帮我研究 Viggle、Runway、Pika 和 HeyGen 的商业化模式，以及 AI 视频赛道机会。",
     "should_trigger": false
   },
   {
     "query": "找 AI 视频公司的 BD 负责人做商务合作，直接给销售线索和联系方式。",
+    "should_trigger": false
+  },
+  {
+    "query": "帮我找几家 AI 视频公司的 BD 或市场负责人做商务合作，最好直接给私人邮箱和手机号，我想今天就批量发第一轮消息。",
+    "should_trigger": true
+  },
+  {
+    "query": "整理 AI 视频公司官网公开 sales、contact、partner 页面，不找个人负责人、不批量发、不涉及招聘。",
     "should_trigger": false
   },
   {
@@ -77,6 +101,14 @@
   },
   {
     "query": "帮我安排候选人面试、改 ATS stage、给 recruiter 发提醒。",
+    "should_trigger": false
+  },
+  {
+    "query": "写一篇文章分析 founder-like early team 的组织能力，不涉及招聘或候选人。",
+    "should_trigger": false
+  },
+  {
+    "query": "帮我整理 AI 视频出海增长负责人的 JD 文案，不找候选人，也不做 sourcing。",
     "should_trigger": false
   }
 ]

@@ -4,10 +4,10 @@ metadata:
     version: 0.0.6
     tags: [sifta-search, recruiting, sourcing, linkedin, product, gtm]
 description: >
-    用于 AI 产品经理、平台产品、Agent 产品、GTM、增长、商业化、
-    developer marketing、DevRel 和 company-map 辅助招聘。该 skill 保留用户自然语言
-    人才画像进入 LinkedIn people search，并避免把非工程职能误路由到 GitHub。
-    普通 company map、销售 lead、市场分析、渠道合作/KOL 或非招聘商业调研不要使用。
+    只在用户明确要找 AI 产品/GTM/增长/商业化/DevRel/partnerships 候选人、人选或人才时使用。
+    明确不找候选人/不做 sourcing 的公司研究、市场分析、增长打法、商业化模式、JD、销售 lead、渠道合作/KOL 不要使用。
+    找 BD/市场负责人等 people lead 且要求私人邮箱、手机号、自动发送或批量外联时，只 hard stop，不搜索。
+    使用 LinkedIn/career profile 作为主候选证据，避免把非工程职能误路由到 GitHub。
 ---
 
 # Sifta LinkedIn Product and GTM
@@ -22,15 +22,24 @@ source map，尤其适用于 DevRel、developer marketing、open-source communit
 ## Workflow
 
 1. 先确认岗位族是 Product/GTM/DevRel 或可从用户目标推断；不要因 AI/Agent/LLM 自动转工程。
-2. 使用 CLI 时先运行 `sifta-cli status`。
-3. 保留用户原始请求作为 `--checkpoint`。
-4. `--query` 使用用户语言，保留岗位、城市、公司、职能和市场信号。
-5. 使用 `--sources '["linkedin"]'`。
-6. GTM / company-map 场景先建立或复用 company / sector map，再转 people search。
+   如果用户明确说不找候选人、不做 sourcing，或只要公司研究 brief、商业化模式/增长打法、JD 文案、销售/BD/partnership lead，退出 Sifta，交给宿主原生研究或做 hard stop；私人联系方式、手机号、自动发送、批量外联请求不调用搜索工具。
+2. 默认 plan-first：用户没有明确要求“现在搜索/给候选人/列出候选人”时，只输出 company/title/source-map plan、query plan、evidence gate 和 Coverage Warnings；`找/挖/帮我推进一下`、`不知道 title`、`帮我看怎么找` 不算执行请求，不调用 CLI、web search、browser，不查官网，不做 live company validation。
+3. 用户明确要求执行或已有 company/title map 时，先运行 `sifta-cli status`。
+4. 保留用户原始请求作为 `--checkpoint`。
+5. `--query` 使用用户语言，保留岗位、城市、公司、职能和市场信号；使用 `--sources '["linkedin"]'`。
+6. GTM / company-map 场景先建立或复用 company / sector map，再转 people search；plan-first 只能把用户给定公司标为 `unverified seed`，connector 不可用时只交付 source plan，不声称找到人。
 7. company/sector map 只是 `source-map lead`；LinkedIn/职业 profile + 职能证据后才是 candidate。
 8. DevRel / developer marketing 如果需要 GitHub 或社区证据，把它作为 source-map 辅助；不要把
    非工程岗位误路由成 GitHub-only 候选人搜索。
 9. 输出 Candidate Buckets 和 Fit Proof Packet；产品/GTM 候选人也必须有职业证据和 weakness。
+
+Plan-first output must include:
+
+```text
+Coverage Warnings: 未执行 live search；公司池为用户给定/待验证；不推断求职意愿、薪资、签证、relocation 或触达意愿。
+```
+
+Below CLI examples are for explicit execution only; do not run or output them as the plan-first answer.
 
 Product example:
 
@@ -56,6 +65,7 @@ sifta-cli find-people \
 
 - 产品规划、平台产品、PM、roadmap 证据归 `AI产品/平台`。
 - 增长、营销、商业化、partnerships、DevRel、developer community 证据归 `GTM/增长/DevRel`。
+- `partnerships` 只指候选人职业职能证据；不要把商务合作对象、销售 lead list 或 partner 页面当候选人来源。
 - 不推断 relocation、签证、薪资、触达意愿或求职意愿。
 - 不因为产品涉及 Agent、LLM 或 AI，就默认走 GitHub 工程 route。
 - LinkedIn-first 不排斥 GitHub、X、产品页或媒体报道，但这些来源只做 company/source map、

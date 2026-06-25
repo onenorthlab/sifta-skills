@@ -25,9 +25,9 @@ description: >
 3. 用宿主 agent 原生搜索补公开材料：个人主页、GitHub、LinkedIn public profile、Google Scholar、
    OpenAlex、Semantic Scholar、arXiv/OpenReview、Papers with Code、company bio、talk、podcast、
    conference、patent、media、project page。
-4. 联系方式只收集公开职业联系方式：个人主页公开 email、GitHub profile email、论文通讯邮箱、
-   公开社交/profile 链接、公司公开联系页；不要推断私人邮箱格式、手机号、住址、家庭信息或
-   auth-gated/private 数据。
+4. 联系方式只收集候选人本人公开职业联系方式：个人主页公开 email、GitHub profile email、论文通讯邮箱、
+   公开社交/profile 链接。公司公开联系页只能作为非个人 public channel，不能标成候选人联系方式；
+   不要推断私人邮箱格式、手机号、住址、家庭信息或 auth-gated/private 数据。
 5. 输出 dossier：身份、履历时间线、公开成就、证据、联系方式、风险缺口和下一步核验动作。
 
 ```bash

@@ -14,23 +14,28 @@ const recruitingSignals = [
   "候选", "招聘", "人才", "找人", "全职", "工程师", "产品经理", "研究员", "研究工程师",
   "gtm", "growth", "commercialization", "devrel", "sourcing", "candidate", "outreach",
   "私信", "邮件草稿", "上一轮", "深挖", "联系方式", "profile", "linkedin", "github handle",
+  "人选", "强人", "早期员工", "合伙型", "founder-like", "early teammate", "operator",
+  "缺一个", "能把", "做起来", "从 0 到 1", "负责人", "搭起来",
 ];
 
 const aiRoleSignals = [
   "ai", "agent", "llm", "mcp", "大模型", "智能体", "基础模型", "openalex", "semantic scholar",
   "arxiv", "openreview", "google scholar", "训练效率", "runtime", "开源", "proof-of-work",
+  "机器人", "仿真", "数据闭环",
 ];
 
 const positiveIntents = [
   "候选", "人才", "工程师", "产品经理", "研究员", "研究工程师", "全职", "找几个", "找一个",
   "深挖", "判断是不是同一个人", "公开职业联系方式", "私信", "邮件草稿", "上一轮", "继续扩展",
   "linkedin 搜人", "sourcing", "candidate", "outreach",
+  "人选", "强人", "早期员工", "合伙型", "founder-like", "early teammate", "operator",
+  "缺一个", "能把", "做起来", "搭起来",
 ];
 
 const hardNegativeIntents = [
   "商业化模式", "赛道机会", "技术博客", "产品策略", "竞品定位", "技术调研", "不涉及招聘",
   "销售线索", "商务合作", "crm", "outbound", "融资新闻", "创始团队背景", "安排候选人面试",
-  "ats stage", "recruiter 发提醒", "自动批量", "马上发邮件", "直接给我销售线索",
+  "ats stage", "recruiter 发提醒", "自动批量", "马上发邮件", "直接给我销售线索", "jd 文案",
 ];
 
 const prohibitedContactOrAutomation = [
@@ -46,9 +51,21 @@ function classify(query) {
   const hasRecruiting = hasAny(text, recruitingSignals) || hasAny(text, positiveIntents);
   const hasAiRole = hasAny(text, aiRoleSignals);
   const hardNegative = hasAny(text, hardNegativeIntents);
+  const businessPeopleLeadHardStop = hasAiRole &&
+    hasAny(text, ["bd", "市场负责人", "商务合作", "partnership", "负责人"]) &&
+    hasAny(text, ["私人邮箱", "私人联系方式", "手机号", "批量", "马上发", "自动发送"]) &&
+    !hasAny(text, ["不找个人负责人", "不找负责人", "不批量发", "不涉及招聘"]);
   const safeDraftOnly = hasAny(text, ["不要自动发送", "不自动发送", "草稿"]);
   const unsafeAutomation = hasAny(text, prohibitedContactOrAutomation) ||
     (text.includes("自动发送") && !safeDraftOnly);
+
+  if (businessPeopleLeadHardStop) {
+    return {
+      shouldTrigger: true,
+      route: "sifta-search-hard-stop",
+      reason: "People-lead request mixed with private contacts or bulk outreach; trigger Sifta only to hard-stop without search.",
+    };
+  }
 
   if (unsafeAutomation) {
     return {
@@ -58,7 +75,15 @@ function classify(query) {
     };
   }
 
-  if (text.includes("不涉及招聘") || text.includes("ats stage") || text.includes("安排候选人面试")) {
+  if (
+    text.includes("不涉及招聘") ||
+    text.includes("不找候选人") ||
+    text.includes("不做 sourcing") ||
+    text.includes("不做sourcing") ||
+    text.includes("不做招聘") ||
+    text.includes("ats stage") ||
+    text.includes("安排候选人面试")
+  ) {
     return {
       shouldTrigger: false,
       route: "near-miss-non-sourcing",

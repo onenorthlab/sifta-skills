@@ -15,9 +15,14 @@ Source Map：
 | ... | GitHub / LinkedIn / academic / company / lab / project | ... | identity/profile/evidence missing | ... |
 
 Candidate Buckets：
-| # | 候选人/Lead | State | Bucket | 来源 | 概况 | Evidence grade | Weakness | Next action |
+| # | 候选人 | State | Bucket | 来源 | 概况 | Evidence grade | Weakness | Next action |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| 1 | ... | candidate / sourceMapLead / rejected | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | [Profile](url) | ... | A/B/C/Reject | ... | ... |
+| 1 | ... | candidate / rejected | 全职候选 / 顾问推荐人 / 产业标杆 / 待核验 | [Profile](url) | ... | A/B/Reject | ... | ... |
+
+Lead Queue：
+| lead | state | sourceFamily | whyRelevant | conversionBlocker | nextVerification |
+| --- | --- | --- | --- | --- | --- |
+| ... | source-map lead | paper / repo / company / lab / project | ... | identity/profile/evidence missing | ... |
 
 Fit Proof Packet：
 | Candidate/Lead | State | Requirement | Evidence | Source | Confidence | Weakness | Next action |

@@ -26,7 +26,7 @@ description: >
 
 | Input | Required | Notes |
 | --- | --- | --- |
-| 候选人公开证据 | hard gate | dossier、GitHub、LinkedIn public profile、个人主页、论文、repo、公开访谈等；无证据只能写 generic template |
+| 候选人公开证据 | hard gate | dossier、GitHub、LinkedIn public profile、个人主页、论文、repo、公开访谈等；只有用户明确要求通用模板时才写 generic template，否则缺证据必须转 dossier/enrichment 或 hard stop |
 | 项目 / 岗位 | yes | 公司 / 团队、岗位、方向、must-have、location / remote 如已知 |
 | 触达渠道 | yes | email、LinkedIn、X/DM、referral intro、follow-up 等 |
 | 语气 | yes | founder-style、professional、warm、concise、technical、low-pressure 等 |

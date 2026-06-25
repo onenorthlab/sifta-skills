@@ -5,24 +5,26 @@
 
 ## 1. Project Brief gate
 
-先把用户输入压缩成 Project Brief。缺项分为两类：
+先把用户输入压缩成 Project Brief。用户不需要提供渠道、source 或准确 title；先理解他要补什么能力，再由 agent 派生 route/source。缺项分为两类：
 
 | 字段 | 用途 | 缺失时 |
 | --- | --- | --- |
-| roleFamily | 选择 Engineering / Product-GTM / Academic / Dossier / Outreach / Feedback route | 无法推断时 hard stop，只问一个短问题 |
-| evidencePriority | 选择 GitHub / LinkedIn / academic source stack / public profile / reviewed evidence | 可用默认来源地图推进 |
+| capabilityShape | 用户要找的人能解决什么问题、做过什么结果、拥有哪些经历信号 | 无法判断任何能力方向时 hard stop，只问一个短问题 |
+| inferredRoute | 由 capabilityShape 派生 Engineering / Product-GTM / Research / Founder-Operator / Dossier / Outreach route | 不要求用户提供；可推断就写 Assumptions |
+| evidencePriority | 内部选择 GitHub / LinkedIn / academic source stack / public profile / reviewed evidence | 不主动问用户；用默认来源地图推进 |
 | mustHave | 技能、论文、开源、产品、公司、市场、职级或项目阶段 | 不阻塞；写 Assumptions 和 Fit Proof requirement |
 | avoid | 排除公司、人群、风险、不可说内容 | 不阻塞；涉及隐私、自动发送或非公开数据时 hard stop |
 | quantity | 候选人数或 shortlist 深度 | 默认 3-5；用户要求最强时先给 1 个最强 |
-| sourceConstraints | 用户指定的 GitHub / LinkedIn / X / academic / native search / CLI 边界 | 必须保留；重试和 fallback 不得静默换来源 |
+| sourceConstraints | 只有用户主动指定 GitHub / LinkedIn / X / academic / native search / CLI 时才记录 | 必须保留；重试和 fallback 不得静默换来源 |
 
 Hard stop 只用于关键边界：
 
 - 不清楚是否招聘还是公司/市场研究。
-- 只说“AI 人才”且 role family 不可推断。
+- 只说“AI 人才/强人”且 capabilityShape 不可推断。
 - 已知候选人 deep-dive 缺少可消歧 profile 或公司/地点线索。
 - 用户要求私人联系方式、手机号、自动发送或非公开数据。
-- 多 route 成本差异大，且用户未授权付费 connector。
+- 用户要求销售/BD/partnership lead、私人联系方式或批量外联，且没有招聘候选人目标。
+- 用户明确要求马上执行付费 connector，但未授权或未配置。
 
 Hard stop 回复只包含一个短问题和一句原因，不输出 workflow、CLI 命令、source map 或候选人表。
 
@@ -69,7 +71,7 @@ source-map lead
 | Reject | 身份冲突、非公开信息、隐私请求、无关、证据无法追溯 | 不进入候选表 |
 
 Dealbreaker 优先于分数：私人联系方式、自动发送、无个人 profile、身份冲突、非公开数据、
-销售线索/KOL/公司研究误路由，直接进入 hard stop 或 Reject。
+销售线索/BD/partnership/KOL/公司研究误路由，直接进入 hard stop 或 Reject。
 
 ## 5. CLI / native 边界
 
