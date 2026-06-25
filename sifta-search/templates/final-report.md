@@ -33,5 +33,5 @@ Coverage Warnings：
 - <provider、source、identity、weak-result、classification 或 Project Brief warning>
 
 Next Action：
-- <继续扩展、人工 review、补证据、触达草稿或停止条件>
+- <停止条件，或后续用户批准后的扩展 / 人工 review / 补证据 / 触达草稿>
 ```

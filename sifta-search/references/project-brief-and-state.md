@@ -77,10 +77,15 @@ Dealbreaker 优先于分数：私人联系方式、自动发送、无个人 prof
 
 | 场景 | 默认执行面 | CLI 何时使用 |
 | --- | --- | --- |
-| GitHub engineering | native GitHub search / GitHub MCP / `gh` | 需要稳定 JSON、trace、review loop 或 token-backed connector |
-| LinkedIn Product/GTM | Sifta CLI/API | 需要 LinkedIn people connector、profile enrichment 或 company-map assisted search |
+| GitHub engineering small-batch | bundled `small-batch-github.mjs` | 目标数 >3、helper 不适用或用户批准下一轮时才转 native/CLI |
+| GitHub engineering broad search | native GitHub search / GitHub MCP / `gh` | 需要稳定 JSON、trace、review loop 或 token-backed connector |
+| LinkedIn Product/GTM small-batch | bundled `small-batch-product-gtm.mjs` as Sifta CLI wrapper | 1-3 人 one-pass；connector 不可用时停在 source plan |
+| LinkedIn Product/GTM broad search | Sifta CLI/API | 需要更大 shortlist、profile enrichment 或 company-map assisted search |
 | Academic graph | native academic/web source map | 需要 research trace、结构化候选人或 review feedback |
 | Candidate dossier | native profile reading + optional `enrich-people` | 已知 profile 需要统一公开证据结构 |
 | Review feedback | `sifta:review-packet` / `sifta:review-feedback` | 需要把人工反馈转成 source-specific next request |
 
 CLI/API 不承担 planner、长期 memory、通用 web search、ATS 写操作、自动外联或 provider key 管理。
+
+小批量 helper stdout 出现 `STOP_AFTER_HELPER=true` 时，本轮不继续追加 web、browser、`gh`、
+第二次 `find-people` 或换源。后续 profile verification 只能作为用户批准后的下一轮动作。

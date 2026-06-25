@@ -119,7 +119,7 @@ cp -R /tmp/sifta-skills/sifta-* "${CODEX_HOME:-$HOME/.codex}/skills/"
 
 | Eval | 作用 |
 | --- | --- |
-| `evals.json` | 25 条用户视角 behavior eval，验证 route、source map、CLI/native boundary、Fit Proof Packet 和安全边界 |
+| `evals.json` | 28 条用户视角 behavior eval，验证 route、source map、CLI/native boundary、execution budget、Fit Proof Packet 和安全边界 |
 | `trigger-evals.json` | 28 条 should-trigger / should-not-trigger query，用于后续跑 skill description trigger eval |
 
 可先用 deterministic domain gate 检查 trigger eval 的语义边界：

@@ -26,7 +26,7 @@ web search、browser、CLI、`gh`、`curl` 或任何 live validation。`给 sour
 ## Workflow
 
 1. 先确认是招聘或候选人池目标；只缺地域、职级或数量时写 Assumptions 后推进。
-2. 默认 plan-first：用户没有明确要求“现在搜索/给候选人/列出候选人/跑一轮”时，只输出 source-map plan、query plan、profile conversion gate 和 Coverage Warnings；`找/挖/看看能不能`、`从论文/实验室里挖`、`给 source map`、`说明哪些线索能升级成候选人`、`不要只列论文作者` 都是规划请求，不做 live search。
+2. 默认 plan-first：用户没有明确要求“现在搜索/给候选人/列出候选人/跑一轮”时，只输出 source-map plan、query plan、profile conversion gate 和字面 `Coverage Warnings`；`找/挖/看看能不能`、`从论文/实验室里挖`、`给 source map`、`说明哪些线索能升级成候选人`、`不要只列论文作者` 都是规划请求，不做 live search。
 3. 明确执行时再用宿主 agent 原生学术 / web 搜索建立 source map，不要从泛 people search 开始。
    优先综合 OpenAlex、Google Scholar、Semantic Scholar、arXiv/OpenReview、Papers with Code、
    lab/project/homepage，而不是只搜单一论文库。
@@ -53,6 +53,7 @@ web search、browser、CLI、`gh`、`curl` 或任何 live validation。`给 sour
 
 ## Quality Gates
 
+- plan-first 或 source-map 输出必须保留字面 `Coverage Warnings`，说明未执行 live search、lead 不能直接升级候选人、以及待核验来源。
 - 论文作者不是候选人，直到找到个人 profile 并核验身份。
 - 没有个人 profile 时不要输出完整 Candidate Buckets，只输出 Source Map 和 profile-verification action。
 - Academic graph 输出必须说明至少两个 source families；如果没有使用 OpenAlex、Google Scholar、

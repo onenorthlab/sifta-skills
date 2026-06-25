@@ -89,7 +89,7 @@ Sifta 是 AI 行业招聘 sourcing 增强层，不是通用网页搜索、公司
 1. 先理解项目目标：要找的人能解决什么问题、能力画像、职级、地域、must-have、avoid。
 2. 模糊时按 `intent-routing.md` 判断：可推断就写 Assumptions；hard stop 只问一个最小问题。
 3. 如需要，先规划 source map；但 plan-first 只规划，不调用 web search、browser、CLI 或 live validation，并必须说明下一步候选人验证路径、证据获取路径与 Coverage Warnings。Plan-first 输出后停止，不继续读命令 section 或执行搜索。
-4. 选择执行面：native search 足够时按 Sifta 质量门交付；需要 connector/trace/review 时调用 CLI。
+4. 选择执行面：native search 足够时按 Sifta 质量门交付；需要 connector/trace/review 时调用 CLI；小批量执行必须遵守 execution budget 和 `STOP_AFTER_HELPER` 停止条件。
 5. 调 CLI 时，`--query` 必须符合来源合同；`--checkpoint` 必须放用户本轮原始目标。
 6. 人工 review 后继续找时，优先使用 `pnpm sifta:review-feedback` 生成 `--feedback` JSON。
 7. 解析 JSON 时优先读 `people`、`searchStrategy`、`sourceMap`、`evidenceLog`、`crmExport` 和 `warnings`。
@@ -173,5 +173,5 @@ sifta-cli status
 
 ## 9. 参考
 
-按需读取：`references/cli-reference.md`、`references/intent-routing.md`、`references/project-brief-and-state.md`、`references/source-map-recipes.md`、`references/query-contract.md`、`references/fit-proof-packet.md`、`references/workflow-patterns.md`、`references/output-quality.md`。
+按需读取：`references/cli-reference.md`、`references/intent-routing.md`、`references/project-brief-and-state.md`、`references/source-map-recipes.md`、`references/query-contract.md`、`references/fit-proof-packet.md`、`references/workflow-patterns.md`、`references/output-quality.md`、`references/execution-budget.md`。
 评估集：`evals/evals.json`；Trigger gate：`scripts/evaluate-trigger-domain.mjs`。

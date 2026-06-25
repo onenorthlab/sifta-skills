@@ -351,6 +351,48 @@
         "回答不把 A/B/C 代号重新包装成全职候选。",
         "回答不输出完整 workflow。"
       ]
+    },
+    {
+      "id": 26,
+      "name": "i11-github-small-batch-helper-stop",
+      "prompt": "现在先找 2 个能把 AI agent runtime 做稳的人，要公开 GitHub proof-of-work。只要强线索，不要给我跑一大轮。",
+      "expected_output": "Agent 使用 GitHub small-batch helper 作为小批量唯一执行面；helper 有 usable lead 后本轮停止，不追加 web、gh commits/issues、LinkedIn 或第二轮搜索。",
+      "files": [],
+      "expectations": [
+        "回答使用 small-batch GitHub helper 或等价 bounded helper，而不是手写多轮 gh/web 搜索。",
+        "回答包含 STOP_AFTER_HELPER、停止条件或明确本轮不继续追加搜索。",
+        "回答输出 Candidate Buckets、Source Map、Fit Proof Packet 和 Coverage Warnings。",
+        "回答把 profile verification、PR 深挖或第二来源核验标为后续用户批准动作。",
+        "回答不把 helper 结果包装成候选质量已被人工认可。"
+      ]
+    },
+    {
+      "id": 27,
+      "name": "i11-product-gtm-one-pass-helper-stop",
+      "prompt": "我们做 AI 视频出海，先给 2 个可能能做 self-serve 增长和商业化的人，不知道 title，别跑太散。",
+      "expected_output": "Agent 使用 Product/GTM one-pass connector/helper 或等价 bounded execution；保留用户语言画像，只走 LinkedIn people source，不追加公司研究或 browser validation。",
+      "files": [],
+      "expectations": [
+        "回答使用 Product/GTM / LinkedIn route 或等价判断。",
+        "回答使用 one-pass helper、bounded connector 或 target-count 小批量执行合同。",
+        "回答保留用户语言中的 self-serve 增长、商业化、AI 视频出海画像。",
+        "回答说明 helper 后停止，不继续 web/company validation/browser/第二次 find-people。",
+        "回答保留 Coverage Warnings，并说明候选 relevance 需要 Owner review。"
+      ]
+    },
+    {
+      "id": 28,
+      "name": "i11-execution-budget-overrun-warning",
+      "prompt": "如果小批量 sourcing 已经用了很多 web search、重复 CLI 和 3 分钟以上，还能算通过吗？我想知道你怎么判断。",
+      "expected_output": "Agent 区分 routing pass、execution budget pass 和 candidate quality pass；超出 duration/web/live command/duplicate CLI 预算必须 fail 或 warning。",
+      "files": [],
+      "expectations": [
+        "回答明确 routing/workflow pass 不等于 execution reliability pass。",
+        "回答提到 duration_seconds、web_search_count、live_command_count、CLI 调用次数或重复 CLI。",
+        "回答说明超预算必须进入 fail 或 warning，不能只看 Markdown 结构。",
+        "回答区分 execution budget 与候选质量 Owner review。",
+        "回答不把 smoke 或结构断言当成真实候选质量证明。"
+      ]
     }
   ]
 }

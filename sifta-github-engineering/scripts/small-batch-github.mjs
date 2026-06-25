@@ -121,7 +121,13 @@ const lines = [
   "",
   `- Capability Brief: ${query}`,
   `- Target Count: ${args.targetCount}`,
+  "- STOP_AFTER_HELPER=true",
+  "- HARD_STOP_AFTER_HELPER=true",
+  "- Same-turn fan-out allowed: no.",
+  "- Forbidden same-turn actions: web search, gh search, gh api commits/issues, browser lookup, LinkedIn enrichment, or extra seed repos.",
+  "- Final answer must preserve exact headings: `Stop Condition` and `Coverage Warnings`.",
   "- Execution Budget: max 2 seed repos, max 3 contributors per repo, no commit/issues search.",
+  "- If this helper returns usable leads, stop and report. If it returns zero usable leads, stop with Coverage Warnings and ask/offer a later approved second pass.",
   "",
   "Candidate Buckets",
   "",
@@ -131,7 +137,7 @@ const lines = [
 
 for (const candidate of candidates) {
   lines.push(
-    `| 待核验强线索 | ${mdEscape(candidate.name || candidate.login)} (${mdEscape(candidate.login)}) | ${mdEscape(candidate.repo)} contributor; repo matches agent runtime/tool/evaluation seed; ${candidate.contributions} public contributions | ${mdEscape(candidate.profile)} / ${mdEscape(candidate.repoUrl)} | medium | GitHub metadata proves public contribution signal, not availability or exact role ownership | verify LinkedIn/personal site, contribution depth, and same-person identity |`,
+    `| 待核验强线索 | ${mdEscape(candidate.name || candidate.login)} (${mdEscape(candidate.login)}) | ${mdEscape(candidate.repo)} contributor; repo matches agent runtime/tool/evaluation seed; ${candidate.contributions} public contributions | ${mdEscape(candidate.profile)} / ${mdEscape(candidate.repoUrl)} | medium | GitHub metadata proves public contribution signal, not availability or exact role ownership | later user-approved pass: verify career profile, contribution depth, and same-person identity |`,
   );
 }
 
@@ -163,17 +169,22 @@ lines.push(
 
 for (const candidate of candidates) {
   lines.push(
-    `| Built runtime/tool/eval systems | ${mdEscape(candidate.repo)} contributor with ${candidate.contributions} contributions; repo description: ${mdEscape(candidate.repoDescription)} | ${mdEscape(candidate.repoUrl)} and ${mdEscape(candidate.profile)} | medium | Needs identity, role, and contribution-depth review before candidate bucket upgrade | open profile, inspect merged PRs if needed, then verify career profile |`,
+    `| Built runtime/tool/eval systems | ${mdEscape(candidate.repo)} contributor with ${candidate.contributions} contributions; repo description: ${mdEscape(candidate.repoDescription)} | ${mdEscape(candidate.repoUrl)} and ${mdEscape(candidate.profile)} | medium | Needs identity, role, and contribution-depth review before candidate bucket upgrade | later user-approved pass: inspect career profile or merged PRs only if needed |`,
   );
 }
 
 lines.push(
+  "",
+  "Stop Condition",
+  "",
+  "- Helper output is final for this turn; do not continue searching without later user approval.",
   "",
   "Coverage Warnings",
   "",
   "- This helper intentionally stops early; it is recall scaffolding, not final candidate quality proof.",
   "- It does not infer availability, seniority, compensation, relocation, private contact, or willingness to talk.",
   "- Repo/project leads remain source-map leads until identity checked and evidence graded.",
+  "- Next actions are later user-approved actions, not permission to continue searching in this turn.",
 );
 
 process.stdout.write(`${lines.join("\n")}\n`);

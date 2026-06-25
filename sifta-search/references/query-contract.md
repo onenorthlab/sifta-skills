@@ -167,3 +167,5 @@ X 只在用户明确要求公开表达、社区信号、public posts 或指定 `
 | 未授权调用 X                   | sources 约束丢失            | 保留显式 `--sources`；默认不调用 X                                 |
 | web/source-map 线索进入 people | source contract 破坏        | 只进 `sourceMap` / `evidenceLog` / `warnings`                      |
 | repo fallback 被强推           | quality gate 破坏           | 保留 coverage warning；缺 profile 交叉证据时只作为 source-map 入口 |
+| helper returned usable leads    | execution budget 破坏       | 本轮停止；不要继续 web、gh、browser、LinkedIn 或第二次 CLI          |
+| helper zero usable leads        | recall 不足                 | 报告 Coverage Warnings；询问/建议下一轮，不静默换源                |

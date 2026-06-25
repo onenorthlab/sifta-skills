@@ -6,6 +6,9 @@
 Execution Surface：
 - Native first：<GitHub MCP / gh / academic web / browser / none>
 - CLI needed because：<stable JSON / trace / LinkedIn connector / review feedback / enrich known profile>
+- Small-batch gate：<helper / direct CLI / none>
+- Stop condition：<STOP_AFTER_HELPER / plan-first / hard-stop / no stop>
+- Same-turn fan-out allowed：<no unless user approved second pass>
 
 Preflight：
 ```bash
@@ -24,6 +27,7 @@ sifta-cli find-people \
 Notes：
 - Academic research mode may use a research trace/source-map path instead of `--sources`.
 - Omit `--sources` only if the current CLI schema says the route does not accept it.
+- If a helper output contains `STOP_AFTER_HELPER=true`, final-answer from that output and do not continue searching in this turn.
 
 Expected JSON fields：
 - `people`

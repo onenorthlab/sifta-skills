@@ -329,8 +329,8 @@ Triage 规则：
 1. 放宽 title，例如从 `Staff AI Infra Engineer` 放宽到 `AI Engineer`。
 2. 放宽画像中的非核心要求，例如先找 AI Agent 工程师，再人工筛 infra。
 3. 放宽地点，例如从城市放宽到国家、地区或 remote。
-4. 切换来源，例如 LinkedIn 结果弱时尝试 GitHub，反之亦然。
-5. 研究型人才、具身智能论文证据或 academic graph 学术通道相关时切换到 `--mode research`。
+4. 同源调整后仍弱时，建议下一轮切换来源；只有用户未指定来源、不是 helper pass，且预算允许时才可同轮执行。
+5. 研究型人才、具身智能论文证据或 academic graph 学术通道相关时，下一轮可切换到 `--mode research`。
 
 示例：
 

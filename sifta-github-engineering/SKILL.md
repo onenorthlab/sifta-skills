@@ -23,7 +23,7 @@ channel，不是 exclusive channel：论文、项目页、Papers with Code、com
 
 1. 先确认这是招聘目标；缺 geo、seniority 或数量不阻塞，写入 Assumptions 后推进。
 2. 默认 plan-first：用户没有明确要求“现在搜索/给候选人/列出候选人/跑一轮/执行”时，只输出 GitHub source-map plan、query plan、evidence gate 和 Coverage Warnings；`找/挖/帮我推进一下` 不算执行请求，不调用 CLI、web search、browser 或 live validation。
-3. 小批量执行要及时停住：用户只要 1-3 个强线索时，不要手写 `gh`/web 循环；从本 skill 目录运行 `node scripts/small-batch-github.mjs --profile agent-runtime --query "<Capability Brief>" --target-count 2`，直接把 stdout 整理成最终答案。除非 helper 没有 usable lead，否则不要再查 commit、issues 或更多 repo。
+3. 小批量执行要及时停住：用户只要 1-3 个强线索时，不要手写 `gh`/web 循环；运行 `node scripts/small-batch-github.mjs --profile agent-runtime --query "<Capability Brief>" --target-count 2`。stdout 有 `STOP_AFTER_HELPER=true` 且有 usable lead 时，直接整理成最终答案，保留 `Stop Condition`、`Coverage Warnings` 和停止条件，不再查 commit、issues、web 或更多 repo。
 4. 先判断执行面：宿主 agent 的 native GitHub search / GitHub MCP / `gh` 足够时优先使用它们；小批量仍优先 helper。
 5. 需要 Sifta 统一 JSON、trace、review loop，或用户明确要求 Sifta CLI 时，再运行 `sifta-cli status`。
 6. 保留用户原始请求作为 `--checkpoint`。
@@ -35,6 +35,7 @@ channel，不是 exclusive channel：论文、项目页、Papers with Code、com
 
 ## Quality Gates
 
+- 最终答复必须保留字面 `Coverage Warnings`；helper 停止时写明 `Stop condition: helper output is final` 或同等停止条件。
 - repository fallback 默认是弱线索或待核验，不等于强候选人。
 - 只有同时有个人 profile、工程项目、公司/经历或身份交叉信号时，才进入候选池。
 - `priority=C`、职业工程证据弱、provider errors、repository fallback 都必须写入 Coverage Warnings。
@@ -57,6 +58,7 @@ Agent/MCP/LLM infra 真实召回时，优先使用能指向实现型贡献的 se
 | Reference | 何时读取 |
 | --- | --- |
 | [Small-batch helper](scripts/small-batch-github.mjs) | 用户只要 1-3 个 GitHub 强线索 |
+| [Execution budget](../sifta-search/references/execution-budget.md) | 控制 live command、latency 和重复搜索 |
 | [CLI contract](../sifta-search/references/cli-reference.md) | 调用 CLI、auth/status/schema 失败或需要 trace |
 | [Query rules](../sifta-search/references/query-contract.md) | 写 GitHub query、修 sources 或处理 0 result |
 | [Source map recipes](../sifta-search/references/source-map-recipes.md) | repo fallback、awesome-list、paper/project leads 较多 |
