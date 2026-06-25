@@ -1,59 +1,40 @@
-# Execution Budget
+# Execution Boundary
 
-执行预算是 Sifta execution reliability 的质量门。它不评价候选人是否真的优秀，只约束本地
-agent 不要在小批量 sourcing 中工具发散、重复调用 CLI 或把弱结果包装成完成交付。
+本文件约束 agent 在一次用户请求中的工具使用范围，避免小批量 sourcing 变成无边界搜索。
 
-## 1. 预算表
+## 1. 默认预算
 
-| 场景 | duration | web_search | live_command | CLI 搜索 |
-| --- | ---: | ---: | ---: | ---: |
-| GitHub / Engineering 1-3 强线索 | <= 180s | <= 2 | <= 4 | `find-people` 0 次；helper 1 次 |
-| Product/GTM 1-3 强线索 | <= 180s | 0 | <= 3 | `find-people` 最多 1 次 |
-| Plan-first | <= 120s | 0 | 0 | 0 |
-| Hard-stop / privacy | <= 90s | 0 | 0 | 0 |
-| Non-sourcing near-miss | Sifta 不计分 | 允许宿主原生研究 | 允许宿主原生研究 | 0 |
-
-超预算必须进入 eval fail 或报告 warning；不能只因为最终 Markdown 看起来完整就算通过。
+| 场景 | 推荐边界 |
+| --- | --- |
+| Plan-first | 只输出 plan/source map/hard stop；不调用 CLI、web、browser 或 `gh` |
+| GitHub / Engineering 1-3 强线索 | 优先用 route skill 的小批量 helper 或宿主 GitHub 工具；不要同轮反复换源 |
+| Product/GTM 1-3 强线索 | 优先用 Sifta CLI/API；connector 不可用时停在 source plan |
+| Academic graph | 先做 source map；不要把论文作者直接升级为候选人 |
+| Candidate dossier | 只读公开 profile；必要时用 `sifta-cli enrich-people` 补结构化证据 |
+| Privacy hard stop | 不搜索；说明边界并问一个必要澄清 |
 
 ## 2. 停止条件
 
-小批量执行优先使用 route skill 的 bundled helper。helper stdout 必须包含 `STOP_AFTER_HELPER=true`。
-如果 stdout 还包含 `HARD_STOP_AFTER_HELPER=true` 或 `NO_FALLBACK_WEB=true`，本轮不得用 web/exa/native search 自救。
-helper stdout 已包含 Project Card、
-Candidate Buckets、Source Map、Fit Proof Packet 和 Coverage Warnings 时，直接整理成最终答复。
+满足任一条件时，本轮停止扩展并交付当前结果、warnings 和下一步建议：
 
-除非满足以下任一条件，不继续调用 web search、`gh`、browser、`sifta-cli find-people` 或第二个 helper：
+- 用户只要 1-3 个强线索，已有可解释的候选或 source-map lead。
+- helper 或 CLI 返回了明确的 provider/auth/schema/warning 信息。
+- 当前结果只有弱线索，继续搜索也无法补足个人 profile 证据。
+- 需要更大范围扩展、跨来源二轮或人工 review 后再继续。
+- 涉及私人联系方式、自动发送、ATS/CRM 写入或未授权付费 connector。
 
-- helper 返回 0 个 usable people / lead。
-- helper 明确报告 auth、schema 或 provider 失败。
-- 用户明确要求第二轮扩展，并接受更高预算。
-- 人工/Owner review 后需要按 feedbackIngest 继续找。
+不要为了让列表变长而连续调用 web search、browser、`gh`、`sifta-cli find-people`
+或多个 helper。下一轮扩展应在用户确认后执行。
 
-## 3. 计分字段
+## 3. 质量边界
 
-真实 Codex CLI eval 必须保存：
+执行路径稳定不等于候选质量通过。最终输出仍要分开说明：
 
-- `duration_seconds`
-- `web_search_count`
-- `live_command_count`
-- `preflight_command_count`
-- `command_texts`
-- `model_output_missing`
-- `triggered_sifta`
-- `used_live_tools`
-
-预算 eval 读取 `benchmark.json` 和每个 case 的 `outputs/timing.json`。重复的
-`sifta-cli find-people`、`sifta-cli enrich-people` 或 helper 调用要单独计数。
-
-## 4. 候选质量边界
-
-预算通过只说明执行路径稳定，不说明候选 relevance 通过。候选质量需要单独 Owner review：
-
-| 维度 | 通过口径 |
+| 维度 | 要求 |
 | --- | --- |
 | relevance | 候选人主要经历能回答用户能力画像 |
-| evidence strength | 证据不是 title keyword；能追溯到公开 profile、repo、论文或职业材料 |
-| source reliability | 来源与候选人身份、职能和贡献相匹配 |
+| evidence strength | 证据可追溯到公开 profile、repo、论文、项目页或职业材料 |
+| source reliability | 来源与候选人身份、职能和贡献匹配 |
 | weakness honesty | 明确写缺口，不推断求职意愿、私人联系方式、薪资、签证或 relocation |
 
-结构通过、预算通过和候选质量通过必须分开报告。
+弱结果只能作为 source-map lead、pending lead 或 coverage warning，不能包装成强推荐。

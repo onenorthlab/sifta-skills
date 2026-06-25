@@ -17,16 +17,21 @@ description: >
 
 ## Workflow
 
-1. 从上一轮结果生成 review packet。
-2. 按用户反馈填写 `feedback-template.json`。
-3. 用 `sifta:review-feedback` 生成下一轮请求。
-4. 分别执行每个 source-specific request，不把 GitHub 英文 query 和 LinkedIn 中文画像混在一起。
+1. 读取上一轮候选人、source map、warnings 和用户人工反馈。
+2. 把反馈整理成 `feedbackIngest` JSON：保留约束、排除项、扩展种子和分桶调整。
+3. 按来源拆分下一轮请求，不把 GitHub 英文 query 和 LinkedIn 中文画像混在一起。
+4. 用 `sifta-cli find-people --feedback '<json>'` 分别执行每个 source-specific request。
 5. 把候选人迁移到 accepted/rejected/advisor/referrer/benchmark/known-network/pending-lead 等状态。
-6. 保留 `feedbackIngest`、上一轮 warnings 和来源约束。
+6. 保留上一轮 warnings、来源约束和用户明确排除项。
+
+示例：
 
 ```bash
-pnpm sifta:review-packet --out <review-dir> <first-pass.json>
-pnpm sifta:review-feedback --out <review-dir>/next <review-dir>/feedback-template.json
+sifta-cli find-people \
+  --query "<next source-specific query>" \
+  --checkpoint "<original user goal>" \
+  --feedback '[{"feedback":"上一轮候选人更像顾问，请继续找全职候选","constraints":["保留工程落地证据"],"exclusions":["纯论文 profile"]}]' \
+  --sources '["github"]'
 ```
 
 ## Feedback Mapping
@@ -51,7 +56,7 @@ pnpm sifta:review-feedback --out <review-dir>/next <review-dir>/feedback-templat
 
 | Reference | 何时读取 |
 | --- | --- |
-| [CLI contract](../sifta-search/references/cli-reference.md) | 生成 review packet、feedback 或 CLI next request |
+| [CLI contract](../sifta-search/references/cli-reference.md) | 生成 `--feedback` JSON 或 CLI next request |
 | [Query rules](../sifta-search/references/query-contract.md) | 生成下一轮 source-specific query |
 | [State gate](../sifta-search/references/project-brief-and-state.md) | 迁移 advisor/referrer/benchmark/reject/pending-lead |
 | [Intent routing](../sifta-search/references/intent-routing.md) | 反馈导致 route 改变或新搜索 |

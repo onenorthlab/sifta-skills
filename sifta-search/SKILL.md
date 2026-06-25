@@ -33,6 +33,7 @@ Sifta 是 AI 行业招聘 sourcing 增强层，不是通用网页搜索、公司
 - 明确说不找候选人、不做 sourcing、只要公司研究 brief、商业化模式/增长打法或 JD 文案。
 - 销售线索、KOL 合作、ATS 管理、排期、offer、触达自动化。
 - 非 AI 行业画像，除非用户愿意改写成上述招聘画像之一。
+
 非招聘 sales/BD/partnership lead 请求，尤其要求私人邮箱、手机号或批量外联时，hard stop：不调用任何搜索工具，只问 `这是商务线索，不是招聘 sourcing；要改成招聘 BD/GTM 候选人 brief 吗？` 并说明不会继续搜索、输出业务 lead list 或协助批量发送。
 
 ## 2. 宿主 Agent 分工
@@ -54,18 +55,18 @@ Sifta 是 AI 行业招聘 sourcing 增强层，不是通用网页搜索、公司
 
 ## 3. 路由规则
 
-| 用户画像 / 能力信号          | 默认路径                                          | 关键要求                                   |
-| ---------------------------- | ------------------------------------------------- | ------------------------------------------ |
-| 搭系统 / 开源 / runtime / infra / SDK | native GitHub search；需要 trace 时用 `find-people --sources '["github"]'` | GitHub-first，不是 GitHub-only；保留开源项目和工程证据 |
-| 产品、平台、用户问题、PM-like ownership | 先给 LinkedIn source plan；明确执行时用 `find-people --sources '["linkedin"]'` | 不因 AI/Agent 词误转工程；产品证据归 `AI产品/平台` |
-| 增长、商业化、出海、开发者生态、community | 先给问题/市场/相邻公司/能力信号 map；明确执行时再做 people search | 用户不知道头衔不阻塞；title map 只是内部扩展，不当主输出锚点 |
-| WAM / VLA / 研究型复杂画像   | 先 source map，再候选人搜索；必要时 research mode | 区分全职候选、顾问、推荐人、产业标杆       |
-| 学术图谱 / 高潜研究人才      | 先输出 academic source-map plan；明确执行时再搜索  | 综合 OpenAlex/Scholar/Semantic Scholar 等；不把论文作者直接当候选人 |
-| 已知 GitHub / LinkedIn URL   | `enrich-people --people '[...]'`                  | 只补全公开 profile 证据，避免重名误合并    |
-| 已知候选人 deep-dive         | candidate dossier / enrichment                    | 只查公开信息；联系方式限公开职业渠道       |
-| 候选人触达文案               | outreach copy                                     | 只生成草稿；不自动发送；不编造关系或承诺   |
-| 模糊招聘目标                 | Project Brief gate；必要时读 `intent-routing.md`  | 硬阻塞时 hard stop，只问一个短问题；可推断时直接推进 |
-| 不清楚是否招聘               | 先问一个短问题                                    | hard stop；不把客户、创作者、公司或销售线索混成候选人 |
+| 用户画像 / 能力信号                       | 默认路径                                                                       | 关键要求                                                            |
+| ----------------------------------------- | ------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
+| 搭系统 / 开源 / runtime / infra / SDK     | native GitHub search；需要 trace 时用 `find-people --sources '["github"]'`     | GitHub-first，不是 GitHub-only；保留开源项目和工程证据              |
+| 产品、平台、用户问题、PM-like ownership   | 先给 LinkedIn source plan；明确执行时用 `find-people --sources '["linkedin"]'` | 不因 AI/Agent 词误转工程；产品证据归 `AI产品/平台`                  |
+| 增长、商业化、出海、开发者生态、community | 先给问题/市场/相邻公司/能力信号 map；明确执行时再做 people search              | 用户不知道头衔不阻塞；title map 只是内部扩展，不当主输出锚点        |
+| WAM / VLA / 研究型复杂画像                | 先 source map，再候选人搜索；必要时 research mode                              | 区分全职候选、顾问、推荐人、产业标杆                                |
+| 学术图谱 / 高潜研究人才                   | 先输出 academic source-map plan；明确执行时再搜索                              | 综合 OpenAlex/Scholar/Semantic Scholar 等；不把论文作者直接当候选人 |
+| 已知 GitHub / LinkedIn URL                | `enrich-people --people '[...]'`                                               | 只补全公开 profile 证据，避免重名误合并                             |
+| 已知候选人 deep-dive                      | candidate dossier / enrichment                                                 | 只查公开信息；联系方式限公开职业渠道                                |
+| 候选人触达文案                            | outreach copy                                                                  | 只生成草稿；不自动发送；不编造关系或承诺                            |
+| 模糊招聘目标                              | Project Brief gate；必要时读 `intent-routing.md`                               | 硬阻塞时 hard stop，只问一个短问题；可推断时直接推进                |
+| 不清楚是否招聘                            | 先问一个短问题                                                                 | hard stop；不把客户、创作者、公司或销售线索混成候选人               |
 
 ## 3.5 Project Brief gate
 
@@ -75,14 +76,14 @@ Sifta 是 AI 行业招聘 sourcing 增强层，不是通用网页搜索、公司
 
 像 router 一样选择一个最匹配 skill；不要把所有 skill 和 reference 都读进上下文。
 
-| Skill | 何时读取 |
-| --- | --- |
-| [../sifta-github-engineering/SKILL.md](../sifta-github-engineering/SKILL.md) | AI 工程师、开源、Agent/LLM infra、MCP、GitHub 证据 |
-| [../sifta-linkedin-product-gtm/SKILL.md](../sifta-linkedin-product-gtm/SKILL.md) | 产品经理、GTM、增长、商业化、DevRel、company-map |
-| [../sifta-academic-graph/SKILL.md](../sifta-academic-graph/SKILL.md) | 研究型、WAM/VLA、基础模型、论文、实验室、导师/共同作者、竞赛、年轻高潜人才 |
-| [../sifta-candidate-dossier/SKILL.md](../sifta-candidate-dossier/SKILL.md) | 已知候选人深挖、公开经历、成就、联系方式、身份核验、dossier |
-| [../sifta-outreach-copy/SKILL.md](../sifta-outreach-copy/SKILL.md) | 私信、邮件、LinkedIn message、referral intro、follow-up 文案 |
-| [../sifta-review-feedback/SKILL.md](../sifta-review-feedback/SKILL.md) | 用户对上一轮候选人给出反馈后继续找、分桶调整、mixed-source 下一轮搜索 |
+| Skill                                                                            | 何时读取                                                                   |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| [../sifta-github-engineering/SKILL.md](../sifta-github-engineering/SKILL.md)     | AI 工程师、开源、Agent/LLM infra、MCP、GitHub 证据                         |
+| [../sifta-linkedin-product-gtm/SKILL.md](../sifta-linkedin-product-gtm/SKILL.md) | 产品经理、GTM、增长、商业化、DevRel、company-map                           |
+| [../sifta-academic-graph/SKILL.md](../sifta-academic-graph/SKILL.md)             | 研究型、WAM/VLA、基础模型、论文、实验室、导师/共同作者、竞赛、年轻高潜人才 |
+| [../sifta-candidate-dossier/SKILL.md](../sifta-candidate-dossier/SKILL.md)       | 已知候选人深挖、公开经历、成就、联系方式、身份核验、dossier                |
+| [../sifta-outreach-copy/SKILL.md](../sifta-outreach-copy/SKILL.md)               | 私信、邮件、LinkedIn message、referral intro、follow-up 文案               |
+| [../sifta-review-feedback/SKILL.md](../sifta-review-feedback/SKILL.md)           | 用户对上一轮候选人给出反馈后继续找、分桶调整、mixed-source 下一轮搜索      |
 
 复杂项目顺序：
 
@@ -91,7 +92,7 @@ Sifta 是 AI 行业招聘 sourcing 增强层，不是通用网页搜索、公司
 3. 如需要，先规划 source map；但 plan-first 只规划，不调用 web search、browser、CLI 或 live validation，并必须说明下一步候选人验证路径、证据获取路径与 Coverage Warnings。Plan-first 输出后停止，不继续读命令 section 或执行搜索。
 4. 选择执行面：native search 足够时按 Sifta 质量门交付；需要 connector/trace/review 时调用 CLI；小批量执行必须遵守 execution budget 和 `STOP_AFTER_HELPER` 停止条件。
 5. 调 CLI 时，`--query` 必须符合来源合同；`--checkpoint` 必须放用户本轮原始目标。
-6. 人工 review 后继续找时，优先使用 `pnpm sifta:review-feedback` 生成 `--feedback` JSON。
+6. 人工 review 后继续找时，把用户反馈整理成 `--feedback` JSON，再用 Sifta CLI 执行下一轮搜索。
 7. 解析 JSON 时优先读 `people`、`searchStrategy`、`sourceMap`、`evidenceLog`、`crmExport` 和 `warnings`。
 8. 最终输出必须包含 Fit Proof Packet：requirement -> evidence -> source -> confidence -> weakness -> next action。
 
@@ -114,8 +115,8 @@ sifta-cli status
 | 已知 profile 或 handle 补全       | `sifta-cli enrich-people --people '[...]'`                                                |
 | CLI/API schema 变化或命令失败     | `sifta-cli tools`，再按当前 schema 重建命令                                               |
 
-默认解析 JSON stdout。不要把 `--pretty` 用于 agent 解析；它只适合人工查看。真实验证、eval
-或渠道输入排查时追加 `--trace`；日常搜索不要默认输出 trace。详细命令见
+默认解析 JSON stdout。不要把 `--pretty` 用于 agent 解析；它只适合人工查看。需要排查
+渠道输入或工具调用时追加 `--trace`；日常搜索不要默认输出 trace。详细命令见
 [references/cli-reference.md](references/cli-reference.md)。
 
 `find-people` 默认只返回本轮 JSON，不写 Web 历史。用户明确要求“保存、落库、同步到 Web、稍后在 Web 查看”，或 agent 判断这轮结果已通过基本质量门、值得沉淀给用户复核时，追加 `--save`。保存成功后 JSON 会包含 `persisted.webPath`，最终回复应给出该 Web 回看路径。探索性宽召回、弱证据候选或尚未 review 的试探查询不要默认 `--save`。
@@ -180,4 +181,3 @@ sifta-cli status
 ## 9. 参考
 
 按需读取：`references/cli-reference.md`、`references/intent-routing.md`、`references/project-brief-and-state.md`、`references/source-map-recipes.md`、`references/query-contract.md`、`references/fit-proof-packet.md`、`references/workflow-patterns.md`、`references/output-quality.md`、`references/execution-budget.md`。
-评估集：`evals/evals.json`；Trigger gate：`scripts/evaluate-trigger-domain.mjs`。

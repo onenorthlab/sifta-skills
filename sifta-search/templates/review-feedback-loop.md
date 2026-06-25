@@ -4,8 +4,8 @@
 
 ```markdown
 Previous Result：
-- Result file：
-- Review packet：
+- Candidate summary：
+- Source map：
 - Known warnings：
 
 Human Feedback：
@@ -15,10 +15,13 @@ Human Feedback：
 | B | candidate | 产业标杆 | benchmark | ... |
 | C | sourceMapLead | 证据弱 | rejected/pending-lead | ... |
 
-Generate feedback：
+Next CLI request：
 ```bash
-pnpm sifta:review-packet --out <review-dir> <first-pass.json>
-pnpm sifta:review-feedback --out <review-dir>/next <review-dir>/feedback-template.json
+sifta-cli find-people \
+  --query "<next source-specific query>" \
+  --checkpoint "<original user goal>" \
+  --feedback '[{"feedback":"上一轮候选人更像顾问，请继续找全职候选","constraints":["保留工程落地证据"],"exclusions":["纯论文 profile"]}]' \
+  --sources '["github"]'
 ```
 
 Next Requests：

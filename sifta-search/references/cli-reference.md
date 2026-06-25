@@ -3,7 +3,7 @@
 这些命令只用于招聘候选人 sourcing。除非传入 `--pretty`，CLI stdout 默认是 JSON。
 Agent 应解析 stdout，并把 stderr 视为状态或调试输出。
 
-当前 CLI 没有 `sifta-cli search` 命令。不要在 skill、eval、报告或用户可复制命令里推荐
+当前 CLI 没有 `sifta-cli search` 命令。不要在 skill、报告或用户可复制命令里推荐
 `sifta-cli search`；候选人搜索统一使用 `sifta-cli find-people`。
 
 ## 目录
@@ -182,20 +182,14 @@ sifta-cli find-people \
   lab/project/homepage。再用 GitHub/LinkedIn/个人主页验证候选人；不要把论文作者直接放进候选人。
 - X：只有用户明确授权 X / public posts / community signal 时使用。
 
-`--feedback` 用于多轮 review loop。Agent 不要手写复杂长 prompt；优先从人工填写的
-`feedback-template.json` 运行：
+`--feedback` 用于多轮 review loop。Agent 应把用户人工反馈整理成短 JSON 数组，保留
+`feedback`、`constraints`、`exclusions` 和 `expansionSeeds`。反馈会进入服务端
+`feedbackIngest`，用于影响下一轮 `searchStrategy`、候选人分桶、`whyNot` 和
+`nextAction`。
 
-```bash
-pnpm sifta:review-feedback --out <review-dir> <review-dir>/feedback-template.json
-```
-
-然后复制 `next-search.json` 或 `next-search.md` 中生成的 `sifta-cli find-people`
-命令。反馈会进入服务端 `feedbackIngest`，用于影响下一轮 `searchStrategy`、候选人分桶、
-`whyNot` 和 `nextAction`。
-
-如果上一轮 review 同时包含 GitHub 和 LinkedIn，`sifta:review-feedback` 会生成多条
-source-specific request。Agent 应分别执行需要的来源命令，不要把 GitHub 英文 query 和
-LinkedIn 中文画像合并成一条混合来源命令。
+如果上一轮 review 同时包含 GitHub 和 LinkedIn，Agent 应按来源拆成多条
+source-specific request。分别执行需要的来源命令，不要把 GitHub 英文 query 和 LinkedIn
+中文画像合并成一条混合来源命令。
 
 当前支持的 filter 字段：
 
@@ -247,11 +241,15 @@ sifta-cli find-people \
 Review feedback loop：
 
 ```bash
-pnpm sifta:review-feedback --out <review-dir>/next <review-dir>/feedback-template.json
+sifta-cli find-people \
+  --query "<next source-specific query>" \
+  --checkpoint "<original user goal>" \
+  --feedback '[{"feedback":"上一轮候选人更像顾问，请继续找全职候选","constraints":["保留工程落地证据"],"exclusions":["纯论文 profile"]}]' \
+  --sources '["github"]'
 ```
 
-生成的下一轮 GitHub query 必须是短技术关键词；完整人工反馈必须在 `--feedback` JSON 中。
-如果 `next-search.json` 有多条 `cases`，按 `request.sources` 分别执行对应来源。
+下一轮 GitHub query 必须是短技术关键词；完整人工反馈必须在 `--feedback` JSON 中。
+如果反馈涉及多个来源，按来源分别执行对应命令。
 
 ## `sifta-cli enrich-people`
 
@@ -373,6 +371,6 @@ sifta-cli find-people \
 - `query` 是否保留用户语言、岗位、方向、地区和证据信号。
 - `checkpoint` 是否是用户原始目标，而不是改写后的搜索词。
 - `executedSources` 是否符合 `--sources` 或 skill 选择。
-- `toolTrace[].request` 是否展示每个渠道真实收到的输入；trace 已脱敏，但仍只用于调试和 eval。
+- `toolTrace[].request` 是否展示每个渠道真实收到的输入；trace 已脱敏，但仍只用于调试和核验。
 - `people[].raw`、`evidenceLog`、`crmExport` 是否能支撑候选人判断。
 - `warnings` 是否说明未满足的偏好、证据缺口或下一步扩展方向。

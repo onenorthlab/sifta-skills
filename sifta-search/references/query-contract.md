@@ -15,8 +15,8 @@ CLI 参数。无论是否调用 CLI，最终输出仍要遵守同一证据和 co
 | `--checkpoint` | 用户本轮原始招聘目标              | 保留中文业务语境、岗位、地区、must-have、avoid、证据信号            |
 | `--sources`    | 用户授权或 skill 选择的候选人渠道 | 必须写 JSON 字符串数组；显式指定后，重试、fallback、review-feedback 必须保持一致 |
 | `--filter`     | 明确结构化条件                    | 只写确定的 title / skill / location / company / seniority           |
-| `--feedback`   | 人工 review 后的下一轮约束        | 由 `pnpm sifta:review-feedback` 生成；不要把长反馈塞进 GitHub query |
-| `--trace`      | eval、smoke、排障用脱敏 trace     | 日常用户输出不默认打开；真实验证必须打开                            |
+| `--feedback`   | 人工 review 后的下一轮约束        | 由 agent 根据上一轮结果和用户反馈整理；不要把长反馈塞进 GitHub query |
+| `--trace`      | 排障用脱敏 trace                  | 日常用户输出不默认打开；仅在排查渠道输入或工具调用时使用             |
 
 ## 2. GitHub query
 
@@ -58,8 +58,8 @@ review loop：
 - `--query` 只保留上一轮有效技术 token 和少量角色词。
 - 完整人工反馈通过 `--feedback` 进入 `feedbackIngest`。
 - 如果上一轮是 repo fallback，下一轮不能把 repo-only owner 包装成强推荐；必须保留 warning 或转入 source-map。
-- 如果上一轮同时包含 GitHub 和 LinkedIn，`pnpm sifta:review-feedback` 会拆成按来源的多条
-  next request；不要把同一个 GitHub 英文 query 同时发给 LinkedIn。
+- 如果上一轮同时包含 GitHub 和 LinkedIn，按来源拆成多条 next request；不要把同一个
+  GitHub 英文 query 同时发给 LinkedIn。
 
 ## 3. LinkedIn / 产品 / GTM query
 

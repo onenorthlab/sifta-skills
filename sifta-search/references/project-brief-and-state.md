@@ -83,7 +83,7 @@ Dealbreaker 优先于分数：私人联系方式、自动发送、无个人 prof
 | LinkedIn Product/GTM broad search | Sifta CLI/API | 需要更大 shortlist、profile enrichment 或 company-map assisted search |
 | Academic graph | native academic/web source map | 需要 research trace、结构化候选人或 review feedback |
 | Candidate dossier | native profile reading + optional `enrich-people` | 已知 profile 需要统一公开证据结构 |
-| Review feedback | `sifta:review-packet` / `sifta:review-feedback` | 需要把人工反馈转成 source-specific next request |
+| Review feedback | `sifta-cli find-people --feedback` | 需要把人工反馈转成 source-specific next request |
 
 CLI/API 不承担 planner、长期 memory、通用 web search、ATS 写操作、自动外联或 provider key 管理。
 
