@@ -22,7 +22,7 @@ description: >
 
 1. 先确认这是招聘目标；缺地域、职级或数量不阻塞，写入“假设”后推进。用户未指定地区时，默认 `中国/中文生态相关人才池优先`；这不是 GitHub 查询里的严格 location filter，也不是族裔推断。
 2. 区分计划和执行：用户要求“找人/给候选人/推荐/名单/几个/跑一轮/执行”时就是执行请求；只有用户明确要“怎么找/来源地图/先规划/升级门槛”时，才只输出 GitHub 来源地图、查询方案、证据门槛和覆盖风险，不调用 CLI、网页搜索、浏览器或实时搜索 / 实时核验。
-3. 小批量执行要及时停住：用户只要 1-3 个强线索时，不要手写 `gh`/网页循环；默认运行 `node scripts/small-batch-github.mjs --profile agent-runtime-cn --query "<英文技术能力画像>" --target-count 2`。辅助脚本通过 GitHub REST 读取公开数据，先做 query-driven user/repository search，再做 repo owner / contributor / merged PR 作者升级，最后才用中国/中文生态 seed 兜底。优先使用 `GH_TOKEN` / `GITHUB_TOKEN`，没有 token 时可匿名低额度请求。辅助脚本完成后，内部停止执行并直接整理成用户报告；最终答复保留覆盖风险和下一步，不输出停止标记、命令、events、timing、target-count、脚本名或使用了哪个 skill，也不再查提交、issue、网页或更多仓库。
+3. 小批量执行要及时停住：用户只要 1-3 个强线索时，不要手写 `gh`/网页循环；默认运行 `node scripts/small-batch-github.mjs --profile agent-runtime-cn --query "<英文技术能力画像>" --target-count 2`。辅助脚本通过 GitHub REST 读取公开数据，先做 query-driven user/repository search，再做 repo owner / contributor / merged PR 作者升级；默认不依赖固定 seed。固定 seed 只能在用户或 Agent 明确需要兜底时通过参数开启，并且只能作为来源地图补充，不能占满候选池。优先使用 `GH_TOKEN` / `GITHUB_TOKEN`，没有 token 时可匿名低额度请求。辅助脚本完成后，内部停止执行并直接整理成用户报告；最终答复保留覆盖风险和下一步，不输出停止标记、命令、events、timing、target-count、脚本名或使用了哪个 skill，也不再查提交、issue、网页或更多仓库。
 4. 先判断执行面：宿主 Agent 的 GitHub 搜索、GitHub MCP、`gh`、浏览器或用户自己的 `GH_TOKEN` / `GITHUB_TOKEN` 足够时优先使用它们；小批量仍优先辅助脚本。
 5. 不要为了 GitHub token 单独改走 Sifta CLI。额度不足、未认证、rate limit 或 auth failure 时，提示用户在宿主环境配置 `GH_TOKEN` / `GITHUB_TOKEN`、GitHub MCP 或 `gh auth`。需要 Sifta 统一 JSON、调用轨迹、反馈闭环、回归验证，或用户明确要求 Sifta CLI 时，才运行 `sifta-cli status`。
 6. 保留用户原始请求和默认地域假设作为 `--checkpoint`。
@@ -49,29 +49,37 @@ description: >
 - 创始人、CEO、CTO、高知名度维护者默认放入 `产业标杆` / `推荐人` / `创始人级候选人`
   分桶；除非用户明确要创始人级候选，否则不要把可招募性未知的人包装成普通全职候选。
 
-## 召回种子
+## GitHub 召回架构
 
-Agent/MCP/LLM infra 真实召回时，默认地域是中国/中文生态，但不要把来源写死成一组固定 seed。
-先把用户画像编译成英文技术 query，例如 `AI Agent MCP LLM infra engineer open source`、`agent runtime tool calling function calling`，
-再按顺序执行：
+Agent/MCP/LLM infra 真实召回时，默认地域是中国/中文生态，但不要把来源写死成一组固定 seed。AI 大项目太多、新项目增长太快，人工 seed 永远枚举不完；seed 只能帮助发现来源地图，不能证明候选质量。
+
+先把用户画像编译成英文技术 query，例如 `AI Agent MCP LLM infra engineer open source`、`agent runtime tool calling function calling`，再同时走两条主路径：
+
+| 路径         | 做什么                                                                               | 升级门槛                                                 |
+| ------------ | ------------------------------------------------------------------------------------ | -------------------------------------------------------- |
+| people-first | `search/users`、个人 repo、profile、组织/公司/主页信号                               | 个人资料 + 工程作品 + 默认地域公开职业信号               |
+| repo-first   | `search/repositories`、topic/description/readme、owner、contributors、merged PR 作者 | 核心工程 repo + 持续贡献 / merged PR 深度 + 身份交叉验证 |
+
+执行顺序：
 
 1. `search/users`：找公开 GitHub 用户线索，只作为早期 lead，不足以直接证明候选质量。
-2. `search/repositories`：用 `in:name,description,readme` 找核心工程 repo，优先中国/中文生态 repo。
+2. `search/repositories`：用技术词、topic、description/readme 和 recently updated / stars 混合找到核心工程 repo，不预设固定项目清单。
 3. repo owner / contributor / merged PR 作者升级：只有个人资料、贡献深度和工程证据足够时才进候选分桶。
-4. seed fallback：只有 query-driven 召回不足时，才用 `Qwen-Agent`、`modelscope-agent`、`spring-ai-alibaba`、`RAGFlow`、`DB-GPT`、`ChatDev`、`deer-flow`、`lobehub` 等中国/中文生态 repo 兜底。
+4. 潜在人选池：贡献或方向相关但证据不足的人，保留为待核验人选；不要丢掉，也不要包装成强候选。
+5. seed fallback：默认不跑。只有 query-driven 召回不足且用户或 Agent 明确需要兜底时才用，并且最多作为兜底来源地图；必须标明 seed 来源，不得和 query-driven 结果混成强证据。
 
-不要让 `langgraph`、`openai-agents-python`、`autogen`、`deepeval` 等全球 seed 先占满小批量预算；
-它们只能作为用户明确放宽全球人才池后的 benchmark/source-map fallback。降低只命中
-`awesome-list`、curated list、资源集合、集成目录或泛 `AI tools` repo 的权重，并把原因写进覆盖风险。
+不要让任何单个大仓库占满小批量预算；每个 repo 默认最多升级 1 个候选，其他贡献者进入待核验人选或来源地图。不要让 `langgraph`、`openai-agents-python`、`autogen`、`deepeval` 等全球 seed 先占满小批量预算；它们只能作为用户明确放宽全球人才池后的 benchmark/source-map fallback。降低只命中 `awesome-list`、curated list、资源集合、集成目录或泛 `AI tools` repo 的权重，并把原因写进覆盖风险。
 
 ## 参考
 
-| 参考文件 | 何时读取 |
-| --- | --- |
-| [小批量辅助脚本](scripts/small-batch-github.mjs) | 用户只要 1-3 个 GitHub 强线索 |
-| [执行预算](../sifta-search/references/execution-budget.md) | 控制实时命令、延迟和重复搜索 |
-| [CLI 合同](../sifta-search/references/cli-reference.md) | 调用 CLI、auth/status/schema 失败或需要调用轨迹 |
-| [查询规则](../sifta-search/references/query-contract.md) | 写 GitHub query、修 sources 或处理 0 result |
-| [来源地图方案](../sifta-search/references/source-map-recipes.md) | 仓库回退、awesome-list、论文/项目线索较多 |
-| [状态门槛](../sifta-search/references/project-brief-and-state.md) | 判断来源线索能否升级候选 |
-| [适配证明](../sifta-search/references/fit-proof-packet.md) / [输出规则](../sifta-search/references/output-quality.md) | 输出候选表和覆盖风险 |
+| 参考文件                                                                                                                                      | 何时读取                                               |
+| --------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
+| [小批量辅助脚本](scripts/small-batch-github.mjs)                                                                                              | 用户只要 1-3 个 GitHub 强线索                          |
+| [执行预算](../sifta-search/references/execution-budget.md)                                                                                    | 控制实时命令、延迟和重复搜索                           |
+| [CLI 合同](../sifta-search/references/cli-reference.md)                                                                                       | 调用 CLI、auth/status/schema 失败或需要调用轨迹        |
+| [查询规则](../sifta-search/references/query-contract.md)                                                                                      | 写 GitHub query、修 sources 或处理 0 result            |
+| [来源地图方案](../sifta-search/references/source-map-recipes.md)                                                                              | 仓库回退、awesome-list、论文/项目线索较多              |
+| [AI 垂直来源地图](../sifta-search/references/ai-vertical-source-taxonomy.md) / [角色证明标准](../sifta-search/references/role-fit-rubrics.md) | Agent、MCP、AI 应用、独立开发者、founder-like 工程画像 |
+| [X 和社区信号](../sifta-search/references/x-and-community-signals.md)                                                                         | 独立开发者、DevRel 或公开社区表达需要作为辅助证据      |
+| [状态门槛](../sifta-search/references/project-brief-and-state.md)                                                                             | 判断来源线索能否升级候选                               |
+| [适配证明](../sifta-search/references/fit-proof-packet.md) / [输出规则](../sifta-search/references/output-quality.md)                         | 输出候选表和覆盖风险                                   |

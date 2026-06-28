@@ -59,5 +59,7 @@ sifta-cli find-people \
 | [CLI 合同](../sifta-search/references/cli-reference.md) | 生成 `--feedback` JSON 或 CLI 下一轮请求 |
 | [查询规则](../sifta-search/references/query-contract.md) | 生成下一轮指定来源查询 |
 | [状态门槛](../sifta-search/references/project-brief-and-state.md) | 迁移 advisor/referrer/benchmark/reject/pending-lead |
+| [深挖到建联工作流](../sifta-search/references/deep-dive-to-outreach-workflow.md) | 把用户反馈转成下一轮约束、分桶迁移和触达前确认 |
+| [角色证明标准](../sifta-search/references/role-fit-rubrics.md) | 反馈要求更偏工程/研究/PM/GTM/founder/独立开发者时 |
 | [意图路由](../sifta-search/references/intent-routing.md) | 反馈导致路线改变或新搜索 |
 | [输出规则](../sifta-search/references/output-quality.md) | 保留风险、弱点和下一步动作 |

@@ -4,8 +4,7 @@ metadata:
     version: 0.0.6
     tags: [sifta-search, recruiting, outreach, copy]
 description: >
-    用于已知候选人或候选人档案之后的招聘触达文案：DM、email、
-    LinkedIn 消息、引荐介绍、跟进文案。用户要求基于候选人公开证据、
+    用于已知候选人或候选人档案之后的招聘触达文案：DM、email、LinkedIn 消息、引荐介绍、跟进文案。用户要求基于候选人公开证据、
     项目/岗位、触达渠道、语气和限制生成可人工确认的触达草稿时使用。
     非招聘营销文案、销售邮件、KOL 合作、自动发送、联系方式抓取或私人信息请求不要使用。
 ---
@@ -85,5 +84,6 @@ description: >
 
 | 参考文件 | 何时读取 |
 | --- | --- |
+| [深挖到建联工作流](../sifta-search/references/deep-dive-to-outreach-workflow.md) | 从 shortlist / dossier 接到 outreach、人工确认和下一轮反馈 |
 | [适配证明](../sifta-search/references/fit-proof-packet.md) / [输出规则](../sifta-search/references/output-quality.md) | 选择个性化证据，写风险 / 不要说 |
 | [CLI 合同](../sifta-search/references/cli-reference.md) / [状态门槛](../sifta-search/references/project-brief-and-state.md) / [查询规则](../sifta-search/references/query-contract.md) | 缺证据转候选人档案、补公开 profile 证据或修正 `find-people` 输入 |

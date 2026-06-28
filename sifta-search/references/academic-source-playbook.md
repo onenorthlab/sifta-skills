@@ -1,0 +1,44 @@
+# 学术来源执行手册
+
+本文件给学术图谱场景提供可复用执行配方。用于 WAM/VLA、基础模型、研究工程、高潜博士、论文到候选人的路径。
+
+## 1. 来源路径
+
+| 路径 | 先找什么 | 再做什么 | 常见失败 |
+| --- | --- | --- | --- |
+| paper-first | 方向关键词、近两年论文、一作/共一作 | 找作者主页、lab bio、GitHub、official code | 只得到作者列表，无法证明可招聘 |
+| lab-first | 中国/中文生态相关实验室、PI、项目页 | 找学生、博士后、project collaborator | PI 变成标杆，不是全职候选 |
+| coauthor-graph | 共同作者、引用、师承关系 | 从头部作者扩展年轻共同作者 | 噪声大，需消歧 |
+| competition-signal | Kaggle、比赛、benchmark、challenge | 找个人主页和代码实现 | 奖项不等于当前职业阶段 |
+| graph-neighbor | OpenAlex/Semantic topics、related papers | 找相邻方向作者和项目 | 方向相关但人不匹配 |
+| advisor-entry | 导师/PI/产业科学家 | 作为推荐人入口，向学生/合作者扩展 | 误当全职候选 |
+
+## 2. 每源查询和边界
+
+| 来源 | 查询方式 | 候选升级条件 |
+| --- | --- | --- |
+| OpenAlex | works/authors/institutions/topics，扩引用、共同作者和机构 | 只作图谱；必须补个人资料 |
+| Semantic Scholar | paper/author/citation/reference | 可与 OpenAlex 交叉验证；仍需消歧 |
+| arXiv/OpenReview | 近期预印本、会议投稿、review 场景 | 论文作者只进来源地图 |
+| Google Scholar | 广泛召回、漏召回、作者主页入口 | 不假设官方 API；只作浏览器/人工入口 |
+| Papers with Code / HF Papers | official code、benchmark、dataset | 找实现者或 repo，再核验个人资料 |
+| 实验室 / 项目 / 个人主页 | 成员、项目、个人身份、当前阶段 | 候选人升级关键证据 |
+| GitHub / LinkedIn / X | 个人资料、实现、职业阶段、公开表达 | 可把来源线索转成候选人 |
+
+## 3. 最小执行序列
+
+```text
+用户研究画像
+  -> 论文/实验室/项目来源地图
+  -> 至少两条来源路径
+  -> 个人资料核验
+  -> 贡献和职业阶段核验
+  -> 分桶：全职候选 / 顾问推荐人 / 产业标杆 / 待核验 / 排除
+```
+
+## 4. 输出要求
+
+- 如果没有个人资料，不输出完整候选人表，只输出来源地图和下一步核验动作。
+- 如果只找到 PI、导师或头部科学家，先放顾问/推荐人/产业标杆。
+- 如果候选人缺中国/中文生态公开职业信号，默认只能作为来源地图、推荐人或待核验线索。
+- 覆盖风险必须说明哪些学术来源没有查到、访问受限或只作 broad recall。

@@ -6,7 +6,7 @@ metadata:
 description: >
     用于学术图谱候选人寻访，覆盖 foundation model、math、code、training efficiency、multimodal、
     WAM/VLA、robotics、research scientist / engineer、PhD intern、early-career researcher，以及论文、
-    实验室、OpenAlex、Google Scholar、Semantic Scholar、arXiv/OpenReview、Papers with Code、导师/共同作者和竞赛信号。Google Scholar 只作为浏览器/人工召回入口，不假设官方 API。
+    实验室、OpenAlex、Google Scholar、Semantic Scholar、arXiv/OpenReview、Papers with Code、导师/共同作者和竞赛信号；Google Scholar 只作为浏览器/人工召回入口，不假设官方 API。
     论文综述、学术趋势、实验室调研或引用网络分析本身不要使用，除非要转成招聘来源地图。
     用户明确要找研究人才、人选或候选人时，可以用宿主 Agent 原生搜索建立实时来源地图；
     用户只要求方法、来源地图模板、升级门槛或明确说先不要搜索时，才只输出计划。
@@ -31,8 +31,7 @@ description: >
    优先综合 OpenAlex、Google Scholar、Semantic Scholar、arXiv/OpenReview、Papers with Code、
    lab/project/homepage，而不是只搜单一论文库。
    缺地区时，优先补中国大陆、港澳台、中文教育/工作/社区、中国市场和中国机构相关线索；不要把它当作严格过滤条件。
-4. 覆盖至少两个路径：`paper-first`、`lab-first`、`coauthor-graph`、`competition-signal`、
-   `graph-neighbor`、`advisor-entry`。
+4. 覆盖至少两个路径：`paper-first`、`lab-first`、`coauthor-graph`、`competition-signal`、`graph-neighbor`、`advisor-entry`。
 5. 把 Google Scholar 当作浏览器/人工广泛召回或经用户批准的第三方入口；不要假设
    Sifta 或 Google 提供官方 Scholar API。
 6. 需要 Sifta 统一 JSON、调用轨迹或研究连接器时，再运行 `sifta-cli status` 并使用
@@ -83,6 +82,7 @@ description: >
 | 参考文件 | 何时读取 |
 | --- | --- |
 | [来源地图方案](../sifta-search/references/source-map-recipes.md) | 默认优先读，用于学术优先路径和来源族 |
+| [学术来源执行手册](../sifta-search/references/academic-source-playbook.md) / [AI 垂直来源地图](../sifta-search/references/ai-vertical-source-taxonomy.md) / [角色证明标准](../sifta-search/references/role-fit-rubrics.md) | WAM/VLA、大模型、研究工程、高潜研究人才的来源、路径与证据标准 |
 | [状态门槛](../sifta-search/references/project-brief-and-state.md) | 论文/实验室/共同作者线索升级候选前 |
 | [CLI 合同](../sifta-search/references/cli-reference.md) | 需要 `--mode research`、调用轨迹或 CLI auth/schema |
 | [查询规则](../sifta-search/references/query-contract.md) | 写研究查询或拆分指定来源的下一轮请求 |

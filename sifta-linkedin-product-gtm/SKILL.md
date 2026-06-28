@@ -4,7 +4,7 @@ metadata:
     version: 0.0.6
     tags: [sifta-search, recruiting, sourcing, linkedin, product, gtm]
 description: >
-    只在用户明确要找 AI 产品/GTM/增长/商业化/DevRel/合作伙伴拓展候选人、人选或人才时使用。
+    用于 AI 产品/GTM/增长/商业化/DevRel/合作伙伴拓展候选人、人选或人才寻访；用户只要表达“找能把产品、增长、商业化、开发者生态、中国市场或出海做起来的人”，即使没说渠道或头衔，也应使用。
     明确不找候选人/不做寻访的公司研究、市场分析、增长打法、商业化模式、岗位说明、销售线索、渠道合作/KOL 不要使用。
     找 BD/市场负责人等人选且要求私人邮箱、手机号、自动发送或批量外联时，只硬停止，不搜索。
     使用 LinkedIn/职业资料作为主候选证据，避免把非工程职能误路由到 GitHub。
@@ -25,7 +25,7 @@ description: >
    用户未指定地区时，默认 `中国/中文生态相关人才池优先`，并把“中国/中文生态/中国市场”中最贴合的表达放进查询和项目简报；这不是族裔推断。
    如果用户明确说不找候选人、不做寻访，或只要公司研究简报、商业化模式/增长打法、岗位说明、销售/BD/partnership 线索，退出 Sifta，交给宿主原生研究或做硬停止；私人联系方式、手机号、自动发送、批量外联请求不调用搜索工具。
 2. 区分计划和执行：用户要求“找人/给候选人/推荐/名单/几个/跑一轮/执行”时就是执行请求；用户只问“怎么找/来源地图/头衔地图/帮我看怎么找”时，才只输出公司/头衔/来源地图、查询方案、证据门槛和覆盖风险，不调用 CLI、网页搜索、浏览器，不查官网，不做实时公司核验。
-3. 用户明确要求执行且只要 1-3 个强线索时，运行 `node scripts/small-batch-product-gtm.mjs --query "<用户语言画像>" --checkpoint "<用户原始目标>" --target-count 3`。辅助脚本完成后直接整理用户报告，不再追加网页/Exa/公司核验、浏览器查询或第二次 `find-people`。如果辅助脚本失败、未认证、API 不可达或返回 0 人，本轮仍按辅助脚本结果停止：最终答案只报告结论、覆盖风险和下一步；不要输出停止标记、脚本名、命令、参数、运行过程、`target-count` 或使用了哪个 skill，不要用网页、Exa、浏览器、公司页、原生搜索或手写 LinkedIn 查询替换候选人，也不要编造候选人表。
+3. 用户明确要求执行且只要 1-3 个强线索时，运行 `node scripts/small-batch-product-gtm.mjs --query "<用户语言画像>" --checkpoint "<用户原始目标>" --target-count 3`。辅助脚本完成后直接整理用户报告，不再追加网页/Exa/公司核验、浏览器查询或第二次 `find-people`。如果辅助脚本失败、未认证、API 不可达或返回 0 人，本轮仍按辅助脚本结果停止：最终答案只报告项目简报、覆盖风险、停止条件、执行合同和下一步；不要输出停止标记、脚本名、命令、参数、运行过程、`target-count` 或使用了哪个 skill，不要用网页、Exa、浏览器、公司页、原生搜索或手写 LinkedIn 查询替换候选人，也不要编造候选人表。
 4. 需要更大候选名单、调用轨迹或反馈闭环时才直接运行 `sifta-cli status` + `find-people`。
 5. 保留用户原始请求和默认地域假设作为 `--checkpoint`；`--query` 使用用户语言，保留岗位、城市、公司、职能、市场信号和默认中国/中文生态相关来源优先级及候选人升级门槛；使用 `--sources '["linkedin"]'`。
 6. GTM / 公司地图场景先建立或复用公司 / 赛道地图，再转候选人搜索；计划阶段只能把用户给定公司标为待核验种子（`unverified seed`），连接器不可用时只交付来源方案，不声称找到人。
@@ -84,5 +84,6 @@ sifta-cli find-people \
 | [CLI 合同](../sifta-search/references/cli-reference.md) | 调用 LinkedIn 连接器、auth/status/schema 失败 |
 | [查询规则](../sifta-search/references/query-contract.md) | 写 LinkedIn/Product/GTM query 或拆多来源反馈 |
 | [来源地图方案](../sifta-search/references/source-map-recipes.md) | 公司地图、相邻公司池或 DevRel 社区证据 |
+| [AI 垂直来源地图](../sifta-search/references/ai-vertical-source-taxonomy.md) / [角色证明标准](../sifta-search/references/role-fit-rubrics.md) / [X 和社区信号](../sifta-search/references/x-and-community-signals.md) | AI 产品、GTM、founder/operator、独立开发者、DevRel 或公开表达补证据 |
 | [状态门槛](../sifta-search/references/project-brief-and-state.md) | 公司/赛道线索升级候选前 |
 | [适配证明](../sifta-search/references/fit-proof-packet.md) / [输出规则](../sifta-search/references/output-quality.md) | 输出候选表和覆盖风险 |
