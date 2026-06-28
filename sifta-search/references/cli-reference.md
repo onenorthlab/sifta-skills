@@ -22,9 +22,11 @@ Agent 应解析 stdout，并把 stderr 视为状态或调试输出。
 学术网页搜索或本地文件阅读不依赖这些命令。
 
 ```bash
-sifta-cli auth "<provided-by-sifta>" --base-url "https://sifta.onenorthdev.com/api"
+sifta-cli auth "<provided-by-sifta>"
 sifta-cli status
 ```
+
+CLI 默认使用内置的 Sifta API 地址。本地或自托管环境才需要额外指定 `--base-url`。
 
 CLI 会把凭据写入 `~/.sifta-cli/config.json`：
 
@@ -36,10 +38,10 @@ CLI 会把凭据写入 `~/.sifta-cli/config.json`：
 }
 ```
 
-如果当前环境没有安装 CLI，先安装：
+如果当前环境没有安装 CLI，先安装 CLI 和完整技能包：
 
 ```bash
-npm install -g @sifta/cli@latest
+npx -y @sifta/cli@latest install
 ```
 
 ## 命令与连接器边界
@@ -149,6 +151,13 @@ sifta-cli update --dry-run --json
 
 ```bash
 sifta-cli update
+```
+
+旧版 CLI 更新失败或需要手动兜底时，先升级 CLI，再同步完整技能包：
+
+```bash
+npm install -g @sifta/cli@latest
+npx -y skills add onenorthlab/sifta-skills -g --all
 ```
 
 更新完成后，重启 Agent 或新开会话，让新 Skill 生效。

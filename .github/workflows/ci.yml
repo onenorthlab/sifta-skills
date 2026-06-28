@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  validate:
+    name: Validate Sifta skills
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Validate metadata and docs
+        run: node scripts/validate-sifta-skills.mjs
+
+      - name: Smoke install full suite
+        run: |
+          set -euo pipefail
+          temp_dir="$(mktemp -d)"
+          export HOME="$temp_dir/home"
+          export CODEX_HOME="$HOME/.codex"
+          export XDG_CONFIG_HOME="$HOME/.config"
+          export XDG_CACHE_HOME="$HOME/.cache"
+          export XDG_DATA_HOME="$HOME/.local/share"
+          mkdir -p "$HOME"
+
+          npx -y skills add "$GITHUB_WORKSPACE" -g --all
+          node scripts/validate-sifta-skills.mjs --installed-root "$HOME/.agents/skills"

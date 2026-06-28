@@ -37,6 +37,21 @@ sifta-cli tools
 
 安装完成后，重启 Agent 或新开会话。
 
+### 1.5 更新和手动兜底
+
+后续更新优先使用 CLI：
+
+```bash
+sifta-cli update
+```
+
+如果旧版 CLI 的更新检查失败，或者需要手动重装完整技能包：
+
+```bash
+npm install -g @sifta/cli@latest
+npx -y skills add onenorthlab/sifta-skills -g --all
+```
+
 ## 2. 直接这样用
 
 安装完成后，不需要先理解每个技能名称。直接用自然语言描述你要找的人、要解决的问题、
@@ -90,7 +105,23 @@ Sifta 不是只返回一串名字。一次合格的寻访输出应该包含：
 - 不编造关系、共同熟人、薪资、签证、入职时间或公司资源承诺。
 - 销售线索、KOL 合作、ATS 管理、录用 / offer 流程和批量外联不属于 Sifta 技能包范围。
 
-## 5. 给 Agent / 维护者
+## 5. 版本和发布
+
+`sifta-search/SKILL.md` 的 `metadata.version` 是整个 Sifta skills suite 的版本锚点。
+所有 `sifta-*/SKILL.md` 的 `metadata.version` 必须保持一致。
+
+| 项目 | 规则 |
+| --- | --- |
+| 首次安装 | `npx -y @sifta/cli@latest install` |
+| 后续更新 | `sifta-cli update` |
+| 手动兜底 | `npm install -g @sifta/cli@latest` 后运行 `npx -y skills add onenorthlab/sifta-skills -g --all` |
+| 版本锚点 | `sifta-search/SKILL.md` 的 `metadata.version` |
+| Release | Git tag 和 GitHub Release 使用 `v<metadata.version>` |
+
+发布前必须通过 CI：校验所有 skill version 一致、`name` 和目录名一致、安装命令口径正确，
+并在临时 `HOME` 中 smoke 安装完整 suite。
+
+## 6. 给 Agent / 维护者
 
 外部分发采用“分流入口 + 多个场景技能”。`sifta-search` 是分流入口，其它技能负责单一场景。
 
@@ -104,7 +135,7 @@ Sifta 不是只返回一串名字。一次合格的寻访输出应该包含：
 | [`/sifta-outreach-copy`](sifta-outreach-copy/)               | 私信、邮件、LinkedIn 消息、引荐介绍和跟进草稿      |
 | [`/sifta-review-feedback`](sifta-review-feedback/)           | 人工反馈、二轮搜索和多来源拆分                     |
 
-## 6. 常见问题
+## 7. 常见问题
 
 **技能没有出现？**
 
@@ -115,6 +146,15 @@ Agent。
 
 先确认已经执行过 `sifta-cli auth "<SIFTA_API_KEY>"`。
 如果仍失败，把 `sifta-cli status` 的原始错误交给 Agent 继续排查。
+
+**旧版 `sifta-cli update --check --json` 报 404？**
+
+先升级 CLI，再手动同步完整技能包：
+
+```bash
+npm install -g @sifta/cli@latest
+npx -y skills add onenorthlab/sifta-skills -g --all
+```
 
 **为什么有些线索没有进入候选人列表？**
 
