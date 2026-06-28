@@ -61,43 +61,43 @@ function outputBlocked(reason, nextAction) {
 		[
 			"# Product/GTM 小批量寻访",
 			"",
-			"项目简报",
+			"本轮目标",
 			"",
 			"- 本轮没有形成可交付候选人。",
 			"",
-			"来源地图",
+			"找人来源",
 			"",
 			"| 来源 | 看什么 | 本轮怎么用 |",
 			"| --- | --- | --- |",
 			"| LinkedIn / 职业资料 | Product、GTM、DevRel、增长和商业化经历 | 连接器未认证或 API 不可达，本轮未执行实时召回 |",
 			"",
-			"候选人分桶",
+			"推荐名单",
 			"",
-			"| 分桶 | 人选 | 现在做什么 | 为什么值得聊 | 把握 | 还要确认 | 链接 |",
+			"| 推荐级别 | 人选 | 招聘判断 | 为什么值得聊 | 把握 | 还要确认 | 链接 |",
 			"| --- | --- | --- | --- | --- | --- | --- |",
 			"| 暂无推荐 | - | - | 本轮连接器未形成候选人 | 低 | 需要先恢复连接器或改走计划输出 | - |",
 			"",
-			"待核验线索",
+			"待确认线索",
 			"",
 			"| 线索 | 为什么相关 | 还差什么 | 下一步怎么确认 |",
 			"| --- | --- | --- | --- |",
-			"| LinkedIn 连接器 | Product/GTM 方向需要公开职业资料 | 连接器不可用 | 检查认证或让用户批准只输出来源地图 |",
+			"| LinkedIn 连接器 | Product/GTM 方向需要公开职业资料 | 连接器不可用 | 检查认证或让用户批准只输出找人来源 |",
 			"",
-			"适配证明包",
+			"匹配依据",
 			"",
 			"| 人选 / 线索 | 为什么符合需求 | 公开证据 | 把握 | 还要确认 | 下一步 |",
 			"| --- | --- | --- | --- | --- | --- |",
 			"| LinkedIn 连接器 | Product/GTM 候选需要职业资料证据 | 本轮未形成公开候选证据 | 低 | 连接器认证或 API 可用性 | 恢复后重试，或只给寻访计划 |",
 			"",
-			"覆盖风险",
+			"本轮覆盖缺口",
 			"",
 			`- ${reason}`,
 			"",
-			"停止条件",
+			"为什么先停在这里",
 			"",
 			"- 连接器不可用时不能用网页、Exa、浏览器或手写 LinkedIn 查询替换候选人。",
 			"",
-			"执行合同",
+			"本轮边界",
 			"",
 			"- 本轮不查询私人联系方式，不自动发送消息，不编造候选人；恢复连接器或用户改授权后再继续。",
 			"",
@@ -114,7 +114,7 @@ const rawQuery =
 	args.query ||
 	"AI product GTM growth commercialization DevRel product leader enterprise AI application";
 const geoBias =
-	"默认地域/市场：中国/中文生态相关人才池优先（不做族裔推断；缺公开相关职业信号不进候选分桶）。";
+	"默认地域/市场：中国/中文生态相关人才池优先（不做族裔推断；缺公开相关职业信号不进推荐名单）。";
 const query = `${rawQuery}；${geoBias}；候选人摘要、证据、风险和下一步必须使用中文输出。`;
 const checkpoint = args.checkpoint ? `${args.checkpoint}；${geoBias}` : query;
 
@@ -152,23 +152,23 @@ try {
 	const lines = [
 		"# Product/GTM 小批量寻访",
 		"",
-		"项目简报",
+		"本轮目标",
 		"",
 		people.length > 0
-			? `- 本轮形成 ${people.length} 个 Product/GTM 待核验强线索。`
+			? `- 本轮形成 ${people.length} 个 Product/GTM 建议先核实的人选。`
 			: "- 本轮没有形成可交付候选人。",
 		`- 能力画像：${mdEscape(query)}`,
 		`- 默认地域/市场：${geoBias}`,
 		"",
-		"来源地图",
+		"找人来源",
 		"",
 		"| 来源 | 看什么 | 本轮怎么用 |",
 		"| --- | --- | --- |",
-		"| LinkedIn / 职业资料 | Product、GTM、DevRel、增长、商业化和开发者社区经历 | 主召回来源；缺少公开职业信号时不进候选人分桶 |",
+		"| LinkedIn / 职业资料 | Product、GTM、DevRel、增长、商业化和开发者社区经历 | 主召回来源；缺少公开职业信号时不进推荐名单 |",
 		"",
-		"候选人分桶",
+		"推荐名单",
 		"",
-		"| 分桶 | 人选 | 现在做什么 | 为什么值得聊 | 把握 | 还要确认 | 链接 |",
+		"| 推荐级别 | 人选 | 招聘判断 | 为什么值得聊 | 把握 | 还要确认 | 链接 |",
 		"| --- | --- | --- | --- | --- | --- | --- |",
 	];
 
@@ -178,8 +178,12 @@ try {
 		const evidenceStatus = fit.evidenceStatus ?? "待补证据";
 		const roleFit = Array.isArray(fit.roleFit) ? fit.roleFit.join(", ") : (fit.roleFit ?? "");
 		const weakness = fit.whyNot ?? evidenceStatus ?? "需要跨来源审查";
+		const recruitingJudgment =
+			priority === "A"
+				? "可优先聊，先确认当前职责和推进意愿"
+				: "建议先核实，确认是否适合全职、顾问或推荐人推进";
 		lines.push(
-			`| 建议先核实 | ${mdEscape(person.displayName)} | ${truncate(person.headline || "公开职业资料待核验", 120)} | ${truncate(roleFit || evidenceText(person) || "与 Product/GTM 画像有公开职业资料匹配", 140)} | ${confidenceLabel(priority)} | ${truncate(weakness, 140)} | [资料](${mdEscape(person.profileUrl)}) |`,
+			`| 建议先核实 | ${mdEscape(person.displayName)} | ${recruitingJudgment} | ${truncate(roleFit || evidenceText(person) || person.headline || "与 Product/GTM 画像有公开职业资料匹配", 140)} | ${confidenceLabel(priority)} | ${truncate(weakness, 140)} | [资料](${mdEscape(person.profileUrl)}) |`,
 		);
 	}
 
@@ -191,7 +195,7 @@ try {
 
 	lines.push(
 		"",
-		"待核验线索",
+		"待确认线索",
 		"",
 		"| 线索 | 为什么相关 | 还差什么 | 下一步怎么确认 |",
 		"| --- | --- | --- | --- |",
@@ -211,7 +215,7 @@ try {
 
 	lines.push(
 		"",
-		"适配证明包",
+		"匹配依据",
 		"",
 		"| 人选 / 线索 | 为什么符合需求 | 公开证据 | 把握 | 还要确认 | 下一步 |",
 		"| --- | --- | --- | --- | --- | --- |",
@@ -224,25 +228,25 @@ try {
 		);
 	}
 
-	lines.push("", "覆盖风险", "");
+	lines.push("", "本轮覆盖缺口", "");
 	if (warnings.length) {
 		for (const warning of warnings) lines.push(`- ${mdEscape(warning)}`);
 	}
 	lines.push(
 		"- 不推断可用性、薪资、签证、搬迁、私人联系方式或沟通意愿。",
-		"- 默认地域/市场对来源地图是排序和核验偏置，对候选人分桶是升级门槛；缺公开中国/中文生态相关职业信号的线索必须进入覆盖风险，不要包装成已满足。",
+		"- 默认地域/市场对找人来源是排序和核验偏置，对推荐名单是升级门槛；缺公开中国/中文生态相关职业信号的线索必须进入本轮覆盖缺口，不要包装成已满足。",
 		"- 本轮是单次小批量召回；弱证据或单来源人选仍需要先核实。",
-		"- 结构化适配证明不等于已经确认业务负责人认可。",
+		"- 结构化匹配依据不等于已经确认业务负责人认可。",
 		"",
-		"停止条件",
+		"为什么先停在这里",
 		"",
 		people.length > 0
 			? "- 小批量报告到这里停止；进入触达前必须先核验公开职业资料、公司角色和第二来源证据。"
 			: "- 本轮没有形成可交付候选人；不要换源凑数或编造候选人。",
 		"",
-		"执行合同",
+		"本轮边界",
 		"",
-		"- 本轮只使用授权连接器返回的公开职业资料，不查询私人联系方式，不自动发送消息，不把商务合作对象包装成候选人。",
+		"- 本轮只使用授权连接器返回的公开职业资料，不查询私人联系方式，不自动发送消息，不把商务合作对象包装成推荐人选。",
 		"",
 		"下一步",
 		"",

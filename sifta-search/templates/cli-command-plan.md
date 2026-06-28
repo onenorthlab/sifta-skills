@@ -2,8 +2,9 @@
 
 用于决定是否调用 `sifta-cli`。CLI 是连接器层，不替代宿主 Agent 的规划、原生搜索或网页阅读。
 
-~~~markdown
+````markdown
 执行面：
+
 - 原生优先：<GitHub MCP / gh / 学术网页搜索 / 浏览器 / 不需要>
 - 需要 CLI 的原因：<LinkedIn/X 连接器 / 稳定 JSON / 调用轨迹 / 人工反馈 / 回归验证 / 显式保存到 Web>
 - 默认地域：<用户未指定时写“中国/中文生态相关人才池优先；不做族裔推断”；只在用户明确硬地域时转成 filter>
@@ -12,11 +13,13 @@
 - 同轮扩展：<除非用户批准第二轮，否则不扩展>
 
 预检：
+
 ```bash
 sifta-cli status
 ```
 
 命令：
+
 ```bash
 sifta-cli find-people \
   --query "<符合来源合同的查询>" \
@@ -26,15 +29,17 @@ sifta-cli find-people \
 ```
 
 说明：
-- 当前 Public API 的 `--sources` 只支持 JSON 数组中的 `github`、`linkedin`、`x`；OpenAlex、Scholar、arXiv、Hugging Face、ModelScope、网页、公司页或社区平台是宿主 Agent 的来源地图 / 补证据入口，不写进 `--sources`。
+
+- 当前 Public API 的 `--sources` 只支持 JSON 数组中的 `github`、`linkedin`、`x`；OpenAlex、Scholar、arXiv、Hugging Face、ModelScope、网页、公司页或社区平台是宿主 Agent 的找人来源 / 补证据入口，不写进 `--sources`。
 - 学术 `--mode research` 只用于 direct connector 的默认来源选择、结构化调用轨迹和结果组织；不是独立 OpenAlex/Scholar/arXiv connector。
-- 缺省地域要进入项目简报、`--checkpoint` 和候选人升级门槛；GitHub 查询不加入地域叙述，LinkedIn/Product/GTM 和学术来源地图可加入自然语言地域/市场偏置。
+- 缺省地域要进入本轮目标、`--checkpoint` 和候选人升级门槛；GitHub 查询不加入地域叙述，LinkedIn/Product/GTM 和学术找人来源可加入自然语言地域/市场偏置。
 - CLI 只是薄连接器层：提供 Public API 工具访问、结构化 JSON、schema、trace、warnings、feedback 和可选保存；不要把 skill workflow 再封装成 CLI 里的第二套 sourcing agent。
 - GitHub 不因为 token 成为 CLI 必经路径；优先使用宿主 Agent、`gh`、GitHub MCP 或用户自己的 `GH_TOKEN` / `GITHUB_TOKEN`。额度或认证不足时，提示用户配置宿主 GitHub 凭据。
 - 如果辅助脚本完成、失败或返回 0 人，基于该输出整理用户报告，本轮不要继续搜索。
 - 最终用户答复不要输出停止标记、脚本名、命令、参数、events、timing 或 `target-count`。
 
 预期 JSON 字段：
+
 - `people`
 - `searchStrategy`
 - `sourceMap`
@@ -43,7 +48,8 @@ sifta-cli find-people \
 - `warnings`
 
 解析说明：
+
 - 先完成当前任务，再处理 `_notice.update`。
 - 不要把 `--pretty` 用于 Agent 解析；它只适合人工查看。
 - 不要推荐 `sifta-cli search`；当前搜索命令是 `sifta-cli find-people`。
-~~~
+````

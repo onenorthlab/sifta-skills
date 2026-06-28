@@ -6,6 +6,8 @@ function parseArgs(argv) {
 		query: "",
 		targetCount: 2,
 		poolSize: null,
+		userSearchPerQuery: null,
+		maxUserProfiles: null,
 		repoSearchCount: null,
 		maxRepos: null,
 		seedRepoCount: 0,
@@ -23,6 +25,8 @@ function parseArgs(argv) {
 		if (arg === "--query" && next) args.query = next;
 		if (arg === "--target-count" && next) args.targetCount = Number(next);
 		if (arg === "--pool-size" && next) args.poolSize = Number(next);
+		if (arg === "--user-search-per-query" && next) args.userSearchPerQuery = Number(next);
+		if (arg === "--max-user-profiles" && next) args.maxUserProfiles = Number(next);
 		if (arg === "--repo-search-count" && next) args.repoSearchCount = Number(next);
 		if (arg === "--max-repos" && next) args.maxRepos = Number(next);
 		if (arg === "--seed-repo-count" && next) args.seedRepoCount = Number(next);
@@ -158,7 +162,7 @@ function endpointWithParams(path, params) {
 }
 
 // GitHub search 接口约 30 次/分钟，远低于 core 5000/小时。脚本 + 宿主 agent 同时搜索时
-// 很容易瞬时打爆 search 配额，导致召回中途失败、最终 0 候选。下面把限流识别成独立失败类型，
+// 很容易瞬时打爆 search 配额，导致召回中途失败、最终 0 人选。下面把限流识别成独立失败类型，
 // 做一次有界退避重试，并设置全局标记，让最终归因写“限流”而不是误判成“地域过滤不足”。
 let rateLimitHit = false;
 let rateLimitBackoffsUsed = 0;
@@ -270,6 +274,13 @@ const weakDirectoryRepoPatterns = [
 	/independent[-_ ]?developer/i,
 	/resources?/i,
 	/roadmap/i,
+	/guide/i,
+	/tutorial/i,
+	/interview/i,
+	/learning/i,
+	/学习/u,
+	/面试/u,
+	/指南/u,
 	/links?/i,
 	/examples?$/i,
 ];
@@ -393,7 +404,15 @@ function nonNegativeNumber(value, fallback) {
 
 const args = parseArgs(process.argv.slice(2));
 args.targetCount = positiveNumber(args.targetCount, 2);
-args.poolSize = positiveNumber(args.poolSize, Math.max(args.targetCount * 4, 8));
+args.poolSize = positiveNumber(args.poolSize, Math.max(args.targetCount * 8, 24));
+args.userSearchPerQuery = Math.min(
+	30,
+	positiveNumber(args.userSearchPerQuery, Math.max(args.targetCount * 4, 12)),
+);
+args.maxUserProfiles = positiveNumber(
+	args.maxUserProfiles,
+	Math.max(args.poolSize, args.userSearchPerQuery * 3),
+);
 args.repoSearchCount = positiveNumber(
 	args.repoSearchCount,
 	positiveNumber(args.maxRepos, Math.max(args.targetCount * 2, 4)),
@@ -459,13 +478,38 @@ function repositorySearchQueries(value) {
 	return mergeUnique(variants).slice(0, 3);
 }
 
-function userSearchQuery(value) {
+const defaultUserSearchLocations = [
+	"China",
+	"Beijing",
+	"Shanghai",
+	"Hangzhou",
+	"Shenzhen",
+	"Guangzhou",
+	"Chengdu",
+	"Hong Kong",
+];
+
+function quoteQualifierValue(value) {
+	return /\s/u.test(value) ? `"${value}"` : value;
+}
+
+function userSearchBaseTerms(value) {
 	const terms = cleanSearchQuery(value)
 		.split(/\s+/u)
 		.filter((term) => /agent|runtime|MCP|LLM|infra|tool|calling|RAG|eval/i.test(term))
 		.slice(0, 5)
 		.join(" ");
-	return `${terms || "agent runtime MCP"} type:user repos:>2`;
+	return terms || "agent runtime MCP";
+}
+
+function userSearchQueries(value) {
+	const base = userSearchBaseTerms(value);
+	const broadQuery = `${base} type:user repos:>2`;
+	if (seedMode === "global-benchmark") return [broadQuery];
+	const locationQueries = defaultUserSearchLocations
+		.slice(0, 5)
+		.map((location) => `${base} location:${quoteQualifierValue(location)} type:user repos:>2`);
+	return mergeUnique([...locationQueries, broadQuery]);
 }
 
 async function addCandidateSignal({ contributor, repo, reason, pr = false }) {
@@ -509,6 +553,8 @@ async function addCandidateSignal({ contributor, repo, reason, pr = false }) {
 		repos: [],
 		evidence: [],
 		personalRepoEvidence: [],
+		profileGeoEvidence: profileGeo,
+		ecosystemGeoEvidence: ecosystemGeo,
 		geoEvidence,
 		profileRaw: user,
 	};
@@ -520,6 +566,8 @@ async function addCandidateSignal({ contributor, repo, reason, pr = false }) {
 	nextCandidate.location = user.location ?? nextCandidate.location;
 	nextCandidate.bio = user.bio ?? nextCandidate.bio;
 	nextCandidate.profileRaw = user;
+	nextCandidate.profileGeoEvidence = profileGeo;
+	nextCandidate.ecosystemGeoEvidence = ecosystemGeo;
 	nextCandidate.contributions += contributor.contributions ?? 0;
 	nextCandidate.prCount += pr ? 1 : 0;
 	nextCandidate.repos.push({
@@ -629,38 +677,54 @@ async function processRepository(repo, whyRelevant) {
 		lead: repo.full_name,
 		sourceFamily: repo.owner?.type === "User" ? "GitHub 个人仓库线索" : "GitHub 仓库线索",
 		whyRelevant,
-		blocker: "身份、贡献深度和职业资料未核验前仍是来源地图线索",
+		blocker: "身份、贡献深度和职业资料未核验前仍是找人来源线索",
 		next: "核验个人资料、核心 PR / commit 和公开职业信号",
 	});
 }
 
 async function runUserSearch() {
-	const perPage = Math.min(Math.max(args.poolSize, args.targetCount * 4, 8), 30);
-	const request = endpointWithParams("search/users", {
-		q: userSearchQuery(query),
-		sort: "repositories",
-		order: "desc",
-		per_page: perPage,
-	});
-	const result = await safeGitHubJson(request);
-	recallPaths.push("GitHub user search");
-	if (!Array.isArray(result.items)) {
-		if (result?.error) {
-			leadRows.push({
-				lead: "GitHub user search",
-				sourceFamily: "GitHub 用户搜索",
-				whyRelevant: userSearchQuery(query),
-				blocker: "用户搜索失败",
-				next: githubRecoveryHint(result),
+	const perPage = Math.min(Math.max(args.userSearchPerQuery, 1), 30);
+	const searchedLogins = new Set();
+	let hydratedProfiles = 0;
+	for (const searchQuery of userSearchQueries(query)) {
+		const request = endpointWithParams("search/users", {
+			q: searchQuery,
+			sort: "repositories",
+			order: "desc",
+			per_page: perPage,
+		});
+		const result = await safeGitHubJson(request);
+		recallPaths.push(`GitHub user search：${searchQuery}`);
+		if (!Array.isArray(result.items)) {
+			if (result?.error) {
+				leadRows.push({
+					lead: "GitHub user search",
+					sourceFamily: "GitHub 用户搜索",
+					whyRelevant: searchQuery,
+					blocker: "用户搜索失败",
+					next: githubRecoveryHint(result),
+				});
+			}
+			continue;
+		}
+		for (const item of result.items.slice(0, perPage)) {
+			if (!item.login || searchedLogins.has(item.login)) continue;
+			if (
+				currentReadyCandidates() >= args.targetCount &&
+				candidatesByLogin.size >= args.poolSize
+			) {
+				return;
+			}
+			if (hydratedProfiles >= args.maxUserProfiles) return;
+			searchedLogins.add(item.login);
+			hydratedProfiles += 1;
+			await addProfileSignal({
+				login: item.login,
+				reason: searchQuery.includes("location:")
+					? "个人公开 profile 的 location + repo 命中能力画像（GitHub 用户搜索）"
+					: "个人公开 repo 命中能力画像（GitHub 用户搜索）",
 			});
 		}
-		return;
-	}
-	for (const item of result.items.slice(0, perPage)) {
-		await addProfileSignal({
-			login: item.login,
-			reason: "个人公开 repo 命中能力画像（GitHub 用户搜索）",
-		});
 	}
 }
 
@@ -692,6 +756,7 @@ async function runRepositorySearch() {
 			}
 			const sorted = result.items
 				.filter((repo) => repo?.full_name && !seenRepos.has(repo.full_name))
+				.filter((repo) => seedMode === "global-benchmark" || repoEngineeringEvidence(repo))
 				.filter(
 					(repo) =>
 						seedMode === "global-benchmark" || repoEcosystemEvidence(repo).matched,
@@ -721,7 +786,7 @@ async function runRepositorySearch() {
 
 function currentReadyCandidates() {
 	return [...candidatesByLogin.values()].filter(
-		(candidate) => candidate.geoEvidence?.matched && candidate.evidence.length > 0,
+		(candidate) => candidate.profileGeoEvidence?.matched && candidate.evidence.length > 0,
 	).length;
 }
 
@@ -773,7 +838,7 @@ function pickDiversified(pool, limit, maxPerRepo) {
 }
 
 const candidatePool = [...candidatesByLogin.values()]
-	.filter((candidate) => candidate.geoEvidence?.matched && candidate.evidence.length > 0)
+	.filter((candidate) => candidate.profileGeoEvidence?.matched && candidate.evidence.length > 0)
 	.sort(
 		(left, right) =>
 			(right.score ?? 0) - (left.score ?? 0) || right.contributions - left.contributions,
@@ -791,15 +856,18 @@ const potentialCandidates = args.includePotential
 			)
 			.slice(0, args.potentialCount)
 	: [];
+const potentialLogins = new Set(potentialCandidates.map((candidate) => candidate.login));
 
 for (const candidate of candidatesByLogin.values()) {
-	if (!candidate.geoEvidence?.matched) {
+	if (!candidate.profileGeoEvidence?.matched) {
+		if (potentialLogins.has(candidate.login)) continue;
 		leadRows.push({
 			lead: `${candidate.name || candidate.login} (${candidate.login})`,
 			sourceFamily: "GitHub 贡献者线索",
 			whyRelevant: candidate.evidence[0] ?? "GitHub 工程线索",
-			blocker:
-				"默认地域/市场未核验；缺公开中国/中文生态相关职业信号，不能升级为候选人或强线索",
+			blocker: candidate.ecosystemGeoEvidence?.matched
+				? `${candidate.ecosystemGeoEvidence.evidence}，但个人资料、公司、简介或地点未体现中国/中文生态职业信号，不能进入推荐名单`
+				: "默认地域/市场未确认；缺公开中国/中文生态相关职业信号，不能进入推荐名单或强推荐",
 			next: "核验公开职业资料、个人主页、LinkedIn、中文社区、中国市场或中国相关机构/公司信号",
 		});
 	}
@@ -815,55 +883,57 @@ const visibleRecallPaths = mergeUnique(recallPaths).slice(0, 4).join("；");
 const lines = [
 	"# GitHub 小批量寻访",
 	"",
-	"项目简报",
+	"本轮目标",
 	"",
 	candidates.length > 0
-		? `- 本轮按中国/中文生态优先召回，找到 ${candidates.length} 个可推进候选线索，并保留 ${potentialCandidates.length} 个潜在人选/来源线索。`
+		? `- 本轮按中国/中文生态优先召回，找到 ${candidates.length} 个建议先核实的人选，并保留 ${potentialCandidates.length} 个潜在人选/来源线索。`
 		: rateLimitHit
-			? "- 本轮 GitHub search 触发限流（搜索接口约 30 次/分钟），召回未完成；**0 候选是限流导致，不代表没有合适的人，也不是地域过滤过严**。等约 1 分钟窗口重置后重跑，或减少同时进行的搜索。"
-			: "- 本轮按中国/中文生态优先召回，但没有形成可推进候选人。",
+			? "- 本轮 GitHub search 触发限流（搜索接口约 30 次/分钟），召回未完成；**0 人选是限流导致，不代表没有合适的人，也不是地域过滤过严**。等约 1 分钟窗口重置后重跑，或减少同时进行的搜索。"
+			: "- 本轮按中国/中文生态优先召回，但没有形成可推进人选。",
 	`- 能力画像：${query}`,
 	"- 默认地域/市场不是姓名、照片、外貌、口音、族裔或国籍推断；只看公开职业信号。",
 	"",
-	"来源地图",
+	"找人来源",
 	"",
 	"| 来源 | 看什么 | 本轮怎么用 |",
 	"| --- | --- | --- |",
-	`| GitHub / 开源项目 | repo owner、contributors、merged PR、个人 repo 和公开简介 | ${seedMode === "global-benchmark" ? "全球 benchmark/source-map fallback" : seedMode === "custom" ? "用户指定种子兜底" : "query-driven people/repo search 优先，seed 仅兜底"}；召回路径：${visibleRecallPaths || "GitHub user/repo search"} |`,
+	`| GitHub / 开源项目 | repo owner、contributors、merged PR、个人 repo 和公开简介 | ${seedMode === "global-benchmark" ? "全球标杆/来源兜底" : seedMode === "custom" ? "用户指定种子兜底" : "按画像先找人、再用仓库证据补强，seed 仅兜底"}；召回路径：${visibleRecallPaths || "GitHub user/repo search"} |`,
 	"",
-	"候选人分桶",
+	"推荐名单",
 	"",
-	"| 分桶 | 人选 | 现在做什么 | 为什么值得聊 | 把握 | 还要确认 | 链接 |",
-	"| --- | --- | --- | --- | --- | --- | --- |",
+	"| 推荐级别 | 人选 | 招聘判断 | 为什么值得聊 | 把握 | 招聘风险 | 下一步 | 链接 |",
+	"| --- | --- | --- | --- | --- | --- | --- | --- |",
 ];
 
 for (const candidate of candidates) {
 	const primaryRepo = candidate.repos[0] ?? {};
-	const proof = mergeUnique([
+	const proofItems = mergeUnique([
 		...candidate.evidence,
 		...candidate.personalRepoEvidence.map((entry) => `个人 repo 证据：${entry}`),
-	])
-		.slice(0, 3)
-		.join("；");
+	]);
+	const whyWorthTalking =
+		proofItems.length > 0
+			? "公开资料显示他做过和岗位相关的开源实现，值得先核验 ownership 和转化可能"
+			: "公开资料和项目方向相关，值得先确认真实贡献范围";
 	lines.push(
-		`| 建议先核实 | ${mdEscape(candidate.name || candidate.login)} (${mdEscape(candidate.login)}) | GitHub 工程线索 | ${mdEscape(proof)}；默认地域公开信号：${mdEscape(candidate.geoEvidence.evidence)} | 中 | 需要核验职业资料、核心 PR / commit 深度和同人身份 | [GitHub](${mdEscape(candidate.profileUrl)})${primaryRepo.url ? ` / [相关项目](${mdEscape(primaryRepo.url)})` : ""} |`,
+		`| 建议先核实 | ${mdEscape(candidate.name || candidate.login)} (${mdEscape(candidate.login)}) | 先按中国/中文生态工程人选聊，确认是否适合全职、顾问或推荐人推进 | ${mdEscape(whyWorthTalking)} | 中 | 当前角色、可招性和核心贡献范围还没闭合 | 先补职业资料和 2-3 个核心贡献，再决定是否低压触达 | [GitHub](${mdEscape(candidate.profileUrl)})${primaryRepo.url ? ` / [相关项目](${mdEscape(primaryRepo.url)})` : ""} |`,
 	);
 }
 
 if (candidates.length === 0) {
 	lines.push(
 		rateLimitHit
-			? "| 暂无推荐 | - | - | GitHub search 限流导致本轮未形成候选人 | 低 | 0 候选是限流，不是没有合适的人，也不是地域过滤过严 | - |"
-			: "| 暂无推荐 | - | - | 预算内没有找到同时具备公开工程证据和默认地域/市场信号的人选 | 低 | 不能为凑数把全球贡献者包装成候选人 | - |",
+			? "| 暂无推荐 | - | 本轮不建议推进人选 | GitHub search 限流导致本轮未形成可推荐人选 | 低 | 0 人选是限流，不是没有合适的人，也不是地域过滤过严 | 等待窗口重置后重跑 | - |"
+			: "| 暂无推荐 | - | 默认中国人才池下暂不建议推进人选 | 预算内没有找到同时具备公开工程证据和个人中国/中文生态职业信号的人选 | 低 | 不能为凑数把全球贡献者包装成推荐人选 | 扩大动态召回，或由用户明确放宽为全球人才池 | - |",
 	);
 }
 
 if (potentialCandidates.length > 0) {
 	lines.push(
 		"",
-		"潜在人选",
+		"待确认线索（含全球备选）",
 		"",
-		"| 人选 | 为什么相关 | 不能直接推荐的原因 | 下一步怎么确认 |",
+		"| 线索 | 为什么相关 | 不能直接推荐的原因 | 下一步怎么确认 |",
 		"| --- | --- | --- | --- |",
 	);
 	for (const candidate of potentialCandidates) {
@@ -874,37 +944,38 @@ if (potentialCandidates.length > 0) {
 			.slice(0, 2)
 			.join("；");
 		lines.push(
-			`| ${mdEscape(candidate.name || candidate.login)} (${mdEscape(candidate.login)}) | ${mdEscape(proof)} | ${mdEscape(candidate.geoEvidence?.matched ? "同仓库候选已达上限，或仍需核验贡献深度" : "默认地域/市场未核验，缺公开中国/中文生态相关职业信号")} | 核验个人资料、核心 PR / commit 和公开职业信号 |`,
+			`| ${mdEscape(candidate.name || candidate.login)} (${mdEscape(candidate.login)}) | ${mdEscape(proof)} | ${mdEscape(candidate.profileGeoEvidence?.matched ? "同仓库推荐名额已达上限，或仍需确认贡献深度" : "默认地域/市场未确认，缺个人资料、公司、简介或地点中的中国/中文生态职业信号")} | 核验个人资料、核心 PR / commit 和公开职业信号；若要推进全球人才池，需用户明确放宽地域 |`,
+		);
+	}
+}
+
+const visibleLeadRows = leadRows.slice(0, 12);
+if (visibleLeadRows.length > 0) {
+	lines.push(
+		"",
+		"待确认线索",
+		"",
+		"| 线索 | 为什么相关 | 还差什么 | 下一步怎么确认 |",
+		"| --- | --- | --- | --- |",
+	);
+	for (const row of visibleLeadRows) {
+		lines.push(
+			`| ${mdEscape(row.lead)} | ${mdEscape(row.whyRelevant ?? "与目标工程方向相关")} | ${mdEscape(row.blocker)} | ${mdEscape(row.next)} |`,
+		);
+	}
+	if (leadRows.length > visibleLeadRows.length) {
+		lines.push(
+			`| 其余找人来源线索 | 还有 ${leadRows.length - visibleLeadRows.length} 条弱线索/失败线索未展开 | 小批量报告不展开全部调试细节 | 用户批准后再做第二轮核验 |`,
 		);
 	}
 }
 
 lines.push(
 	"",
-	"待核验线索",
+	"匹配依据",
 	"",
-	"| 线索 | 为什么相关 | 还差什么 | 下一步怎么确认 |",
-	"| --- | --- | --- | --- |",
-);
-
-const visibleLeadRows = leadRows.slice(0, 12);
-for (const row of visibleLeadRows) {
-	lines.push(
-		`| ${mdEscape(row.lead)} | ${mdEscape(row.whyRelevant ?? "agent runtime / tool calling / evaluation seed")} | ${mdEscape(row.blocker)} | ${mdEscape(row.next)} |`,
-	);
-}
-if (leadRows.length > visibleLeadRows.length) {
-	lines.push(
-		`| 其余来源地图线索 | 还有 ${leadRows.length - visibleLeadRows.length} 条弱线索/失败线索未展开 | 小批量报告不展开全部调试细节 | 用户批准后再做第二轮核验 |`,
-	);
-}
-
-lines.push(
-	"",
-	"适配证明包",
-	"",
-	"| 要求 | 公开证据 | 把握 | 还要确认 | 下一步 |",
-	"| --- | --- | --- | --- | --- |",
+	"| 人选 / 线索 | 招聘判断 | 公开证据 | 把握 | 主要风险 | 下一步 |",
+	"| --- | --- | --- | --- | --- | --- |",
 );
 
 for (const candidate of candidates) {
@@ -915,41 +986,41 @@ for (const candidate of candidates) {
 		.slice(0, 4)
 		.join("；");
 	lines.push(
-		`| 构建 runtime/tool/eval 系统 | ${mdEscape(engineeringEvidence)} | 中 | 升级到候选人分桶前，需要核验身份、角色和贡献深度 | 用户后续批准后：必要时检查职业资料或已合并 PR |`,
+		`| ${mdEscape(candidate.name || candidate.login)} (${mdEscape(candidate.login)}) | 建议先核实是否适合工程人选推进 | ${mdEscape(engineeringEvidence)} | 中 | 需要核验身份、当前角色、贡献深度和可招性 | 用户确认后补职业资料、已合并 PR 和项目 ownership |`,
 	);
 }
 
 if (candidates.length === 0) {
 	lines.push(
 		rateLimitHit
-			? "| GitHub search 召回 | 本轮触发 GitHub search 限流，动态召回未完成 | 低 | 不能用限流后的 0 候选判断方向质量 | 等待窗口重置后重跑，或降低 search 次数 / 配置 GH_TOKEN |"
-			: "| 默认地域/市场升级门槛 | 本轮动态召回内没有贡献者同时具备公开工程证据和中国/中文生态相关职业信号 | 中 | 只能证明这些是来源地图线索，不能证明符合默认人才池 | 用户批准后扩大动态召回、补充项目来源，或明确放宽为全球人才池 |",
+			? "| GitHub search 召回 | 本轮不建议推进人选 | 动态召回触发 GitHub search 限流，未完成 | 低 | 不能用限流后的 0 人选判断方向质量 | 等待窗口重置后重跑，或降低 search 次数 / 配置 GH_TOKEN |"
+			: "| 默认地域/市场升级门槛 | 默认中国人才池下暂不建议推进人选 | 动态召回内没有贡献者同时具备公开工程证据和个人中国/中文生态职业信号 | 中 | 只能证明这些是找人来源线索，不能证明符合默认人才池 | 用户批准后扩大动态召回、补充项目来源，或明确放宽为全球人才池 |",
 	);
 }
 
 lines.push(
 	"",
-	"覆盖风险",
+	"本轮覆盖缺口",
 	"",
 	...(rateLimitHit
 		? [
 				"- **GitHub search 本轮触发限流（约 30 次/分钟）**：部分召回未完成。若候选偏少或为 0，主因是限流，不是地域过滤或没有合适的人；等约 1 分钟窗口重置后重跑，或减少同时进行的搜索次数。",
 			]
 		: []),
-	"- 本轮是小批量召回，不是最终候选人质量证明；候选人仍需要人工相关性复核。",
+	"- 本轮是小批量召回，不是最终找人质量证明；人选仍需要人工相关性复核。",
 	"- 不推断可用性、职级、薪酬、搬迁、私人联系方式或沟通意愿。",
-	"- 默认地域/市场是候选人升级门槛：来源地图可以保留全球线索；缺公开中国/中文生态相关职业信号时不能进入候选人或强线索分桶。",
+	"- 默认地域/市场是进入推荐名单的门槛：找人来源可以保留全球线索；缺公开中国/中文生态相关职业信号时不能进入推荐名单或强推荐。",
 	"- GitHub 额度或认证不足时，下一步是在宿主环境配置 `GH_TOKEN` / `GITHUB_TOKEN`、GitHub MCP 或 `gh auth`；不要因为 GitHub token 改走 Sifta CLI。",
-	"- 固定 seed 只作为动态召回不足时的来源地图兜底，不是主路径；单个大仓库不会默认占满候选池。",
-	"- 仓库/项目线索在身份核验和证据评级前仍是来源地图线索。",
+	"- 固定 seed 只作为动态召回不足时的找人来源兜底，不是主路径；单个大仓库不会默认占满推荐名单。",
+	"- 仓库/项目线索在身份核验和证据评级前仍是找人来源线索。",
 	"",
-	"停止条件",
+	"为什么先停在这里",
 	"",
 	candidates.length > 0
 		? "- 小批量报告到这里停止；进入触达前必须先核验职业资料、核心贡献深度和同人身份。"
-		: "- 本轮没有形成可推进候选人；不要换源凑数或把仓库/项目线索包装成候选人。",
+		: "- 本轮没有形成可推进人选；不要换源凑数或把仓库/项目线索包装成推荐人选。",
 	"",
-	"执行合同",
+	"本轮边界",
 	"",
 	"- 本轮只读取公开 GitHub 信息，不查询私人联系方式，不自动发送消息，不把 token/额度问题改写成 Sifta CLI 必经路径。",
 	"",
@@ -958,7 +1029,7 @@ lines.push(
 	candidates.length > 0
 		? "- 用户确认后，核验候选人的公开职业资料、核心 PR / commit 深度和同人身份，再决定是否写触达草稿。"
 		: rateLimitHit
-			? "- 等待 GitHub search 窗口重置后重跑，或降低 search 次数 / 配置 GH_TOKEN；不要用本轮 0 候选判断方向质量。"
+			? "- 等待 GitHub search 窗口重置后重跑，或降低 search 次数 / 配置 GH_TOKEN；不要用本轮 0 人选判断方向质量。"
 			: "- 用户确认后，扩大动态召回、补充项目来源，或明确放宽为全球人才池。",
 );
 
