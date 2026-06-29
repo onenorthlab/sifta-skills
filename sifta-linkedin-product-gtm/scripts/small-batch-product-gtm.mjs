@@ -8,6 +8,7 @@ function parseArgs(argv) {
 		checkpoint: "",
 		targetCount: 3,
 		skipStatus: false,
+		json: true,
 	};
 	for (let index = 0; index < argv.length; index += 1) {
 		const arg = argv[index];
@@ -16,7 +17,16 @@ function parseArgs(argv) {
 		if (arg === "--checkpoint" && next) args.checkpoint = next;
 		if (arg === "--target-count" && next) args.targetCount = Number(next);
 		if (arg === "--skip-status") args.skipStatus = true;
-		if (arg.startsWith("--") && arg !== "--skip-status") index += 1;
+		if (arg === "--json") {
+			args.json = next !== "false";
+			continue;
+		}
+		if (arg === "--markdown") {
+			args.json = false;
+			continue;
+		}
+		if (arg.startsWith("--") && arg !== "--skip-status" && arg !== "--json" && arg !== "--markdown")
+			index += 1;
 	}
 	return args;
 }
@@ -214,35 +224,64 @@ function mobilitySignal(person) {
 	return "公开可动性未知，触达前只问开放性问题";
 }
 
+function cleanOutputText(value) {
+	return mdEscape(value)
+		.replace(/候选人分桶/g, "推荐人选")
+		.replace(/覆盖风险/g, "还要确认")
+		.replace(/执行边界/g, "公开资料边界")
+		.replace(/停止条件|停止原因/g, "本轮限制")
+		.replace(/target-count/g, "展示上限")
+		.replace(/sourceMap/giu, "其他线索")
+		.replace(/helper|script/giu, "本轮结果");
+}
+
+function toSourceLead(lead) {
+	return {
+		sourceType: cleanOutputText(lead.sourceType ?? lead.type ?? "source"),
+		sourceName: cleanOutputText(lead.sourceName ?? lead.name ?? lead.title ?? "LinkedIn"),
+		direction: cleanOutputText(lead.direction ?? "从公开职业资料发现候选人"),
+		whyRelevant: cleanOutputText(lead.whyRelevant ?? lead.reason ?? "匹配 Product/GTM 能力画像"),
+		nextAction: cleanOutputText(
+			lead.nextVerification ?? lead.nextAction ?? "打开公开职业资料并核验角色证据",
+		),
+	};
+}
+
 function outputBlocked(reason, nextAction) {
+	if (args.json) {
+		process.stdout.write(
+			`${JSON.stringify(
+				{
+					status: "blocked",
+					executedSources: ["linkedin"],
+					providerFailed: true,
+					recommendedCount: 0,
+					people: [],
+					otherLeads: [],
+					warnings: [reason],
+					nextAction,
+				},
+				null,
+				2,
+			)}\n`,
+		);
+		return;
+	}
 	process.stdout.write(
-		[
-			"# Product/GTM 小批量寻访",
-			"",
-			"结论",
-			"",
-			"- 本轮没有形成可交付候选人；GTM/LinkedIn 主路径不可用时只输出标杆、线索和阻塞项。",
-			"",
-			"人选和证据",
-			"",
-			"| 分桶 | 人选 / 线索 | 招聘判断 | 为什么值得聊 | 把握 | 证据来源 | 下一步 | 链接 |",
-			"| --- | --- | --- | --- | --- | --- | --- | --- |",
-			"| 暂无推荐 | LinkedIn / 职业资料 | 不产全职候选 | 本轮连接器未形成候选人 | 低 | 连接器未认证或 API 不可达，本轮未执行实时召回 | 恢复连接器后重试 | - |",
-			"",
-			"风险和待核验",
-			"",
-			"| 类型 | 内容 | 为什么重要 | 怎么确认 |",
-			"| --- | --- | --- | --- |",
-			"| 待核验线索 | LinkedIn 连接器 | Product/GTM 方向需要公开职业资料 | 检查认证；未恢复前只做标杆/来源线索，不包装全职候选 |",
-			`| 覆盖风险 | ${reason} | 连接器不可用时不能用网页、Exa、浏览器或手写 LinkedIn 查询替换候选人 | 恢复连接器后重试，或只给寻访计划 |`,
-			"| 停止原因 | 主路径不可用，本轮停止 | 不能把 fallback 摘要包装成全职、strong 或 soft 候选 | 用户改授权后再继续 |",
-			"| 执行边界 | 不查询私人联系方式，不自动发送消息，不提交表单，不编造候选人 | 防止越界和误导 | 恢复连接器或用户改授权后再继续 |",
-			"",
-			"下一步",
-			"",
-			`- ${nextAction}`,
-			"",
-		].join("\n"),
+		`${JSON.stringify(
+			{
+				status: "blocked",
+				executedSources: ["linkedin"],
+				providerFailed: true,
+				recommendedCount: 0,
+				people: [],
+				otherLeads: [],
+				warnings: [reason],
+				nextAction,
+			},
+			null,
+			2,
+		)}\n`,
 	);
 }
 
@@ -251,9 +290,11 @@ const rawQuery =
 	args.query ||
 	"AI product GTM growth commercialization DevRel product leader enterprise AI application";
 const geoBias =
-	"默认地域/市场：中国/中文生态相关人才池优先（不做族裔推断；缺公开相关职业信号不进候选人分桶）。";
-const query = `${rawQuery}；${geoBias}；候选人摘要、证据、风险和下一步必须使用中文输出。`;
-const checkpoint = args.checkpoint ? `${args.checkpoint}；${geoBias}` : `${rawQuery}；${geoBias}`;
+	"默认地域/市场：中国/中文生态相关人才池优先（不做族裔推断；缺公开相关职业信号不进推荐人选）。";
+const query = rawQuery;
+const checkpoint = args.checkpoint
+	? `${args.checkpoint}；${geoBias}`
+	: `${rawQuery}；${geoBias}`;
 
 try {
 	if (!args.skipStatus) {
@@ -298,112 +339,84 @@ try {
 	const warnings = Array.isArray(result.warnings) ? result.warnings : [];
 	const sourceMap = Array.isArray(result.sourceMap) ? result.sourceMap : [];
 
-	const lines = [
-		"# Product/GTM 小批量寻访",
-		"",
-		"结论",
-		"",
-		people.length > 0
-			? `- 本轮形成 ${people.length} 个 Product/GTM 建议先核实的人选。`
-			: "- 本轮没有形成可交付候选人。",
-		demotedPeople.length > 0
-			? `- 另有 ${demotedPeople.length} 条返回结果因缺 Product/GTM/DevRel 职责证据，已降为待核验线索。`
-			: "",
-		`- 能力画像：${mdEscape(rawQuery)}`,
-		`- ${geoBias}`,
-		"",
-		"人选和证据",
-		"",
-		"| 分桶 | 人选 / 线索 | 招聘判断 | 为什么值得聊 | 把握 | 证据来源 | 下一步 | 链接 |",
-		"| --- | --- | --- | --- | --- | --- | --- | --- |",
-	];
-
-	for (const person of people) {
-		const fit = person.projectFit ?? {};
-		const priority = fit.priority ?? "B";
-		const evidenceStatus = fit.evidenceStatus ?? "待补证据";
-		const roleFit = Array.isArray(fit.roleFit) ? fit.roleFit.join(", ") : (fit.roleFit ?? "");
-		const weakness = fit.whyNot ?? evidenceStatus ?? "需要跨来源审查";
-		const recruitingJudgment =
-			priority === "A"
-				? "可优先聊，先确认当前职责和推进意愿"
-				: "建议先核实，确认是否适合全职、顾问或推荐人推进";
-		const whyWorth = whyWorthText(person, roleFit);
-		lines.push(
-			`| 建议先核实 | ${mdEscape(person.displayName)} | ${recruitingJudgment} | ${truncate(whyWorth, 140)} | ${confidenceLabel(priority)} | ${truncate(evidenceText(person) || person.headline || "LinkedIn / 职业资料", 140)} | 公开联系路径：${contactPath(person)}；结构信号：${mobilitySignal(person)}；主要风险：${truncate(weakness, 70)} | ${markdownLink("资料", person.profileUrl)} |`,
+	if (args.json) {
+		const toPerson = (person) => {
+			const fit = person.projectFit ?? {};
+			const priority = fit.priority ?? "B";
+			const evidence = evidenceText(person) || person.headline || "LinkedIn / 职业资料";
+			const weakness = fit.whyNot ?? fit.evidenceStatus ?? "需要跨来源审查";
+			return {
+				source: "linkedin",
+				displayName: person.displayName,
+				profileUrl: person.profileUrl,
+				headline: person.headline ?? "",
+				recruitingJudgment:
+					priority === "A"
+						? "可优先聊，先确认当前职责和推进意愿"
+						: "建议先核实，确认是否适合全职、顾问或推荐人推进",
+				whyWorthTalking: whyWorthText(person, Array.isArray(fit.roleFit) ? fit.roleFit.join(", ") : (fit.roleFit ?? "")),
+				evidence,
+				missingEvidence: weakness,
+				nextAction: fit.nextAction ?? "核验公开职业资料、公司角色和第二来源证据",
+				reachability: contactPath(person),
+				mobilitySignal: mobilitySignal(person),
+				confidence: confidenceLabel(priority),
+			};
+		};
+		process.stdout.write(
+			`${JSON.stringify(
+				{
+					query: rawQuery,
+					executedSources: ["linkedin"],
+					coverage: people.length > 0 ? "pilot" : warnings.length ? "provider_failure" : "partial",
+					recommendedCount: people.length,
+					people: people.map(toPerson),
+					otherLeads: demotedPeople.map((person) => ({
+						displayName: person.displayName || person.headline || "连接器返回资料",
+						profileUrl: person.profileUrl,
+						headline: person.headline ?? "",
+						reasonNotRecommended: demotionReason(person, requiresDefaultGeo),
+						nextAction:
+							"先核公开职业资料里的产品、增长、商业化、DevRel、开发者生态或中国/中文生态相关信号；补到证据后再升级",
+					})),
+						sourceLeads: sourceMap.slice(0, 10).map(toSourceLead),
+					warnings,
+				},
+				null,
+				2,
+			)}\n`,
 		);
+		process.exit(0);
 	}
 
-	if (people.length === 0) {
-		lines.push(
-			"| 暂无推荐 | - | - | 本轮连接器在单次预算内没有返回可用候选人 | 低 | 召回失败；需要调整画像或授权下一轮 | 收窄画像或扩大同来源召回 | - |",
+		process.stdout.write(
+			`${JSON.stringify(
+				{
+					status: "debug-summary",
+					executedSources: ["linkedin"],
+					recommendedCount: people.length,
+					people: people.map((person) => ({
+						displayName: person.displayName,
+						profileUrl: person.profileUrl,
+						headline: person.headline ?? "",
+						evidence: evidenceText(person) || person.headline || "LinkedIn / 职业资料",
+					})),
+					otherLeads: demotedPeople.map((person) => ({
+						displayName: person.displayName || person.headline || "连接器返回资料",
+						profileUrl: person.profileUrl,
+						reasonNotRecommended: demotionReason(person, requiresDefaultGeo),
+					})),
+					sourceLeads: sourceMap.slice(0, 10).map(toSourceLead),
+					warnings,
+					nextAction:
+						people.length > 0
+							? "核公开职业资料、公司角色和第二来源证据后再触达。"
+							: "收窄画像或扩大同来源召回，不换源凑数。",
+				},
+				null,
+				2,
+			)}\n`,
 		);
-	}
-
-	lines.push(
-		"",
-		"风险和待核验",
-		"",
-		"| 类型 | 内容 | 为什么重要 | 怎么确认 |",
-		"| --- | --- | --- | --- |",
-	);
-
-	if (demotedPeople.length) {
-		for (const person of demotedPeople) {
-			lines.push(
-				`| 待核验线索 | ${mdEscape(person.displayName || person.headline || "连接器返回资料")} | ${demotionReason(person, requiresDefaultGeo)} | 先核公开职业资料里的产品、增长、商业化、DevRel、开发者生态或中国/中文生态相关信号；补到证据后再升级 |`,
-			);
-		}
-	}
-
-	if (sourceMap.length) {
-		for (const lead of sourceMap.slice(0, 5)) {
-			lines.push(
-				`| 来源线索 | ${mdEscape(lead.lead ?? lead.name ?? lead.title ?? "待核验线索")} | ${mdEscape(lead.whyRelevant ?? lead.reason ?? "匹配 Product/GTM 能力画像")}；缺口：${mdEscape(lead.conversionBlocker ?? "需要职业资料和证据审查")} | 用户后续批准后：${mdEscape(lead.nextVerification ?? "打开公开职业资料并核验角色证据")} |`,
-			);
-		}
-	} else {
-		lines.push(
-			"| 来源线索 | LinkedIn 单次连接器 | Product/GTM 候选人需要公开职业资料证据；当前缺第二来源证据 | 核验个人资料、公司角色和公开产品/GTM 负责人证据 |",
-		);
-	}
-
-	for (const person of people) {
-		const fit = person.projectFit ?? {};
-		lines.push(
-			`| 适配证明 | ${mdEscape(person.displayName)} | AI 或前沿科技业务的 Product/GTM 负责人证据：${evidenceText(person) || truncate(person.headline, 160)}；把握：${confidenceLabel(fit.priority ?? "B")}；主要风险：${truncate(fit.whyNot ?? fit.evidenceStatus ?? "需要业务相关性审查", 120)} | 用户后续批准后：${truncate(fit.nextAction ?? "人工复核公开职业证据", 120)} |`,
-		);
-	}
-	if (people.length === 0) {
-		lines.push(
-			"| 适配缺口 | Product/GTM 职能证据 | 连接器没有返回同时具备职业资料和 Product/GTM/DevRel 职责证据的人选；不能把工程/技术专家包装成 Product/GTM 候选 | 收窄 Product/GTM 画像或扩大同来源召回 |",
-		);
-	}
-
-	if (warnings.length) {
-		for (const warning of warnings)
-			lines.push(
-				`| 覆盖风险 | ${mdEscape(warning)} | 影响本轮候选覆盖和置信度 | 按 warning 修复后重试 |`,
-			);
-	}
-	lines.push(
-		"| 执行边界 | 不推断可用性、薪资、签证、搬迁、私人联系方式或沟通意愿 | 防止把公开职业资料写成私人判断 | 触达前只问开放性问题，不下结论 |",
-		"| 覆盖风险 | 默认地域/市场对来源排序和候选升级生效；缺公开中国/中文生态相关职业信号不能包装成已满足 | 影响是否进入可推进候选 | 下一轮按公开职业信号补证 |",
-		"| 覆盖风险 | Product/GTM/DevRel 候选必须有对应职能证据；只有工程、代码、模型或开源证据的人只能做待核验线索 | 防止工程线索误入 Product/GTM 分桶 | 补产品、增长、商业化或开发者生态职责证据 |",
-		"| 覆盖风险 | 本轮是单次小批量召回；弱证据或单来源人选仍需要先核实 | 结构化适配证明不等于业务负责人认可 | 人工复核后再触达 |",
-		people.length > 0
-			? "| 停止原因 | 小批量报告到这里停止 | 进入触达前必须先核验公开职业资料、公司角色和第二来源证据 | 用户确认后再写触达草稿 |"
-			: "| 停止原因 | 本轮没有形成可交付候选人 | 不要换源凑数或编造候选人 | 用户确认后收窄画像或扩大同来源召回 |",
-		"| 执行边界 | 本轮只使用授权连接器返回的公开职业资料，不查询私人联系方式，不自动发送消息，不提交表单，不把商务合作对象包装成候选人 | 防止越界 | 用户授权后再继续 |",
-		"",
-		"下一步",
-		"",
-		people.length > 0
-			? "- 用户确认后，核验公开职业资料、公司角色和第二来源证据，再决定是否写触达草稿。"
-			: "- 用户确认后，收窄公司/产品方向或扩大同来源召回。",
-	);
-
-	process.stdout.write(`${lines.join("\n")}\n`);
 } catch (error) {
 	outputBlocked(
 		`Product/GTM 小批量召回失败：${String(error.message ?? error)}`,

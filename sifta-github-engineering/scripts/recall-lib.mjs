@@ -88,6 +88,8 @@ export function scoreCandidateTwoAxis(candidate, coreTerms = [], config = DEFAUL
 	const contributions = candidate.contributions ?? 0;
 	const prCount = candidate.prCount ?? 0;
 	const personalImpl = candidate.personalRepoEvidence?.length ?? 0;
+	const hasImplementationEvidence =
+		personalImpl >= 1 || prCount >= 1 || contributions >= (s.contribLowAt ?? 3);
 
 	// ---- 主轴：证据强度 ----
 	let evidence = 0;
@@ -132,7 +134,7 @@ export function scoreCandidateTwoAxis(candidate, coreTerms = [], config = DEFAUL
 	const geoStrong = !!candidate.profileGeoEvidence?.strong;
 	const geoMatched =
 		!!candidate.profileGeoEvidence?.matched || !!candidate.ecosystemGeoEvidence?.matched;
-	if (geoStrong && coreMatches >= 1) {
+	if (hasImplementationEvidence && geoStrong && coreMatches >= 1) {
 		evidence += s.geoDirectionFitPts ?? 2;
 		signals.push("geo-direction-fit");
 	}
@@ -158,7 +160,8 @@ export function scoreCandidateTwoAxis(candidate, coreTerms = [], config = DEFAUL
 		secondary += s.geoEcosystemPts ?? 1;
 		signals.push("china-ecosystem"); // 仅泛中文生态/汉字信号
 	}
-	if (geoStrong && coreMatches >= 1) secondary += s.geoDirectionSecondaryPts ?? 12;
+	if (hasImplementationEvidence && geoStrong && coreMatches >= 1)
+		secondary += s.geoDirectionSecondaryPts ?? 12;
 	if ((candidate.legTypes ?? []).includes("source-catalog") && evidenceTier !== "weak") {
 		secondary += s.sourceCatalogPts ?? 45;
 		signals.push("source-catalog");

@@ -153,7 +153,7 @@ sifta-cli find-people --query "Qwen 团队 产品经理 大模型产品 Agent �
 再把公司池、角色和市场信号放进 `--query`。
 
 ```bash
-sifta-cli find-people --query "负责 AI 产品 GTM、出海营销、增长、商业化或 developer marketing 的候选人，最好有 AI 产品或开发者工具商业化经验" \
+sifta-cli find-people --query "中国/中文生态 AI 产品 GTM、出海营销、增长、商业化或 developer marketing 负责人，有 AI 产品或开发者工具商业化经历" \
   --checkpoint "找 AI GTM、出海营销或增长人才，做过 AI 产品或 developer marketing" \
   --sources '["linkedin"]' \
   --target-count 10
@@ -162,7 +162,7 @@ sifta-cli find-people --query "负责 AI 产品 GTM、出海营销、增长、�
 Developer marketing / community growth：
 
 ```bash
-sifta-cli find-people --query "负责 AI developer marketing、社区增长或 DevRel 的候选人，最好做过开源项目、开发者产品或 AI 工具的社区增长" \
+sifta-cli find-people --query "中国/中文生态 AI developer marketing、开发者社区增长或 DevRel 负责人，有开源、开发者产品或 AI 工具社区增长经历" \
   --checkpoint "找 AI developer marketing、社区增长或 DevRel 人才，有开源或开发者产品经验" \
   --sources '["linkedin"]' \
   --target-count 10

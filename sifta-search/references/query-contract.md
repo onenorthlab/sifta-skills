@@ -116,6 +116,17 @@ sifta-cli find-people \
 
 LinkedIn 是职业资料和非工程职能证据渠道。`--query` 可以使用用户语言的自然人才画像，
 必须保留中文岗位、地区、公司、职能和业务方向信号。
+Sifta Public API 通过 Exa People Search 执行时，底层使用 Exa `category: "people"` 和
+`type: "auto"`；Exa people query 支持中文自然语言，不需要强制翻译成英文。
+
+LinkedIn / Exa people query 分层：
+
+| 内容 | 放哪里 | 原因 |
+| --- | --- | --- |
+| 角色、职能、技能、地点、公司、行业、市场、seniority | `--query` | Exa People Search 可直接消费的人群画像 |
+| 默认中国/中文生态/中国市场约束 | `--query` 和 `--checkpoint` | 默认地域是召回和排序约束，不能从搜索 query 里丢掉 |
+| 用户原话、must-have、avoid、默认地域解释 | `--checkpoint` | 用于判断和最终说明，不污染搜索语义 |
+| 输出格式、warnings、中文摘要要求、隐私解释、失败策略、候选人分层说明 | 不进 `--query`；放 `--checkpoint` 或内部合同 | 这些不是 Exa people search 条件，会降低召回质量 |
 
 推荐：
 
@@ -137,6 +148,7 @@ GTM / 增长 / DevRel：
 禁止：
 
 - 把中文产品 / GTM 画像翻译成纯英文关键词后丢失语境。
+- 把“候选人摘要、证据、风险和下一步必须使用中文输出”、隐私解释、错误处理或 warnings 传给 Exa people query。
 - 只因为 query 中有 Agent / LLM / 大模型，就把非工程人选归到工程类。
 - 在 LinkedIn 查询里加入 `site:linkedin.com/in` 或布尔网页搜索语法。
 

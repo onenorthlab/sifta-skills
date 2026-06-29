@@ -36,7 +36,7 @@ sifta-cli find-people \
 执行边界：
 
 - 保持不同来源的查询拆分。
-- 长反馈放进 `--feedback`，不要塞进 GitHub `--query`。
+- 长反馈、排除项、上轮判断和候选人分层一律放进 `--feedback`，不要塞进任何来源的 `--query`。LinkedIn / Product / GTM query 只保留用户语言的人群画像、角色、职能、公司、市场和地域信号。
 - 保留上一轮覆盖风险和排除项。
 
 ```

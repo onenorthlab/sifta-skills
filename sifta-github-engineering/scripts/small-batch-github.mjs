@@ -26,7 +26,7 @@ function parseArgs(argv) {
 		maxElapsedMs: 55_000,
 		includePotential: true,
 		seeds: [],
-		json: false,
+		json: true,
 	};
 	for (let index = 0; index < argv.length; index += 1) {
 		const arg = argv[index];
@@ -47,9 +47,13 @@ function parseArgs(argv) {
 		if (arg === "--max-elapsed-ms" && next) args.maxElapsedMs = Number(next);
 		if (arg === "--include-potential" && next) args.includePotential = next !== "false";
 		if (arg === "--seed" && next) args.seeds.push(next);
-		// --json 是无值布尔 flag（eval/harness 用，输出 proposal JSON 而非 markdown 报告）
+		// 默认输出 proposal JSON，由 skill/template 渲染最终招聘报告；--markdown 仅作人工调试 fallback。
 		if (arg === "--json") {
 			args.json = next !== "false";
+			continue;
+		}
+		if (arg === "--markdown") {
+			args.json = false;
 			continue;
 		}
 		if (arg.startsWith("--")) index += 1;
@@ -223,7 +227,7 @@ async function safeGitHubJson(endpoint) {
 		try {
 			if (timeBudgetExceeded()) {
 				return {
-					error: "GitHub helper time budget exceeded",
+					error: "GitHub time budget exceeded",
 					status: "time_budget_exceeded",
 					budgetTimedOut: true,
 				};
@@ -250,7 +254,7 @@ async function safeGitHubJson(endpoint) {
 					if (waitMs <= 0) {
 						timeBudgetHit = true;
 						return {
-							error: "GitHub rate limit backoff skipped because helper time budget is exhausted",
+							error: "GitHub rate limit backoff skipped because time budget is exhausted",
 							status: "time_budget_exceeded",
 							budgetTimedOut: true,
 							rateLimited: true,
@@ -613,6 +617,8 @@ async function addCandidateSignal({
 	if (user.error) {
 		leadRows.push({
 			lead: login,
+			profileUrl: contributor.html_url ?? `https://github.com/${login}`,
+			url: contributor.html_url ?? `https://github.com/${login}`,
 			sourceFamily: "GitHub 贡献者线索",
 			whyRelevant: reason,
 			blocker: "个人资料读取失败",
@@ -718,6 +724,7 @@ async function processRepository(repo, whyRelevant, legType = "repo-contributor"
 	if (isWeakDirectoryRepo(repo)) {
 		leadRows.push({
 			lead: repo.full_name,
+			url: repo.html_url,
 			sourceFamily: "GitHub 目录/列表线索",
 			whyRelevant,
 			blocker: "目录/awesome/list/integration 类 repo 只能作为找人来源，不能单独升级为候选人",
@@ -759,6 +766,7 @@ async function processRepository(repo, whyRelevant, legType = "repo-contributor"
 	} else if (contributors?.error) {
 		leadRows.push({
 			lead: repo.full_name,
+			url: repo.html_url,
 			sourceFamily: "GitHub 仓库线索",
 			whyRelevant,
 			blocker: "贡献者列表读取失败",
@@ -798,6 +806,7 @@ async function processRepository(repo, whyRelevant, legType = "repo-contributor"
 
 	leadRows.push({
 		lead: repo.full_name,
+		url: repo.html_url,
 		sourceFamily: repo.owner?.type === "User" ? "GitHub 个人仓库线索" : "GitHub 仓库线索",
 		whyRelevant,
 		blocker: "身份、贡献深度和职业资料未核验前仍是找人来源线索",
@@ -928,6 +937,7 @@ async function runSeedFallback() {
 		if (repo.error) {
 			leadRows.push({
 				lead: repoName,
+				url: `https://github.com/${repoName}`,
 				sourceFamily: "GitHub 仓库线索",
 				whyRelevant: "agent runtime / tool calling / evaluation seed",
 				blocker: "仓库元数据读取失败",
@@ -978,12 +988,21 @@ function pickDiversified(pool, limit, maxPerRepo) {
 	return picked;
 }
 
+function hasImplementationEvidence(candidate) {
+	return (
+		(candidate.personalRepoEvidence?.length ?? 0) > 0 ||
+		(candidate.prCount ?? 0) > 0 ||
+		(candidate.contributions ?? 0) >= (RECALL_CONFIG.scoring?.contribLowAt ?? 3)
+	);
+}
+
 const candidatePool = [...candidatesByLogin.values()]
 	.filter(
 		(candidate) =>
 			(!requiresGeoFit || candidate.profileGeoEvidence?.matched) &&
 			candidate.evidence.length > 0 &&
-			// 弱证据档不进候选人分桶，只能降为待核验线索（弱线索不冒充候选）
+			hasImplementationEvidence(candidate) &&
+			// 弱证据档不进推荐人选，只能降为待核验线索（弱线索不冒充候选）
 			candidate.evidenceTier !== "weak",
 	)
 	.sort(
@@ -1013,15 +1032,17 @@ for (const candidate of candidatesByLogin.values()) {
 	const geoMatched = candidate.profileGeoEvidence?.matched;
 	leadRows.push({
 		lead: `${candidate.name || candidate.login} (${candidate.login})`,
+		profileUrl: candidate.profileUrl,
+		url: candidate.profileUrl,
 		sourceFamily: geoMatched ? "GitHub profile 线索" : "GitHub 贡献者线索",
 		whyRelevant: candidate.evidence[0] ?? "GitHub 工程线索",
 		blocker: geoMatched
-			? "方向/地域命中但 GitHub 公开证据量不足以进候选人分桶，保留为待核验 profile 线索"
+			? "方向/地域命中但 GitHub 公开证据量不足以进推荐人选，保留为待核验 profile 线索"
 			: !requiresGeoFit
-				? "证据分、贡献深度或多样性预算不足以进候选人分桶，保留为待核验开源线索"
+				? "证据分、贡献深度或多样性预算不足以进推荐人选，保留为待核验开源线索"
 				: candidate.ecosystemGeoEvidence?.matched
-					? `${candidate.ecosystemGeoEvidence.evidence}，但个人资料、公司、简介或地点未体现中国/中文生态职业信号，不能进入候选人分桶`
-					: "默认地域/市场未确认；缺公开中国/中文生态相关职业信号，不能进入候选人分桶或强推荐",
+					? `${candidate.ecosystemGeoEvidence.evidence}，但个人资料、公司、简介或地点未体现中国/中文生态职业信号，不能进入推荐人选`
+					: "默认地域/市场未确认；缺公开中国/中文生态相关职业信号，不能进入推荐人选或强推荐",
 		next: requiresGeoFit
 			? "核验公开职业资料、个人主页、LinkedIn、中文社区、中国市场或中国相关机构/公司信号"
 			: "核验公开职业资料、个人主页、LinkedIn、核心 PR / commit 和项目 ownership",
@@ -1084,166 +1105,53 @@ if (args.json) {
 		recommendedCount: candidates.length,
 		potentialCount: potentialCandidates.length,
 		recallPaths: mergeUnique(recallPaths),
-		people: [
-			...candidates.map((c) => toPerson(c, "soft")),
-			...potentialCandidates.map((c) => toPerson(c, "lead")),
-		],
-		sourceLeads: leadRows.slice(0, 20),
-	};
+			people: [
+				...candidates.map((c) => toPerson(c, "soft")),
+			],
+			leadPeople: potentialCandidates.map((c) => ({
+				...toPerson(c, "lead"),
+				canEnterCandidateTable: false,
+			})),
+			sourceLeads: leadRows.slice(0, 20),
+		};
 	process.stdout.write(`${JSON.stringify(proposal, null, 2)}\n`);
 	process.exit(0);
 }
 
-function mdEscape(value) {
-	return String(value ?? "")
-		.replace(/\|/g, "\\|")
-		.replace(/\n/g, " ");
-}
-
-const visibleRecallPaths = mergeUnique(recallPaths).slice(0, 4).join("；");
-const lines = [
-	"# GitHub 小批量寻访",
-	"",
-	"结论",
-	"",
-	candidates.length > 0
-		? `- 本轮按中国/中文生态优先召回，找到 ${candidates.length} 个建议先核实的人选，并保留 ${potentialCandidates.length} 个潜在人选/来源线索。`
-		: timeBudgetHit
-			? "- 本轮达到 GitHub 小批量时间预算，已返回部分可审线索；候选偏少或为 0 不能代表方向质量。"
-			: rateLimitHit
-				? "- 本轮 GitHub search 触发限流（搜索接口约 30 次/分钟），召回未完成；**0 人选是限流导致，不代表没有合适的人，也不是地域过滤过严**。等约 1 分钟窗口重置后重跑，或减少同时进行的搜索。"
-				: "- 本轮按中国/中文生态优先召回，但没有形成可推进人选。",
-	`- 能力画像：${query}`,
-	"- 默认地域/市场不是姓名、照片、外貌、口音、族裔或国籍推断；只看公开职业信号。",
-	"",
-	"人选和证据",
-	"",
-	"| 分桶 | 人选 / 线索 | 招聘判断 | 为什么值得聊 | 把握 | 证据来源 | 下一步 | 链接 |",
-	"| --- | --- | --- | --- | --- | --- | --- | --- |",
-];
-
-for (const candidate of candidates) {
-	const primaryRepo = candidate.repos[0] ?? {};
-	const proofItems = mergeUnique([
-		...candidate.evidence,
-		...candidate.personalRepoEvidence.map((entry) => `个人 repo 证据：${entry}`),
-	]);
-	const whyWorthTalking =
-		proofItems.length > 0
-			? "公开资料显示他做过和岗位相关的开源实现，值得先核验 ownership 和转化可能"
-			: "公开资料和项目方向相关，值得先确认真实贡献范围";
-	lines.push(
-		`| 建议先核实 | ${mdEscape(candidate.name || candidate.login)} (${mdEscape(candidate.login)}) | 先按中国/中文生态工程人选聊，确认是否适合全职、顾问或推荐人推进 | ${mdEscape(whyWorthTalking)} | 中 | ${mdEscape(proofItems.slice(0, 2).join("；") || "GitHub profile / repo evidence")} | 补职业资料和 2-3 个核心贡献；主要风险：当前角色、可招性和核心贡献范围还没闭合 | [GitHub](${mdEscape(candidate.profileUrl)})${primaryRepo.url ? ` / [相关项目](${mdEscape(primaryRepo.url)})` : ""} |`,
-	);
-}
-
-if (candidates.length === 0) {
-	lines.push(
-		timeBudgetHit
-			? "| 暂无推荐 | - | 本轮先不推进人选 | GitHub 小批量时间预算已用完，只能审已返回的部分线索 | 低 | 候选偏少是部分召回，不代表方向质量 | 先审已有线索；需要继续时降低 search 次数或扩大预算 | - |"
-			: rateLimitHit
-				? "| 暂无推荐 | - | 本轮不建议推进人选 | GitHub search 限流导致本轮未形成可推进人选 | 低 | 0 人选是限流，不是没有合适的人，也不是地域过滤过严 | 等待窗口重置后重跑 | - |"
-				: "| 暂无推荐 | - | 默认中国人才池下暂不建议推进人选 | 预算内没有找到同时具备公开工程证据和个人中国/中文生态职业信号的人选 | 低 | 不能为凑数把全球贡献者包装成候选人 | 扩大动态召回，或由用户明确放宽为全球人才池 | - |",
-	);
-}
-
-if (potentialCandidates.length > 0) {
-	lines.push(
-		"",
-		"风险和待核验",
-		"",
-		"| 类型 | 内容 | 为什么重要 | 怎么确认 |",
-		"| --- | --- | --- | --- |",
-	);
-	for (const candidate of potentialCandidates) {
-		const proof = mergeUnique([
-			...candidate.evidence,
-			...candidate.personalRepoEvidence.map((entry) => `个人 repo 证据：${entry}`),
-		])
-			.slice(0, 2)
-			.join("；");
-		lines.push(
-			`| 待核验线索 | ${mdEscape(candidate.name || candidate.login)} (${mdEscape(candidate.login)}) | ${mdEscape(proof)}；不能直接推荐：${mdEscape(candidate.profileGeoEvidence?.matched ? "同仓库推荐名额已达上限，或仍需确认贡献深度" : "默认地域/市场未确认，缺个人资料、公司、简介或地点中的中国/中文生态职业信号")} | 核验个人资料、核心 PR / commit 和公开职业信号；若要推进全球人才池，需用户明确放宽地域 |`,
-		);
-	}
-} else {
-	lines.push(
-		"",
-		"风险和待核验",
-		"",
-		"| 类型 | 内容 | 为什么重要 | 怎么确认 |",
-		"| --- | --- | --- | --- |",
-	);
-}
-
-const visibleLeadRows = leadRows.slice(0, 12);
-if (visibleLeadRows.length > 0) {
-	for (const row of visibleLeadRows) {
-		lines.push(
-			`| 来源线索 | ${mdEscape(row.lead)} | ${mdEscape(row.whyRelevant ?? "与目标工程方向相关")}；缺口：${mdEscape(row.blocker)} | ${mdEscape(row.next)} |`,
-		);
-	}
-	if (leadRows.length > visibleLeadRows.length) {
-		lines.push(
-			`| 来源线索 | 其余找人来源线索 | 还有 ${leadRows.length - visibleLeadRows.length} 条弱线索/失败线索未展开；小批量报告不展开全部调试细节 | 用户批准后再做第二轮核验 |`,
-		);
-	}
-}
-
-for (const candidate of candidates) {
-	const engineeringEvidence = mergeUnique([
-		...candidate.evidence,
-		...candidate.personalRepoEvidence.map((entry) => `个人 repo：${entry}`),
-	])
-		.slice(0, 4)
-		.join("；");
-	lines.push(
-		`| 适配证明 | ${mdEscape(candidate.name || candidate.login)} (${mdEscape(candidate.login)}) | 建议先核实是否适合工程人选推进；公开证据：${mdEscape(engineeringEvidence)}；把握：中；主要风险：需要核验身份、当前角色、贡献深度和可招性 | 用户确认后补职业资料、已合并 PR 和项目 ownership |`,
-	);
-}
-
-if (candidates.length === 0) {
-	lines.push(
-		timeBudgetHit
-			? "| 适配缺口 | GitHub search 召回 | 小批量时间预算已用完，已返回部分线索；不能用 partial 结果判断方向质量 | 降低 search 次数或扩大预算后重跑 |"
-			: rateLimitHit
-				? "| 适配缺口 | GitHub search 召回 | 动态召回触发 GitHub search 限流，未完成；不能用限流后的 0 人选判断方向质量 | 等待窗口重置后重跑，或降低 search 次数 / 配置 GH_TOKEN |"
-				: "| 适配缺口 | 默认地域/市场升级门槛 | 动态召回内没有贡献者同时具备公开工程证据和个人中国/中文生态职业信号；只能证明这些是找人来源线索 | 用户批准后扩大动态召回、补充项目来源，或明确放宽为全球人才池 |",
-	);
-}
-
-lines.push(
-	`| 来源地图 | GitHub / 开源项目 | ${seedMode === "global-benchmark" ? "全球标杆/来源兜底" : seedMode === "custom" ? "用户指定种子兜底" : "按画像先找人、再用仓库证据补强，seed 仅兜底"}；召回路径：${visibleRecallPaths || "GitHub user/repo search"} | 下一轮仍优先同来源补证，不换源凑数 |`,
-	...(rateLimitHit
-		? [
-				"| 覆盖风险 | GitHub search 本轮触发限流（约 30 次/分钟） | 部分召回未完成；候选偏少或为 0 的主因是限流，不是地域过滤或没有合适的人 | 等约 1 分钟窗口重置后重跑，或减少同时进行的搜索次数 |",
-			]
-		: []),
-	...(timeBudgetHit
-		? [
-				"| 覆盖风险 | 本轮达到 GitHub 小批量时间预算 | 已返回部分可审线索；候选偏少不能用来判断方向质量 | 下一轮降低搜索次数或扩大预算后重跑 |",
-			]
-		: []),
-	"| 覆盖风险 | 本轮是小批量召回，不是最终找人质量证明 | 人选仍需要人工相关性复核 | 先核职业资料、同人身份和核心贡献 |",
-	"| 执行边界 | 不推断可用性、职级、薪酬、搬迁、私人联系方式或沟通意愿 | 避免把公开工程证据写成私人判断 | 触达前只问开放性问题，不下结论 |",
-	"| 覆盖风险 | 默认地域/市场是进入候选人分桶的门槛 | 来源地图可以保留全球线索；缺公开中国/中文生态相关职业信号时不能进入候选人分桶或强推荐 | 用户明确放宽后再推进全球人才池 |",
-	"| 覆盖风险 | GitHub 额度或认证不足时，下一步是在宿主环境配置 `GH_TOKEN` / `GITHUB_TOKEN`、GitHub MCP 或 `gh auth` | 不因为 GitHub token 问题改走 Sifta CLI | 修复宿主 GitHub 能力后重跑 |",
-	"| 覆盖风险 | 固定 seed 只作为动态召回不足时的来源地图兜底 | 单个大仓库不会默认占满候选人分桶 | 下一轮继续扩大动态召回 |",
-	"| 待核验线索 | 仓库/项目线索 | 在身份核验和证据评级前仍是来源地图线索 | 补个人资料和贡献证据 |",
-	candidates.length > 0
-		? "| 停止原因 | 小批量报告到这里停止 | 进入触达前必须先核验职业资料、核心贡献深度和同人身份 | 用户确认后再写触达草稿 |"
-		: "| 停止原因 | 本轮没有形成可推进人选 | 不要换源凑数或把仓库/项目线索包装成候选人 | 用户确认后扩大同来源召回或放宽地域 |",
-	"| 执行边界 | 本轮只读取公开 GitHub 信息，不查询私人联系方式，不自动发送消息，不把 token/额度问题改写成 Sifta CLI 必经路径 | 防止越界和错误归因 | 用户授权后再继续 |",
-	"",
-	"下一步",
-	"",
-	candidates.length > 0
-		? "- 用户确认后，核验候选人的公开职业资料、核心 PR / commit 深度和同人身份，再决定是否写触达草稿。"
-		: timeBudgetHit
-			? "- 本轮先审已返回线索；如需要继续，降低 search 次数或扩大时间预算后重跑，不要换源凑数。"
-			: rateLimitHit
-				? "- 等待 GitHub search 窗口重置后重跑，或降低 search 次数 / 配置 GH_TOKEN；不要用本轮 0 人选判断方向质量。"
-				: "- 用户确认后，扩大动态召回、补充项目来源，或明确放宽为全球人才池。",
+process.stdout.write(
+	`${JSON.stringify(
+		{
+			status: "debug-summary",
+			executedSources: ["github"],
+			recommendedCount: candidates.length,
+			potentialCount: potentialCandidates.length,
+			providerFailed: rateLimitHit,
+			timeBudgetHit,
+			people: candidates.map((candidate) => ({
+				displayName: candidate.name || candidate.login,
+				login: candidate.login,
+				profileUrl: candidate.profileUrl,
+				evidence: mergeUnique([...candidate.evidence, ...candidate.personalRepoEvidence]).slice(0, 5),
+				topRepos: (candidate.repos ?? []).slice(0, 3).map((repo) => ({
+					name: repo.fullName || repo.name,
+					url: repo.url,
+				})),
+			})),
+			otherLeads: potentialCandidates.slice(0, 10).map((candidate) => ({
+				displayName: candidate.name || candidate.login,
+				login: candidate.login,
+				profileUrl: candidate.profileUrl,
+				reasonNotRecommended:
+					candidate.profileGeoEvidence?.matched
+						? "仍需确认贡献深度和当前角色"
+						: "缺公开中国/中文生态职业信号或个人资料交叉验证",
+			})),
+			nextAction:
+				candidates.length > 0
+					? "核职业资料、核心贡献和同人身份后再触达。"
+					: "扩大同来源召回或补充项目入口，不换源凑数。",
+		},
+		null,
+		2,
+	)}\n`,
 );
-
-process.stdout.write(`${lines.join("\n")}\n`);
