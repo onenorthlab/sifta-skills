@@ -242,7 +242,7 @@ arXiv、Hugging Face、ModelScope、网页、公司页或社区平台写入 `--s
 
 `--feedback` 用于多轮反馈闭环。Agent 应把用户人工反馈整理成短 JSON 数组，保留
 `feedback`、`constraints`、`exclusions` 和 `expansionSeeds`。反馈会进入服务端
-`feedbackIngest`，用于影响下一轮 `searchStrategy`、推荐名单、`whyNot` 和
+`feedbackIngest`，用于影响下一轮 `searchStrategy`、候选人分桶、`whyNot` 和
 `nextAction`。
 
 如果上一轮人工审查同时包含 GitHub 和 LinkedIn，Agent 应按来源拆成多条

@@ -58,6 +58,26 @@ function truncate(value, maxLength = 180) {
 	return text.length > maxLength ? `${text.slice(0, maxLength - 3)}...` : text;
 }
 
+function markdownLink(label, url) {
+	const href = mdEscape(url);
+	return href ? `[${label}](${href})` : "-";
+}
+
+function linkifyKnownGitHubUrls(value) {
+	return mdEscape(value).replace(/https:\/\/github\.com\/([A-Za-z0-9_.-]+)/gu, (_match, handle) =>
+		markdownLink("GitHub", `https://github.com/${handle}`),
+	);
+}
+
+function scrubContactValues(value) {
+	return String(value ?? "")
+		.replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/giu, "[公开 contact 字段]")
+		.replace(
+			/open to (new )?opportunities|open to work/giu,
+			"[公开 profile 开放机会相关表述，需触达前确认]",
+		);
+}
+
 const args = parseArgs(process.argv.slice(2));
 const login = loginFrom(args.github);
 
@@ -66,45 +86,25 @@ if (!login) {
 		[
 			"# 已知 GitHub 候选人档案",
 			"",
-			"本轮目标",
+			"结论",
 			"",
-			"- 当前输入缺少可消歧的 GitHub login，无法完成候选人档案。",
+			"- 当前输入缺少可消歧的 GitHub login，无法完成候选人档案；本轮不建议推进候选人。",
+			"- 默认地域/市场：中国/中文生态相关人才池优先；只看公开职业信号，不凭姓名、照片、族裔或国籍推断。",
 			"",
-			"找人来源",
+			"人选和证据",
 			"",
-			"| 来源 | 看什么 | 本轮怎么用 |",
-			"| --- | --- | --- |",
-			"| GitHub 个人资料 | login、公开简介、公开仓库、公开邮箱字段 | 输入缺少可消歧 login，未执行 |",
+			"| 分桶 | 人选 / 线索 | 招聘判断 | 为什么值得聊 | 把握 | 证据来源 | 下一步 | 链接 |",
+			"| --- | --- | --- | --- | --- | --- | --- | --- |",
+			"| 暂无推荐 | 用户输入 | 本轮不推进 | 缺少可消歧个人资料 | 低 | GitHub 个人资料未执行 | 补 profile 后重试 | - |",
 			"",
-			"推荐名单",
+			"风险和待核验",
 			"",
-			"| 推荐级别 | 人选 | 招聘判断 | 为什么值得聊 | 把握 | 还要确认 | 链接 |",
-			"| --- | --- | --- | --- | --- | --- | --- |",
-			"| 暂无推荐 | - | - | 缺少可消歧个人资料 | 低 | 需要补充 GitHub、LinkedIn、个人主页、公司或地点线索 | - |",
-			"",
-			"待确认线索",
-			"",
-			"| 线索 | 为什么相关 | 还差什么 | 下一步怎么确认 |",
+			"| 类型 | 内容 | 为什么重要 | 怎么确认 |",
 			"| --- | --- | --- | --- |",
-			"| 用户输入 | 深挖任务需要个人资料入口 | 缺少 GitHub login 或 URL | 请补一个可消歧 profile |",
-			"",
-			"匹配依据",
-			"",
-			"| 人选 / 线索 | 为什么符合需求 | 公开证据 | 把握 | 还要确认 | 下一步 |",
-			"| --- | --- | --- | --- | --- | --- |",
-			"| - | 无法建档 | 未执行 | 低 | 可消歧个人资料 | 补 profile 后重试 |",
-			"",
-			"本轮覆盖缺口",
-			"",
-			"- 没有可消歧个人资料时不能继续深挖，也不能用搜索猜测同名候选人。",
-			"",
-			"为什么先停在这里",
-			"",
-			"- 缺少可消歧 GitHub login，本轮停止。",
-			"",
-			"本轮边界",
-			"",
-			"- 本轮不搜索同名候选人，不查询私人联系方式，不自动触达。",
+			"| 待核验线索 | 用户输入 | 深挖任务需要个人资料入口 | 请补一个可消歧 profile |",
+			"| 覆盖风险 | 没有可消歧个人资料时不能继续深挖 | 防止同名误合并 | 补 GitHub、LinkedIn、个人主页、公司或地点线索 |",
+			"| 停止原因 | 缺少可消歧 GitHub login | 不能用搜索猜测同名候选人 | 补 profile 后重试 |",
+			"| 执行边界 | 本轮不搜索同名候选人、不查询私人联系方式、不自动触达 | 避免越界 | 用户补可消歧资料后继续 |",
 			"",
 			"下一步",
 			"",
@@ -128,92 +128,69 @@ if (args.repo) {
 }
 
 const publicRepos = Array.isArray(repos) ? repos : [];
+const githubProfileLink = markdownLink("GitHub", user?.html_url || `https://github.com/${login}`);
+const publicContactSignal = user?.email
+	? "GitHub profile 公开 contact 字段存在"
+	: "未找到公开职业联系方式";
 const lines = [
 	"# 已知 GitHub 候选人档案",
 	"",
-	"本轮目标",
+	"结论",
 	"",
-	`- 输入：${mdEscape(args.github)}`,
-	`- 深挖目标：${mdEscape(args.query || "已知 GitHub 候选人档案")}`,
-	`- 可选仓库焦点：${mdEscape(args.repo || "无")}`,
+	`- 深挖对象：${markdownLink("GitHub", `https://github.com/${login}`)}`,
+	`- 深挖目标：${linkifyKnownGitHubUrls(args.query || "已知 GitHub 候选人档案")}`,
+	"- 默认地域/市场：中国/中文生态相关人才池优先；只看公开职业信号，不凭姓名、照片、族裔或国籍推断。",
+	`- 本轮边界：只用公开 GitHub 资料和可选仓库焦点（${mdEscape(args.repo || "无")}），不继续找新人、不自动触达。`,
 	"",
-	"找人来源",
+	"人选和证据",
 	"",
-	"| 来源 | 看什么 | 本轮怎么用 |",
-	"| --- | --- | --- |",
-	"| GitHub 个人资料 | login、公开简介、公司、地点、公开邮箱字段 | 身份核验和公开职业信号入口 |",
-	"| GitHub 仓库 / PR | 公开 repo、stars、更新、可选仓库 PR | 只作为工程证据样本，不能证明可用性或完整贡献深度 |",
-	"",
-	"推荐名单",
-	"",
-	"| 推荐级别 | 人选 | 招聘判断 | 为什么值得聊 | 把握 | 还要确认 | 链接 |",
-	"| --- | --- | --- | --- | --- | --- | --- |",
+	"| 分桶 | 人选 / 线索 | 招聘判断 | 为什么值得聊 | 把握 | 公开证据 | 下一步 | 链接 |",
+	"| --- | --- | --- | --- | --- | --- | --- | --- |",
 ];
 
 if (user.error) {
 	lines.push(
-		`| 暂无推荐 | ${mdEscape(login)} | GitHub 资料读取失败 | ${mdEscape(user.error)} | 低 | 需要确认 login 或认证状态 | [GitHub](https://github.com/${mdEscape(login)}) |`,
+		`| 暂无推荐 | ${mdEscape(login)} | GitHub 资料读取失败 | ${mdEscape(user.error)} | 低 | GitHub profile 未能读取 | 修复认证或 login 后重试 | [GitHub](https://github.com/${mdEscape(login)}) |`,
 	);
 } else {
 	lines.push(
-		`| 建议先核实 | ${mdEscape(user.name || user.login)} (${mdEscape(user.login)}) | 先确认是否是目标人选，再判断适合全职、顾问还是推荐人推进 | 有可访问 GitHub 公开资料，需继续核验职业资料和项目归属 | 中 | 是否为用户目标中的同一人、职业阶段和相关贡献深度 | [GitHub](${mdEscape(user.html_url)}) |`,
-	);
-}
-
-lines.push("", "身份核验", "", "| 字段 | 值 | 证据 | 置信度 |", "| --- | --- | --- | --- |");
-
-if (user.error) {
-	lines.push(`| GitHub 个人资料 | ${mdEscape(login)} | ${mdEscape(user.error)} | 低 |`);
-} else {
-	lines.push(
-		`| GitHub 个人资料 | ${mdEscape(user.name || user.login)} (${mdEscape(user.login)}) | ${mdEscape(user.html_url)} | GitHub 身份高置信度 |`,
-		`| 公开简介/公司/地点 | ${truncate([user.bio, user.company, user.location].filter(Boolean).join(" / ") || "未公开")} | GitHub 公开个人资料 | 中 |`,
-		`| 公开职业联系方式 | ${mdEscape(user.email || "未找到公开职业联系方式")} | 仅限 GitHub 公开邮箱字段 | ${user.email ? "中" : "不适用"} |`,
-	);
-}
-
-lines.push("", "待确认线索", "", "| 证据 | 来源 | 置信度 | 弱点 |", "| --- | --- | --- | --- |");
-
-for (const repo of publicRepos.slice(0, args.maxRepos)) {
-	lines.push(
-		`| Repo: ${mdEscape(repo.full_name)}；stars=${repo.stargazers_count}；updated=${repo.updated_at} | ${mdEscape(repo.html_url)} | 中 | 仓库归属/贡献信号，不能证明角色或可用性 |`,
-	);
-}
-
-for (const pr of prs.slice(0, args.maxPrs)) {
-	lines.push(
-		`| PR: ${truncate(pr.title, 120)} | ${mdEscape(pr.html_url)} | 中 | PR 标题只能证明公开活动，不能证明完整贡献深度 |`,
-	);
-}
-
-if (!publicRepos.length && !prs.length) {
-	lines.push(
-		"| 预算内没有公开 GitHub 证据 | GitHub API | 低 | 需要另一个公开个人资料或仓库焦点 |",
+		`| 建议先核实 | ${mdEscape(user.name || user.login)} (${mdEscape(user.login)}) | 先确认是否是目标人选，再判断适合全职、顾问还是推荐人推进 | 有可访问 GitHub 公开资料，需继续核验职业资料和项目归属 | 中 | GitHub profile、公开简介、公司、地点、公开仓库样本 | 补职业资料和项目归属证据 | [GitHub](${mdEscape(user.html_url)}) |`,
 	);
 }
 
 lines.push(
 	"",
-	"匹配依据",
+	"风险和待核验",
 	"",
-	"| 要求 | 证据 | 来源 | 置信度 | 弱点 | 下一步 |",
-	"| --- | --- | --- | --- | --- | --- |",
-	`| ${mdEscape(args.query || "已知候选人公开个人资料审查")} | GitHub 公开个人资料和有限仓库/PR 样本 | ${mdEscape(user.html_url || `https://github.com/${login}`)} | 中 | 本轮没有 LinkedIn/个人主页/跨来源同人核验 | 用户后续批准后：必要时核验职业资料或项目归属 |`,
-	"",
-	"本轮覆盖缺口",
-	"",
-	"- 本轮只基于有限 GitHub 公开证据，不代表完整找人质量证明。",
-	"- 不推断私人邮箱、电话、可用性、薪资、签证、搬迁或沟通意愿。",
-	"- 公开职业联系方式只限 GitHub 公开邮箱字段；不要猜邮箱格式。",
-	"- 候选人相关性仍需人工审查；这是证据脚手架，不是批准。",
-	"",
-	"为什么先停在这里",
-	"",
-	"- 已知 GitHub 档案脚手架到这里停止；进入触达前必须补职业资料、同人身份和项目归属核验。",
-	"",
-	"本轮边界",
-	"",
-	"- 本轮只读取公开 GitHub 信息，不查询私人联系方式，不自动发送消息，不继续搜索同名候选人。",
+	"| 类型 | 内容 | 为什么重要 | 怎么确认 |",
+	"| --- | --- | --- | --- |",
+);
+
+for (const repo of publicRepos.slice(0, args.maxRepos)) {
+	lines.push(
+		`| 待核验线索 | Repo: ${mdEscape(repo.full_name)}；stars=${repo.stargazers_count}；updated=${repo.updated_at} | 可作为工程活跃度和项目方向入口，但不能证明角色或可用性 | 核 README、commit/PR 和项目 ownership |`,
+	);
+}
+
+for (const pr of prs.slice(0, args.maxPrs)) {
+	lines.push(
+		`| 待核验线索 | PR: ${truncate(pr.title, 120)} | 可作为公开贡献入口，但不能证明完整贡献深度 | 核合并状态、讨论和代码贡献范围 |`,
+	);
+}
+
+if (!publicRepos.length && !prs.length) {
+	lines.push(
+		"| 覆盖风险 | 预算内没有公开 GitHub 项目证据 | 需要另一个公开个人资料或仓库焦点 | 补 profile / repo 后重试 |",
+	);
+}
+
+lines.push(
+	user.error
+		? `| 适配缺口 | ${mdEscape(login)} | GitHub 资料读取失败，无法确认候选人适配 | 确认 login 或认证状态后重试 |`
+		: `| 适配证明 | ${mdEscape(user.name || user.login)} (${mdEscape(user.login)}) | ${linkifyKnownGitHubUrls(args.query || "已知候选人公开个人资料审查")}；GitHub profile：${githubProfileLink}；公开简介/公司/地点：${truncate(scrubContactValues([user.bio, user.company, user.location].filter(Boolean).join(" / ") || "未公开"))}；公开职业渠道：${publicContactSignal} | 用户后续批准后：必要时核验职业资料或项目归属 |`,
+	"| 覆盖风险 | 本轮只基于有限 GitHub 公开证据 | 不代表完整找人质量证明，候选人相关性仍需人工审查 | 补 LinkedIn、个人主页或项目归属证据 |",
+	"| 执行边界 | 不查询私人邮箱、手机号、非公开联系方式，不自动发送消息或提交表单 | 公开职业渠道只限候选人本人公开 profile 字段；不把开放机会字样写成求职意愿结论 | 不猜邮箱格式，也不补私人联系方式 |",
+	"| 停止原因 | 已知 GitHub 档案脚手架到这里停止 | 进入触达前必须补职业资料、同人身份和项目归属核验 | 用户确认后再继续 |",
 	"",
 	"下一步",
 	"",

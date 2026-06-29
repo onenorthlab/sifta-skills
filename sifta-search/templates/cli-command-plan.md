@@ -32,7 +32,7 @@ sifta-cli find-people \
 
 - 当前 Public API 的 `--sources` 只支持 JSON 数组中的 `github`、`linkedin`、`x`；OpenAlex、Scholar、arXiv、Hugging Face、ModelScope、网页、公司页或社区平台是宿主 Agent 的找人来源 / 补证据入口，不写进 `--sources`。
 - 学术 `--mode research` 只用于 direct connector 的默认来源选择、结构化调用轨迹和结果组织；不是独立 OpenAlex/Scholar/arXiv connector。
-- 缺省地域要进入本轮目标、`--checkpoint` 和候选人升级门槛；GitHub 查询不加入地域叙述，LinkedIn/Product/GTM 和学术找人来源可加入自然语言地域/市场偏置。
+- 缺省地域要进入项目简报、`--checkpoint` 和候选人升级门槛；GitHub 查询不加入地域叙述，LinkedIn/Product/GTM 和学术找人来源可加入自然语言地域/市场偏置。
 - CLI 只是薄连接器层：提供 Public API 工具访问、结构化 JSON、schema、trace、warnings、feedback 和可选保存；不要把 skill workflow 再封装成 CLI 里的第二套 sourcing agent。
 - GitHub 不因为 token 成为 CLI 必经路径；优先使用宿主 Agent、`gh`、GitHub MCP 或用户自己的 `GH_TOKEN` / `GITHUB_TOKEN`。额度或认证不足时，提示用户配置宿主 GitHub 凭据。
 - 如果辅助脚本完成、失败或返回 0 人，基于该输出整理用户报告，本轮不要继续搜索。
