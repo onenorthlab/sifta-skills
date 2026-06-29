@@ -15,7 +15,7 @@ description: >
 
 ## 执行流程
 
-1. 先读取或复用候选人档案、上一轮推荐名单、用户提供的公开个人资料 / 证据。
+1. 先读取或复用候选人档案、上一轮候选人分桶、用户提供的公开个人资料 / 证据。
 2. 必须有候选人公开证据、项目/岗位和触达渠道；缺候选人证据时硬停止，或转候选人档案/资料补全。
 3. 确认语气、约束和不可说内容；缺失但风险可控时写入“假设”。
 4. 从公开证据中选择 1-2 个个性化切入点：项目、开源贡献、论文、产品经历、社区影响或职业方向。
@@ -90,5 +90,5 @@ description: >
 | 参考文件                                                                                                                                                                               | 何时读取                                                         |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
 | [深挖到建联工作流](../sifta-search/references/deep-dive-to-outreach-workflow.md)                                                                                                       | 从 shortlist / dossier 接到 outreach、人工确认和下一轮反馈       |
-| [匹配依据](../sifta-search/references/fit-proof-packet.md) / [输出规则](../sifta-search/references/output-quality.md)                                                                  | 选择个性化证据，写风险 / 不要说                                  |
+| [适配证明包](../sifta-search/references/fit-proof-packet.md) / [输出规则](../sifta-search/references/output-quality.md)                                                                | 选择个性化证据，写风险 / 不要说                                  |
 | [CLI 合同](../sifta-search/references/cli-reference.md) / [状态门槛](../sifta-search/references/project-brief-and-state.md) / [查询规则](../sifta-search/references/query-contract.md) | 缺证据转候选人档案、补公开 profile 证据或修正 `find-people` 输入 |

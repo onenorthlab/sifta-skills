@@ -20,7 +20,7 @@ description: >
 
 1. 先做身份消歧：确认输入是同一个人；只有姓名或线索不足时，先要求个人资料或给出
    低置信度说明，不跨渠道硬合并。
-2. 已知 GitHub handle/URL 且只需公开职业档案时，先运行 `node scripts/known-github-dossier.mjs --github "<url-or-login>" --query "<用户原始深挖目标>"`；辅助脚本完成后直接整理用户报告，说明本轮目标、公开证据、本轮覆盖缺口、为什么先停在这里、本轮边界和下一步，不再网页搜索、打开辅助脚本 URL、扫 raw README、查 LinkedIn 或继续找新人。
+2. 已知 GitHub handle/URL 且只需公开职业档案时，先运行 `node scripts/known-github-dossier.mjs --github "<url-or-login>" --query "<用户原始深挖目标>"`；辅助脚本完成后直接整理用户报告，说明项目简报、公开证据、覆盖风险、停止条件、执行合同和下一步，不再网页搜索、打开辅助脚本 URL、扫 raw README、查 LinkedIn 或继续找新人。
 3. 有 GitHub、LinkedIn、X、个人主页或用户给出的个人资料时，由宿主 Agent 读取公开 profile 和可追溯材料，按本技能输出结构整理证据；不要调用服务端补证据 API。
 4. 用宿主 Agent 原生搜索补公开材料：个人主页、GitHub、LinkedIn 公开资料、Google Scholar、
    OpenAlex、Semantic Scholar、arXiv/OpenReview、Papers with Code、company bio、talk、podcast、
@@ -44,7 +44,7 @@ description: >
 ## 输出格式
 
 ```markdown
-目标：<用户想深挖的人和目的>
+项目简报：<用户想深挖的人和目的>
 身份核验：<同人置信度 + 证据>
 
 | 模块                | 判断 | 证据 | 置信度   |
@@ -55,7 +55,7 @@ description: >
 | 联系方式 / 公开渠道 | ...  | ...  | 高/中/低 |
 | 风险与缺口          | ...  | ...  | 高/中/低 |
 
-本轮覆盖缺口：
+覆盖风险：
 
 - <privacy/source gaps and stopped verification>
 
@@ -66,7 +66,7 @@ description: >
 
 ## 质量门
 
-- 最终答复必须保留本轮覆盖缺口；辅助脚本停止时不要把停止标记、脚本名、命令、参数或运行过程写进用户答复。
+- 最终答复必须保留覆盖风险；辅助脚本停止时不要把停止标记、脚本名、命令、参数或运行过程写进用户答复。
 - 不输出未公开的私人电话、住址、家庭信息、身份证件、私人邮箱猜测或数据 broker 结果。
 - 联系方式必须有公开来源链接；没有公开联系方式时写“未找到公开职业联系方式”，不要猜。
 - 同名、同机构、同论文作者不足以合并身份；必须有个人资料互链、主页、项目或明确公开证据。
@@ -83,5 +83,5 @@ description: >
 | [找人来源方案](../sifta-search/references/source-map-recipes.md)                                                    | 补公开来源清单或学术/GitHub 线索                     |
 | [深挖到建联工作流](../sifta-search/references/deep-dive-to-outreach-workflow.md)                                    | 候选人档案后需要触达、人工确认或反馈二轮             |
 | [角色证明标准](../sifta-search/references/role-fit-rubrics.md)                                                      | 判断工程、研究、PM、GTM、founder、独立开发者的强证据 |
-| [匹配依据](../sifta-search/references/fit-proof-packet.md)                                                          | 候选人档案要转招聘适配判断                           |
+| [适配证明包](../sifta-search/references/fit-proof-packet.md)                                                        | 候选人档案要转招聘适配判断                           |
 | [输出规则](../sifta-search/references/output-quality.md) / [查询规则](../sifta-search/references/query-contract.md) | 输出风险或修补全输入                                 |

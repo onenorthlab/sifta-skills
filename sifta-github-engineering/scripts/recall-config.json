@@ -1,0 +1,203 @@
+{
+	"_doc": "GitHub 召回/重排可调参数。Owner 改这里即可调，无需动 recall-lib.mjs 逻辑。各字段含义见 ../references/recall-tuning.md。",
+
+	"queryStopWords": [
+		"the",
+		"and",
+		"for",
+		"with",
+		"are",
+		"who",
+		"have",
+		"has",
+		"had",
+		"from",
+		"that",
+		"this",
+		"they",
+		"their",
+		"which",
+		"could",
+		"would",
+		"should",
+		"can",
+		"may",
+		"will",
+		"was",
+		"were",
+		"using",
+		"used",
+		"build",
+		"built",
+		"open",
+		"source",
+		"opensource",
+		"shipped",
+		"early",
+		"traction",
+		"product",
+		"technical",
+		"做过",
+		"负责人"
+	],
+
+	"conceptPairMaxTerms": 6,
+
+	"_recallCoverageDoc": "user-search 召回覆盖：userSearchMinRepos 是 repos:>N 门槛（过高会漏掉公开 repo 少但很强的人，如只发 1 个核心 repo 的 infra 作者）；userSearchSort 为空=GitHub best-match 相关度排序（按 repo 数排会把方向高度匹配的人埋在高 repo 数账号后面）。",
+	"userSearchMinRepos": 1,
+	"userSearchSort": "",
+
+	"locationVariants": [
+		"China",
+		"Beijing",
+		"Shanghai",
+		"Hangzhou",
+		"Shenzhen",
+		"Guangzhou",
+		"Chengdu",
+		"Hong Kong"
+	],
+
+	"_profileSourceReposDoc": "画像级实现型 source catalog；只列公开实现仓库，不列候选人姓名。helper 仍实时读取 owner/contributors/PR 并按证据评分，目录/awesome/course/survey 类 repo 继续被 weakDirectoryPatterns 降级。",
+	"profileSourceRepos": {
+		"mcp-runtime": [
+			"PrefectHQ/fastmcp",
+			"modelcontextprotocol/typescript-sdk",
+			"modelcontextprotocol/python-sdk",
+			"langchain-ai/langgraph",
+			"openai/openai-agents-python"
+		],
+		"agent-runtime": [
+			"langchain-ai/langgraph",
+			"openai/openai-agents-python",
+			"Significant-Gravitas/AutoGPT",
+			"crewAIInc/crewAI"
+		],
+		"agent-framework-js": [
+			"VoltAgent/voltagent",
+			"mastra-ai/mastra",
+			"agno-agi/agno",
+			"langchain-ai/langgraphjs",
+			"openai/openai-agents-js",
+			"crewAIInc/crewAI"
+		],
+		"llm-infra-training": [
+			"vllm-project/vllm",
+			"sgl-project/sglang",
+			"NVIDIA/TensorRT-LLM",
+			"huggingface/text-generation-inference",
+			"deepspeedai/DeepSpeed"
+		],
+		"llm-app-indie": [
+			"fmaclen/hollama",
+			"sonnylazuardi/chat-ai-desktop",
+			"chatboxai/chatbox",
+			"abi/screenshot-to-code",
+			"Nutlope/roomGPT",
+			"mckaywrigley/chatbot-ui",
+			"yoheinakajima/babyagi",
+			"lobehub/lobe-chat"
+		],
+		"ai-agent-founder": [
+			"VoltAgent/voltagent",
+			"mastra-ai/mastra",
+			"agno-agi/agno",
+			"smithery-ai/smithery-cli-mcp",
+			"smithery-ai/runner",
+			"langchain-ai/langgraphjs"
+		],
+		"vla-wam-robotics": [
+			"tonyzhaozh/aloha",
+			"tonyzhaozh/act",
+			"real-stanford/diffusion_policy",
+			"openvla/openvla",
+			"Genesis-Embodied-AI/genesis-world",
+			"pathak22/modular-assemblies"
+		],
+		"embodied-founder": [
+			"TianxingChen/G3Flow",
+			"TianxingChen/VideoTracking-For-AxisEst",
+			"TianxingChen/AgileX-Piper-Deployment",
+			"Genesis-Embodied-AI/genesis-world",
+			"tonyzhaozh/aloha",
+			"real-stanford/diffusion_policy"
+		],
+		"llm-foundation": [
+			"haotian-liu/LLaVA",
+			"huggingface/transformers",
+			"deepspeedai/DeepSpeed",
+			"EleutherAI/lm-evaluation-harness",
+			"stas00/ml-engineering"
+		],
+		"agent-evaluation": [
+			"confident-ai/deepeval",
+			"langchain-ai/agentevals",
+			"braintrustdata/braintrust-sdk",
+			"future-agi/future-agi"
+		],
+		"ai-eval-observability": [
+			"confident-ai/deepeval",
+			"Arize-ai/phoenix",
+			"langfuse/langfuse",
+			"langchain-ai/agentevals",
+			"braintrustdata/braintrust-sdk-javascript"
+		],
+		"rag-vector-infra": [
+			"qdrant/qdrant",
+			"weaviate/weaviate",
+			"chroma-core/chroma",
+			"milvus-io/milvus",
+			"deepset-ai/haystack",
+			"run-llama/llama_index"
+		]
+	},
+
+	"scoring": {
+		"contribStrongAt": 50,
+		"contribMidAt": 10,
+		"contribLowAt": 3,
+		"contribStrongPts": 3,
+		"contribMidPts": 2,
+		"contribLowPts": 1,
+		"personalImplCapPts": 2,
+		"coreTermMatchPts": 1,
+		"mergedPrCapPts": 1,
+		"strongTierAt": 4,
+		"adjacentTierAt": 2,
+		"geoDirectionFitPts": 2,
+		"geoProfilePts": 2,
+		"geoEcosystemPts": 1,
+		"sourceCatalogPts": 45,
+		"hasProfileFieldPts": 1,
+		"_w3Doc": "放宽 W3(Owner 决策)结构性保证：rankMultiplier 远大于 secondaryCapPts → 证据档绝对隔离，弱档(无方向)永不跨档(守住弱不冒充候选)；secondaryCapPts 远大于 evidence 档内最大跨度(≈maxEvidence×evidenceMultiplier≈70) → 同档内 geo+direction 契合恒压过纯贡献量。geoDirectionSecondaryPts 必须 > 该跨度。",
+		"geoDirectionSecondaryPts": 80,
+		"secondaryCapPts": 120,
+		"rankMultiplier": 1000,
+		"evidenceMultiplier": 10
+	},
+
+	"weakDirectoryPatterns": [
+		"awesome",
+		"curated",
+		"directory",
+		"collection",
+		"list",
+		"integration",
+		"independent[-_ ]?developer",
+		"resources?",
+		"roadmap",
+		"guide",
+		"tutorial",
+		"interview",
+		"course",
+		"surveys?",
+		"news",
+		"weekly",
+		"\\btil\\b",
+		"学习",
+		"面试",
+		"指南",
+		"links?",
+		"examples?$"
+	]
+}

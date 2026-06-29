@@ -26,7 +26,7 @@ description: >
 ## 执行流程
 
 1. 先确认是招聘或候选人池目标；只缺地域、职级或数量时写入“假设”后推进。用户未指定地区时，默认 `中国/中文生态相关人才池优先`，把中国机构、中文社区、中国市场或 China / Chinese-language 作为找人来源种子之一；不要把姓名、照片、族裔、国籍或猜测当作信号。
-2. 区分计划和执行：用户要求“找人/给候选人/推荐/名单/几个/跑一轮/执行/从论文和实验室里找人才”时就是执行请求；用户只要求“找人来源怎么做/搜索路径/升级门槛/方法论”或明确说“先不要搜索”时，才只输出找人来源、查询方案、个人资料升级门槛和本轮覆盖缺口，不做实时搜索。
+2. 区分计划和执行：用户要求“找人/给候选人/推荐/名单/几个/跑一轮/执行/从论文和实验室里找人才”时就是执行请求；用户只要求“来源地图怎么做/搜索路径/升级门槛/方法论”或明确说“先不要搜索”时，才只输出来源地图、查询方案、个人资料升级门槛和覆盖风险，不做实时搜索。
 3. 明确执行时再用宿主 Agent 原生学术 / 网页搜索建立找人来源，不要从泛人才搜索开始。
    优先综合 OpenAlex、Google Scholar、Semantic Scholar、arXiv/OpenReview、Papers with Code、
    lab/project/homepage，而不是只搜单一论文库。
@@ -53,9 +53,9 @@ profile-first 是 paper-first 的召回补充，不是 strong 证明：
 2. 默认中国/中文生态时，允许用 profile `location`、机构、实验室、中文项目、国内公司或高校信号做优先级；不要从姓名、照片、族裔、国籍推断。
 3. 不要把用户要的最终人数或 `targetCount` 当成 profile search 返回人数。执行时先跑多条通用 query 变体，每条保留多名 raw handles，形成至少十几到几十人的 profile pool；再 hydrate profile / repos / homepage 后筛成最终 shortlist。
 4. profile-first 只证明“人和方向相关”。没有 paper + official code / project + contribution depth 前，最高只能是 `soft`；bio-only、repo-thin 或缺身份互链的结果是 `lead`。
-5. profile-first 命中旧目标但 paper-first 未命中时，不能直接说 research 质量已过；应在本轮覆盖缺口里写明“召回到了方向相关人，但强证据待补”。
+5. profile-first 命中旧目标但 paper-first 未命中时，不能直接说 research 质量已过；应在覆盖风险里写明“召回到了方向相关人，但强证据待补”。
 6. research pilot 不应只有 paper-first：先用 paper-first 找强证据候选，再用 profile-first 找可能漏掉的中国/中文生态研究工程线索，最后统一分类。
-7. 如果 profile-first 找到的人排名靠后，不要为了提高排名把 `soft/lead` 改成 `strong`。ranking 可以加权默认地域、当前角色、相关 repo 和 paper/code depth，但推荐名单必须保持证据真实。
+7. 如果 profile-first 找到的人排名靠后，不要为了提高排名把 `soft/lead` 改成 `strong`。ranking 可以加权默认地域、当前角色、相关 repo 和 paper/code depth，但候选人分桶必须保持证据真实。
 
 ## 学术来源栈
 
@@ -71,27 +71,27 @@ profile-first 是 paper-first 的召回补充，不是 strong 证明：
 
 ## 质量门
 
-- 计划或找人来源输出必须保留本轮覆盖缺口，说明未执行实时搜索、线索不能直接升级候选人，以及待确认来源。
-- 实时执行输出也必须保留独立小标题 `本轮覆盖缺口`，不能只用“验证”“当前状态”或“剩余建议”替代。
+- 计划或来源地图输出必须保留覆盖风险，说明未执行实时搜索、线索不能直接升级候选人，以及待核验来源。
+- 实时执行输出也必须保留独立小标题 `覆盖风险`，不能只用“验证”“当前状态”或“剩余建议”替代。
 - 论文作者不是候选人，直到找到个人资料并核验身份。
 - 个人资料关键词也不是强候选，直到补到 paper/code/project/contribution depth；profile-first 召回可以保留 soft/lead，不能替代 paper-first 的强证据门槛。
-- GitHub-only 或 profile-only strong 不是必须目标；如果 hard strong 少，但能给出强证据候选、soft 候选和 lead 找人来源，并清楚说明缺口，也算有效 shortlist。
+- GitHub-only 或 profile-only strong 不是必须目标；如果 hard strong 少，但能给出强证据候选、soft 候选和 lead 来源地图，并清楚说明缺口，也算有效 shortlist。
 - paper/code/个人资料 URL 不一致时，不要报假 miss；把同一人的 GitHub、主页、Scholar、OpenReview、LinkedIn 写成身份别名，任一别名命中即可算同人候选。
-- 没有个人资料时不要输出完整推荐名单，只输出找人来源和个人资料核验动作。
+- 没有个人资料时不要输出完整候选人分桶，只输出来源地图和个人资料核验动作。
 - 学术图谱输出必须说明至少两个来源族；如果没有使用 OpenAlex、Google Scholar、
-  Semantic Scholar 中任一广泛图谱或广泛召回来源，需要写本轮覆盖缺口。
+  Semantic Scholar 中任一广泛图谱或广泛召回来源，需要写覆盖风险。
 - `--mode research` 或 CLI 人才搜索回退不能替代学术来源栈。CLI 若返回 LinkedIn/GitHub
   个人资料但缺 OpenAlex / Semantic Scholar / arXiv / OpenReview / Scholar / lab/homepage 交叉证据，
-  只能作为待确认人选或来源线索，并必须写本轮覆盖缺口。
+  只能作为待核验人选或来源线索，并必须写覆盖风险。
 - PI、导师或资深科学家通常先进入推荐人、顾问或产业标杆池，不默认作为全职候选。
 - 年轻、博士阶段、顶会论文或竞赛奖项只是入口信号，不是充分证据。
 - 不推断求职意愿、薪资、可入职时间、relocation 或是否愿意回到某地区。
-- 默认地域对找人来源是来源优先级和后续核验项，对推荐名单是升级门槛；缺公开中国/中文生态相关职业信号或地域未知的强线索可以保留为找人来源、标杆或推荐人，但用户未放宽为全球人才池前不能包装成推荐人选或强线索。
+- 默认地域对来源地图是来源优先级和后续核验项，对候选人分桶是升级门槛；缺公开中国/中文生态相关职业信号或地域未知的强线索可以保留为来源地图、标杆或推荐人，但用户未放宽为全球人才池前不能包装成推荐人选或强线索。
 
 ## 实时召回边界
 
-- 先输出 `sourceMap` / 计划，再输出 `people`；如果还没形成找人来源或用户未明确要求执行，不要急着给候选人名单。
-- OpenAlex 噪声、Semantic Scholar API 429、Google Scholar 访问受限都要进入本轮覆盖缺口；
+- 先输出 `sourceMap` / 计划，再输出 `people`；如果还没形成来源地图或用户未明确要求执行，不要急着给候选人名单。
+- OpenAlex 噪声、Semantic Scholar API 429、Google Scholar 访问受限都要进入覆盖风险；
   不要把来源缺口包装成找人质量证明。
 - 只有个人主页 / GitHub / LinkedIn / lab bio / Scholar 个人资料与论文或项目证据可交叉验证时，
   才能给 `confidence=high`；否则最多 `medium`，并写明身份或证据风险。
@@ -107,4 +107,4 @@ profile-first 是 paper-first 的召回补充，不是 strong 证明：
 | [状态门槛](../sifta-search/references/project-brief-and-state.md)                                                                                                                                                          | 论文/实验室/共同作者线索升级候选前                            |
 | [CLI 合同](../sifta-search/references/cli-reference.md)                                                                                                                                                                    | 需要 `--mode research`、调用轨迹或 CLI auth/schema            |
 | [查询规则](../sifta-search/references/query-contract.md)                                                                                                                                                                   | 写研究查询或拆分指定来源的下一轮请求                          |
-| [匹配依据](../sifta-search/references/fit-proof-packet.md) / [输出规则](../sifta-search/references/output-quality.md)                                                                                                      | 输出推荐名单和本轮覆盖缺口                                    |
+| [适配证明包](../sifta-search/references/fit-proof-packet.md) / [输出规则](../sifta-search/references/output-quality.md)                                                                                                    | 输出候选人分桶和覆盖风险                                      |
