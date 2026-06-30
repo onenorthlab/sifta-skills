@@ -1,7 +1,7 @@
 ---
 name: sifta-review-feedback
 metadata:
-    version: 0.0.9
+    version: 0.0.10
     tags: [sifta-search, recruiting, sourcing, review, feedback]
 description: >
     用于 Sifta 候选人搜索后的人工反馈：用户给出反馈、要求继续找、
@@ -20,19 +20,9 @@ description: >
 1. 读取上一轮候选人、来源地图、风险提示和用户人工反馈。
 2. 把反馈整理成 `feedbackIngest` JSON：保留约束、排除项、扩展种子和分类调整。
 3. 按来源拆分下一轮请求，不把 GitHub 英文 query 和 LinkedIn 中文画像混在一起。
-4. 用 `sifta-cli find-people --feedback '<json>'` 分别执行每个指定来源的请求。
+4. 用 `sifta-cli find-people --feedback '<json>'` 分别执行每个指定来源的请求；命令形态见 CLI 合同，不在用户答复中暴露。
 5. 把候选人迁移到通过、排除、顾问/推荐人、产业标杆、已知人脉或待核验线索等状态。
 6. 保留上一轮风险提示、来源约束和用户明确排除项。
-
-示例：
-
-```bash
-sifta-cli find-people \
-  --query "<下一轮指定来源查询>" \
-  --checkpoint "<用户原始目标>" \
-  --feedback '[{"feedback":"上一轮候选人更像顾问，请继续找全职候选","constraints":["保留工程落地证据"],"exclusions":["纯论文资料"]}]' \
-  --sources '["github"]'
-```
 
 ## 用户可见输出
 
@@ -78,6 +68,7 @@ sifta-cli find-people \
 
 | 参考文件                                                                         | 何时读取                                            |
 | -------------------------------------------------------------------------------- | --------------------------------------------------- |
+| [共享执行门](../sifta-search/references/shared-gates.md)                         | 执行/硬停止、默认地域、过程隐藏                    |
 | [CLI 合同](../sifta-search/references/cli-reference.md)                          | 生成 `--feedback` JSON 或 CLI 下一轮请求            |
 | [查询规则](../sifta-search/references/query-contract.md)                         | 生成下一轮指定来源查询                              |
 | [状态门槛](../sifta-search/references/project-brief-and-state.md)                | 迁移 advisor/referrer/benchmark/reject/pending-lead |

@@ -1,7 +1,7 @@
 ---
 name: sifta-search
 metadata:
-    version: 0.0.9
+    version: 0.0.10
     tags: [sifta-search, recruiting, sourcing, candidates]
 description: >
     AI/前沿科技招聘寻访的总控入口。用户要新找候选人、人才、强人、创始人型/超级个体、工程师、
@@ -17,310 +17,83 @@ description: >
 
 Sifta 是 AI 行业招聘寻访增强层，不是通用网页搜索、公司情报、销售线索、触达、ATS、KOL 合作或独立本地 Agent 运行环境。本技能面向 Codex、Hermes、Claude Code、OpenClaw、Cursor 等宿主 Agent；Sifta 只补候选人渠道、招聘语义、证据结构、项目适配和反馈闭环。
 
-先判断本轮是执行、计划还是硬停止：
-
-- **默认执行**：用户要“找人 / 推荐 / 给几个 / 候选人 / 名单 / 跑一轮”，且能推断能力画像时，直接进入对应场景技能执行。已知候选人深挖、触达、反馈续搜按对应场景技能执行。
-- **只给计划**：用户明确说“先规划 / 怎么找 / 来源地图 / 别搜索 / 只要方法”时，只输出找人入口、升级门槛、还要确认和下一步。
-- **硬停止**：不清楚是否招聘、能力画像完全不可推断、要求私人联系方式 / 自动发送 / 销售或合作线索时，只问一个必要澄清问题，不搜索。
-
 把本技能当作分流入口使用：用户描述想找的人、要补的能力或候选人目标后，本地 Agent 判断是否进入 Sifta 寻访，再选择一个最匹配的场景技能。Sifta CLI/API 是可选命令/连接器层，不是通用搜索替代品；执行类找人 run 通过连接器完成时，默认把 run history 同步到 Web，供用户回看和人工复核。
 
-最终找人结果必须按 [最终报告模板](templates/final-report.md) 输出给招聘负责人；该合同优先于宿主项目的工程汇报格式。不要用 `已完成 / 验证 / 当前状态 / 剩余建议` 这类标题替代 `结论 / 人选和证据 / 其他线索 / 下一步`。
+共同执行门、隐私边界、默认地域、helper 停止、Web 保存和最终报告规则见 [references/shared-gates.md](references/shared-gates.md)。最终找人结果必须按 [templates/final-report.md](templates/final-report.md) 输出给招聘负责人，不用工程汇报标题替代 `结论 / 人选和证据 / 其他线索 / 下一步`。
 
-## 1. 触发范围
+## 1. 先判断本轮类型
 
-只在用户目标是 AI 行业找人、候选人筛选、公开信息核验、候选人复盘或触达草稿时调用 Sifta。用户不必说明渠道、数据库、来源或准确头衔；他们往往只说“找一个能把 X 做起来的人”。先按能力画像理解，再内部决定找人来源：
+| 类型 | 处理 |
+| --- | --- |
+| 默认执行 | 用户要“找人 / 推荐 / 给几个 / 候选人 / 名单 / 跑一轮”，且能推断能力画像时，进入场景技能执行 |
+| 只给计划 | 用户明确说“先规划 / 怎么找 / 来源地图 / 别搜索 / 只要方法”时，只输出找人入口、升级门槛和下一步 |
+| 硬停止 | 不清楚是否招聘、画像完全不可推断、私人联系方式、自动发送、销售/合作线索时，不搜索，只问一个必要澄清问题 |
 
-- 搭系统 / 写核心代码 / 做开源作品证据：工程 / GitHub 优先。
-- 把产品、增长、商业化、开发者生态或市场做起来：产品 / GTM / 职业资料优先。
-- 做基础模型、训练效率、VLA/WAM、机器人、论文或实验室方向：研究 / 学术找人来源优先。
-- 0 到 1、创始人型、早期员工、合伙型人才：创始人 / 运营型负责人，先判断主能力再分流。
-- 超级个体 / 独立开发者 / AI 应用开发者：看公开产品、GitHub、X/社区表达、产品分发和用户信号，再按主能力分流。
-- 已知候选人深挖：查公开经历、成就、职业联系方式、风险缺口和候选人档案。
-- 候选人触达文案：基于已核验证据写私信、邮件、LinkedIn 消息、引荐介绍或跟进。
+用户不必说明渠道、数据库、来源或准确头衔；先按能力画像理解，再内部分流。不要把 sales lead、KOL 合作、公司研究或市场分析混成候选人寻访。
 
-不要在这些场景调用 Sifta：
+## 2. 路由表
 
-- 普通网页研究、公司情报、行业分析、竞品分析、融资新闻解释。
-- 明确说不找候选人、不做寻访、只要公司研究简报、商业化模式 / 增长打法或岗位说明。
-- 销售线索、KOL 合作、ATS 管理、排期、offer、触达自动化。
-- 非 AI 行业画像，除非用户愿意改写成上述招聘画像之一。
+选择一个最匹配的场景技能；不要把所有技能和参考文件都读进上下文。
 
-非招聘销售 / BD / 合作线索请求，尤其要求私人邮箱、手机号或批量外联时，硬停止：不调用任何搜索工具，只问 `这是商务线索，不是招聘寻访；要改成招聘 BD/GTM 候选人简报吗？` 并说明不会继续搜索、输出业务线索列表或协助批量发送。
+| 场景 | 读取 |
+| --- | --- |
+| 工程、开源、Agent/LLM infra、MCP、GitHub 证据 | [../sifta-github-engineering/SKILL.md](../sifta-github-engineering/SKILL.md) |
+| 产品、GTM、增长、商业化、DevRel、公司地图 | [../sifta-linkedin-product-gtm/SKILL.md](../sifta-linkedin-product-gtm/SKILL.md) |
+| 研究、WAM/VLA、基础模型、论文、实验室、导师/共同作者 | [../sifta-academic-graph/SKILL.md](../sifta-academic-graph/SKILL.md) |
+| 已知候选人深挖、公开经历、成就、公开职业联系方式、身份核验 | [../sifta-candidate-dossier/SKILL.md](../sifta-candidate-dossier/SKILL.md) |
+| 招聘私信、邮件、LinkedIn 消息、引荐介绍、跟进文案 | [../sifta-outreach-copy/SKILL.md](../sifta-outreach-copy/SKILL.md) |
+| 上一轮人工反馈、分类调整、继续找类似但更匹配的人 | [../sifta-review-feedback/SKILL.md](../sifta-review-feedback/SKILL.md) |
 
-## 2. 宿主 Agent 分工
+复合请求按顺序拆：
 
-不要把 Sifta 当作通用网页搜索。
+1. “找人 + 深挖”：先交付可推进人选，再只对已推荐或用户点名的人做候选人档案。
+2. “找人 + 写触达”：先形成可推进人选和证据；达到推荐或建议先核实门槛后再写草稿。
+3. 没有可推进人选时，只交付结果、其他线索和下一步补证动作，不写伪个性化触达。
 
-- 行业背景、论文列表、公司新闻、竞品图谱、项目主页阅读：计划类请求不搜索；执行类请求再按证据要求使用宿主 Agent 原生搜索和阅读。
-- 执行模式下的 GitHub 工程证据：优先使用宿主 Agent 的 GitHub 搜索、GitHub MCP、`gh` 或浏览器；
-  不要为了 GitHub token 单独改走 Sifta CLI/API。额度或认证不足时，引导用户在宿主环境配置
-  `gh auth`、`GH_TOKEN` 或 `GITHUB_TOKEN`。只有需要 Sifta 统一 JSON、调用轨迹、反馈闭环、
-  回归验证或用户明确要求 Sifta 连接器时，才使用 Sifta CLI/API。
-- 执行模式下的学术找人来源：优先使用宿主 Agent 原生学术 / 网页搜索综合学术来源栈；Google Scholar
-  只作浏览器/人工广泛召回，不假设官方 API；需要结构化研究轨迹时再走 CLI/API。
-- 执行模式下的 LinkedIn 人才搜索、跨轮人工反馈和 CRM 风格输出：
-  优先使用 Sifta CLI/API，因为这些是 Sifta 当前最明确的连接器和结构化价值。
-- 执行模式下的 X / Twitter：只有用户明确授权 X、公开帖子、公开表达、社区信号、DevRel
-  或开发者增长场景时才使用；默认 Product/GTM、GitHub 或学术路径不自动混入 X。需要近期
-  X 公开表达时，只通过 `sourceOptions.x.fromDate` / `sourceOptions.x.toDate` 控制日期窗口。
-  X 和所有渠道一样默认找中国/中文生态相关人才池；X-only 结果缺中国/中文生态信号、职业资料、
-  作品或身份核验时只能进入待核验线索，不能写成推荐人选。
-- 已知候选人资料补证据由宿主 Agent 读取公开 profile、个人主页、GitHub、LinkedIn、X、
-  学术来源和媒体材料后按 Sifta 质量门整理；不要调用服务端补证据 API。
-- 论文、公司页、实验室页、项目页、代码仓库、数据集和普通网页来源只能进入 `sourceMap` /
-  `evidenceLog` / `warnings`；除非进一步找到 GitHub、LinkedIn、X 或用户明确提供的个人
-  资料，否则不能进入候选人列表。
-- 本地 Agent 可以用通用搜索补背景或二次证据；最终候选人结论必须有个人资料证据，并按
-  Sifta 的输出质量门解释来源、风险、还要确认和下一步。
+## 3. 内部执行顺序
 
-## 3. 分流规则
+1. 压缩项目简报：目标问题、能力画像、默认地域、must-have、排除项、核验证据。可推断就写假设并推进；硬停止才问一个短问题。
+2. 复杂画像先读 [references/ai-vertical-source-taxonomy.md](references/ai-vertical-source-taxonomy.md) 和 [references/role-fit-rubrics.md](references/role-fit-rubrics.md)，把行业方向、角色族和强证据变成内部来源地图。
+3. 按场景 skill 执行；小批量 helper、native search、CLI/API、学术来源或候选人档案的选择由场景 skill 决定。
+4. 如果调用 CLI，`--query` 必须符合 [references/query-contract.md](references/query-contract.md)；`--checkpoint` 放用户本轮原始目标、约束、默认地域假设和核验标准，不当保存备注或 CRM note。
+5. 如果解析 JSON，优先读 `people`、`searchStrategy`、`sourceMap`、`evidenceLog`、`crmExport` 和 `warnings`。
+6. 最终输出回答招聘决策：要求、公开证据、为什么值得聊、还要确认、下一步。
 
-| 用户画像 / 能力信号                                | 默认路径                                                                      | 关键要求                                                            |
-| -------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| 搭系统 / 开源 / 本地 Agent 工具链 / 基础设施 / SDK | GitHub 搜索；需要调用轨迹时用 `find-people --sources '["github"]'`            | GitHub 优先，不是只看 GitHub；保留开源项目和工程证据                |
-| 产品、平台、用户问题、负责人信号                   | 执行请求用 LinkedIn / 职业资料；计划请求才给来源方案                           | 不因 AI/Agent 词误转工程；产品证据归 `AI 产品/平台`                 |
-| 增长、商业化、出海、开发者生态、开发者社区         | 执行请求用 Product/GTM 路径；计划请求才给公司/头衔/找人入口                    | 用户不知道头衔不阻塞；头衔地图只是内部扩展，不当主输出锚点          |
-| WAM / VLA / 研究型复杂画像                         | 执行请求先拆找人入口再转候选人；计划请求只给入口和升级门槛                    | 区分全职候选、顾问、推荐人、产业标杆                                |
-| 学术图谱 / 高潜研究人才                            | 执行请求综合学术来源找人；计划请求才输出学术找人入口方案                      | 综合 OpenAlex/Scholar/Semantic Scholar 等；不把论文作者直接当候选人 |
-| 创始人型 / 超级个体 / 独立开发者                   | 读 AI 垂直找人来源和角色证明标准，再按主能力走 GitHub、Product/GTM 或学术路径 | 区分可直接联系、顾问/推荐人、产业标杆和待核验线索                   |
-| 已知 GitHub / LinkedIn URL                         | 候选人档案 / 宿主公开 profile 核验                                            | 只使用公开个人资料证据，避免重名误合并                              |
-| 已知候选人深挖                                     | 候选人档案 / 资料补全                                                         | 只查公开信息；联系方式限公开职业渠道                                |
-| 候选人触达文案                                     | 触达文案                                                                      | 只生成草稿；不自动发送；不编造关系或承诺                            |
-| 模糊招聘目标                                       | 项目简报门槛；必要时读 `intent-routing.md`                                    | 无法判断时硬停止，只问一个短问题；可推断时直接推进                  |
-| 不清楚是否招聘                                     | 先问一个短问题                                                                | 硬停止；不把客户、创作者、公司或销售线索混成候选人                  |
+## 4. 命令边界
 
-## 3.5 项目简报门槛
-
-执行前先压缩成项目简报；可推断就写“假设”并推进，只有硬停止才问一个短问题。不要问用户“从什么渠道找”；来源是内部决策。硬停止包括：不清楚是否招聘、能力画像完全不可推断、深挖任务无可消歧个人资料、要求私人联系方式/自动发送，或用户明确要求马上执行付费连接器但未授权。详细字段、最小问题和“来源线索 -> 候选人”状态机见 [references/project-brief-and-state.md](references/project-brief-and-state.md)。
-
-地域缺省不阻塞：用户没有指定候选人所在地区、远程、全球或海外市场时，项目简报写入
-`默认地域/市场：中国/中文生态相关人才池优先`。不要把默认地域/市场理解成族裔、国籍或身份属性；执行时只看公开职业资料中的中国大陆、港澳台、中文教育/工作/社区、中国市场或中国相关机构/公司信号，不凭姓名、照片、外貌、口音、族裔、国籍或猜测判断。默认地域对找人入口是来源优先级，对推荐人选是升级门槛：缺少公开中国/中文生态相关信号的人可以保留为其他线索、产业标杆或待核验对象，但不能包装成候选人或强线索；用户明确放宽为全球人才池时除外。
-
-小批量也必须执行这个门槛：用户说“先找 1-3 个 / 只要强线索”时，不能因为人数少就拿全球 GitHub contributor 填候选区。若候选人缺公开中国/中文生态职业信号，只能放在“待核验线索 / 全球备选 / 来源地图”，并明说“默认中国人才池下本轮还没有可推进候选人”。除非用户明确说“全球也可以 / 地域不限 / 海外也要”，否则不要把这类人写成“建议先核实”的候选人。
-
-## 3.6 找人向导与执行模式
-
-用户多是招聘负责人、猎头、投资人，不懂渠道和工具，只会说「想找个什么样的人」。默认**隐形**：能判断方向就直接执行，不要把内部流程、渠道名、命令暴露给用户。只有真模糊、或用户第一次提需求且连「找哪类人」都判断不出时，才用**找人向导**——用一句白话、给具体选项收敛，而不是抛术语菜单。
-
-判断执行还是引导：
-
-- **直接执行（默认）**：用户说「找 / 给我几个 / 推荐 / 这一轮 / 来个名单」，且能推断能力画像时，直接进入对应场景技能执行，不要停在找人来源或只给计划。宿主（尤其 Codex）常因护栏过度停在「只给计划」；除非用户明确说「先别搜 / 只要思路 / 教我怎么找」，否则带能力信号的找人请求一律按执行处理。
-- **找人向导（仅模糊 / 首次）**：连工程 / 产品-GTM / 研究 / 创始人型 哪个方向都判断不出时，用白话问一个收敛方向的问题（话术见 `intent-routing.md`），默认地域写「中国/中文生态优先」，其它能推断的项写假设直接推进，不逐项追问。
-- **硬停止（安全优先）**：涉及私人联系方式、自动发送、批量外联或非招聘商务线索时，按 §1 硬停止，只问一个澄清问题，不走向导。
-
-向导最多问两件事，且只问真正卡住的：① 想找的人帮你解决什么问题、偏「自己写代码搭系统 / 把产品和增长做起来 / 做研究发论文 / 从 0 组队创业」哪一类；② 有没有一定不要的人。地域、职级、人数都不问，写默认假设。
-
-## 3.7 Persona Compiler 与 Shortlist 合同
-
-执行类找人请求先在内部做轻量 `Persona Compiler`，再搜索，不把用户原话直接当 query。这个编译过程不暴露给用户，但必须影响来源选择、推荐层级和下一步核验：
-
-| 字段                     | 内部问题                               | 用途                                                |
-| ------------------------ | -------------------------------------- | --------------------------------------------------- |
-| `must_have`              | 没有它就不相关的能力、场景、地区或阶段 | 决定是否进入 shortlist                              |
-| `strong_signal`          | 能把人升到 strong / soft 的硬证据      | 决定重排和 Owner review 优先级                      |
-| `evidence_signal`        | 哪些公开来源能证明强信号               | 决定 GitHub / LinkedIn / 学术 / 社区路径            |
-| `negative_signal`        | 哪些结果会误导成候选人                 | 防止 repo fallback、KOL、销售线索、公司研究误升候选 |
-| `channel_fit`            | 每类来源适合证明什么、不适合证明什么   | 解释还要确认和下一轮补证                            |
-| `verification_questions` | 当前还缺的职业、地域、身份或可推进证据 | 写入待核验线索和下一步                              |
-
-不同画像的默认强证据不同，不要把 GitHub 工程逻辑套到所有人：
-
-| 画像                          | 优先找什么                                                                                            | 不能误判成什么                                         |
-| ----------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| 工程 / GitHub / MCP / infra   | people-first 大池子召回 + repo-first 实现证据；看个人 profile、非 fork 核心 repo、commit/PR、近期活动 | awesome-list、资料集合、教程、repo owner、公司 org     |
-| DevRel / 开源生态             | developer audience、技术内容、SDK/docs/examples、社区治理、活动/演讲、开发者增长结果                  | 纯 KOL、纯市场、销售 BD、只有粉丝没有开发者证据        |
-| 研究 / WAM / VLA              | paper/lab/project/source map -> 个人主页/GitHub/LinkedIn；区分一作、核心实现者、PI、顾问              | 论文标题、实验室、公司团队、导师直接当全职候选人       |
-| 创始人 / 独立开发者 / builder | 已发布产品、本人技术 ownership、用户/收入/增长信号、公开表达和社区反馈                                | 融资公司创始人直接当全职候选人、行业标杆、产品公司线索 |
-
-每轮搜索至少形成 `shortlist` 与 `longlist/leads` 两层：
-
-- `shortlist`：当前值得 Owner 继续核验或触达的人，允许是 `strong` 或 `soft`，但必须有个人资料链接、为什么值得聊、公开证据、缺口和下一步。
-- `longlist/leads`：相关但证据不够的人、项目、repo、论文、公司团队、社区节点或 warm path；只能说“线索/入口/待核验”，不能包装成候选人。
-- `reject / weak-source examples`：本轮明确排除或降级的弱来源，用来说明没有把它们当候选人。
-
-不要因为 strong 稀疏就返回 0。找不到 strong 时，输出 `soft / lead` short list，并明确写“还不是强推荐，缺少哪些证据，下一步怎么补证”。这能证明本轮已经找到可继续推进的方向，同时不夸大质量。Product/GTM/LinkedIn 连接器主路径失败是例外：此时不产 soft shortlist，只能产产业标杆、来源线索、待核验线索和阻塞项。
-
-召回和判级分开处理：召回阶段先把可能相关的人放进 raw pool，宁可保留为 lead，也不要因为 strong 门槛高就把池子缩成 0；判级阶段再决定 strong / soft / lead / reject。用户要 1-3 个候选时，`targetCount` 只控制最终展示人数，不是内部搜索上限。内部应该先形成足够的 raw people / repo / paper / product leads，再筛 shortlist。空 shortlist 只在隐私、越权、完全不可执行的硬停止，或 Product/GTM/LinkedIn 主连接器失败时成立；普通覆盖不足应输出 soft / lead 和覆盖缺口。
-
-弱来源最高只能到这些分类，除非补到个人资料和角色证据：
-
-| 来源 / 信号                                          | 最高分类                         | 升级条件                                         |
-| ---------------------------------------------------- | -------------------------------- | ------------------------------------------------ |
-| repo fallback、repo owner、org owner                 | `lead`                           | 个人 profile + 角色证据 + 与画像匹配的实现证据   |
-| awesome-list、guide、interview、tutorial、paper list | `lead` 或 `reject`               | 找到具体作者/贡献者个人资料和真实实现/职业证据   |
-| KOL、媒体作者、播客嘉宾、活动嘉宾                    | `lead`                           | 有目标职能的实际工作/建设/开发者生态证据         |
-| 销售线索、客户线索、公司研究、融资新闻               | `reject` 或 `sourceMap`          | 改写成招聘画像后重新搜索                         |
-| 在融资活跃公司任 founder / C-level                   | `lead` / `reference` / `advisor` | 用户明确找顾问、引荐、产业标杆；否则不当全职候选 |
-
-执行时按递进轮次找人，而不是单 query 赌结果。内部每轮都要有 `source`、`queryPattern`、`goal`、`stopRule` 和预期分类：
-
-```text
-round 1: 核心来源 + 核心关键词，先形成 raw people pool
-round 2: 相邻项目 / 公司 / 论文 / 社区 + 技术变体，扩大召回
-round 3: contributors / coauthors / team page / launch page / speakers，做关系扩展
-round 4: 放宽非核心条件，只补 soft / lead，不降低 strong 标准
-```
-
-不同画像的有效召回入口不同。宽关键词搜 GitHub / 网页擅长「核验已知的人」，却**发现不了未知的人**——搜出来的多是 org、awesome-list、fork owner 和公开发声的创始人，不是埋头做事的人。优先用「作品 / 成果反查人」的入口：
-
-| 画像                | 优先召回入口（用来发现未知的人）                                               | 不要依赖                       |
-| ------------------- | ------------------------------------------------------------------------------ | ------------------------------ |
-| 工程 / infra        | 核心开源项目的 merged PR 作者、非 fork 自研仓作者                              | 泛关键词搜用户、fork 仓 owner  |
-| 研究 / WAM / VLA    | 论文官方代码仓的 owner/maintainer → 对到个人；一作 = 核心实现者                | 论文标题搜索、无官方代码的作者 |
-| 创始人 / 独立开发者 | awesome-list / 榜单 / 媒体盘点 / Product Hunt / 中文社区精选 反查个人主页      | 泛关键词搜 repo                |
-| 产品 / GTM          | 大会 speaker 名单、团队页、具名专访 → 反查「非创始人、具名、有公开资料」负责人 | 只停在创始人专访、公司融资新闻 |
-
-每个人的 Owner review packet 至少包含：
-
-| 字段              | 要求                                                                                                                                          |
-| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bucket`          | `strong` / `soft` / `lead` / `reject`                                                                                                         |
-| `profileUrl`      | GitHub、LinkedIn、X、个人主页或用户提供的公开个人资料                                                                                         |
-| `source`          | 本轮主要发现来源                                                                                                                              |
-| `whyFit`          | 用招聘白话解释为什么相关                                                                                                                      |
-| `evidence`        | 可追溯的公开证据，不写空泛评价                                                                                                                |
-| `missingEvidence` | 还缺职业阶段、地域、身份、实现深度、可推进性中的哪一项                                                                                        |
-| `nextAction`      | 下一步补证、深挖或触达动作                                                                                                                    |
-| `reachability`    | 可联系路径：有公开职业渠道 / 需引荐 / 暂无（绝不挖私人联系方式）                                                                              |
-| `hireability`     | 可招聘性信号：在读 / 在职 / 自营创业中 / 公开表达开放，并写置信。能力证据（GitHub、论文）**不证明可招聘性**，必须独立判断，不靠姓名照片或猜测 |
-| `confidence`      | 高 / 中 / 低，并说明影响因素                                                                                                                  |
-| `rejectReason`    | 仅 reject 或降级时填写                                                                                                                        |
-
-覆盖结论要诚实标注：`complete`、`partial`、`pilot` 或 `provider_failure`。首轮找人通常只能是 `partial` 或 `pilot`；provider/auth/timeout 失败不能冒充质量失败，也不能用弱线索凑强候选。
-
-Product/GTM/LinkedIn 主路径失败时，不输出全职候选、strong/soft shortlist 或“建议先聊”的候选表；只能输出产业标杆、其他线索、阻塞原因和修复动作。不要用网页、Exa、浏览器、公司页、活动页、GitHub/X 社区证据替换本轮候选人。其他通道若用户明确授权 fallback，也必须说明这只是部分覆盖，不能证明 provider healthy，不能把 fallback 摘要升成 hard strong。
-
-## 4. 分流到场景技能
-
-选择一个最匹配的场景技能；不要把所有技能和参考文件都读进上下文。复合请求按顺序拆，不要跳步：
-
-1. “找人 + 深挖”：先交付可推进人选，再只对已推荐或用户点名的人走候选人档案。
-2. “找人 + 写触达”：先形成可推进人选和证据；只有人选达到推荐或建议先核实门槛时，才为这些人写个性化触达草稿。
-3. 若没有可推进人选，只交付找人结果、其他线索和下一步补证动作，不写伪个性化触达。
-
-| 技能文件                                                                         | 何时读取                                                                   |
-| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| [../sifta-github-engineering/SKILL.md](../sifta-github-engineering/SKILL.md)     | AI 工程师、开源、Agent/LLM infra、MCP、GitHub 证据                         |
-| [../sifta-linkedin-product-gtm/SKILL.md](../sifta-linkedin-product-gtm/SKILL.md) | 产品经理、GTM、增长、商业化、DevRel、公司地图                              |
-| [../sifta-academic-graph/SKILL.md](../sifta-academic-graph/SKILL.md)             | 研究型、WAM/VLA、基础模型、论文、实验室、导师/共同作者、竞赛、年轻高潜人才 |
-| [../sifta-candidate-dossier/SKILL.md](../sifta-candidate-dossier/SKILL.md)       | 已知候选人深挖、公开经历、成就、联系方式、身份核验、候选人档案             |
-| [../sifta-outreach-copy/SKILL.md](../sifta-outreach-copy/SKILL.md)               | 私信、邮件、LinkedIn 消息、引荐介绍、跟进文案                              |
-| [../sifta-review-feedback/SKILL.md](../sifta-review-feedback/SKILL.md)           | 用户对上一轮候选人给出反馈后继续找、分类调整、多来源下一轮搜索             |
-
-复杂项目顺序：
-
-1. 先理解项目目标：要找的人能解决什么问题、能力画像、职级、地域、必要条件、排除项。
-2. 模糊时按 `intent-routing.md` 判断：可推断就写“假设”；硬停止只问一个最小问题。
-3. 复杂画像先读 [references/ai-vertical-source-taxonomy.md](references/ai-vertical-source-taxonomy.md) 和 [references/role-fit-rubrics.md](references/role-fit-rubrics.md)，把行业方向、角色族和强证据写成内部来源地图。
-4. 如果本轮是计划请求，只规划找人入口，不调用网页搜索、浏览器、CLI 或实时验证；说明下一步候选人核验路径、证据获取路径与还要确认后停止。
-5. 选择执行面：宿主原生搜索足够时按 Sifta 质量门交付；需要连接器、调用轨迹或反馈闭环时调用 CLI；小批量执行必须遵守执行预算。辅助脚本完成后，内部停止执行并按 `templates/final-report.md` 整理用户报告；`target-count` 是展示上限，不是必须凑满的人数，helper 返回人数少于用户目标时直接说明覆盖缺口和下一轮动作。最终答复保留还要确认和下一步，不输出停止标记、命令、events、timing、target-count、脚本名或使用了哪个 skill，也不得用网页/浏览器/原生搜索/API/`gh`/helper 返回链接替换或补齐候选人。
-6. 调 CLI 时，`--query` 必须符合来源合同；`--checkpoint` 必须放用户本轮原始目标、约束、默认地域假设和核验标准。`checkpoint` 不是保存备注、CRM note、触达文案或人工评价。
-7. 人工反馈后继续找时，把用户反馈整理成 `--feedback` JSON，再用 Sifta CLI 执行下一轮搜索。
-8. 解析 JSON 时优先读 `people`、`searchStrategy`、`sourceMap`、`evidenceLog`、`crmExport` 和 `warnings`。
-9. 最终输出必须回答招聘决策：要求 -> 公开证据 -> 为什么值得聊 -> 还要确认 -> 下一步；内部适配证明包只折进用户报告，不作为标题。
-
-## 5. 命令选择
-
-使用 Sifta CLI/API 时，每个会话第一次调用前先运行：
+使用 CLI/API 时，每个会话第一次调用前先运行：
 
 ```bash
 sifta-cli status
 ```
 
-选择最小命令：
+常用命令形态见 [references/cli-reference.md](references/cli-reference.md)。`find-people` 主路径默认追加 `--save` 并返回 `persisted.webPath`；最终回复应给出 Web 回看路径。保存只表示这轮找人可回看、可复核，不表示候选人已进入 shortlist、待触达或 pipeline。隐私 hard-stop、未认证、provider failure、0 人结果、schema 检查或用户要求不保存时，用 `--no-save`。
 
-| 意图                                     | 命令                                                                                      |
-| ---------------------------------------- | ----------------------------------------------------------------------------------------- |
-| 候选人搜索                               | `sifta-cli find-people --query "<query>" --checkpoint "<原始用户目标 + 约束 + 核验标准>" --target-count 10 --save` |
-| 明确头衔/技能/地点/公司                  | `sifta-cli find-people --query "<query>" --checkpoint "<原始用户目标 + 约束 + 核验标准>" --filter '{...}' --save`  |
-| 只做一次不落库的排障查询                 | `sifta-cli find-people --query "<query>" --checkpoint "<原始用户目标 + 约束 + 核验标准>" --no-save`              |
-| 新增或低频 API 字段                      | `sifta-cli find-people --query "<query>" --checkpoint "<原始用户目标 + 约束 + 核验标准>" --input '{"sources":["x"],"sourceOptions":{...}}' --save` |
-| CLI/API schema（结构定义）变化或命令失败 | `sifta-cli tools`，再按当前 schema 重建命令                                               |
+只有高频稳定字段优先使用独立 flag。Public API 新字段、临时实验字段或低频字段优先通过 `--input` JSON 传完整请求；显式 flag 会覆盖 `--input` 同名字段。
 
-默认解析 JSON stdout。不要把 `--pretty` 用于 Agent 解析；它只适合人工查看。需要排查
-渠道输入或工具调用时追加 `--trace`；日常搜索不要默认输出调用轨迹。第一版 Web 同步是 run 完成后的 history snapshot 和必要 trace summary，不做实时 streaming trace。详细命令见
-[references/cli-reference.md](references/cli-reference.md)。
+## 5. 质量门
 
-`find-people` 主路径默认追加 `--save`，把合格找人 run history 同步到 Web。保存成功后 JSON 会包含 `persisted.webPath`，最终回复应给出该 Web 回看路径。同步 Web history 只表示“这轮找人可回看、可复核”，不表示候选人已进入 shortlist、待触达或任何业务 pipeline；只有用户显式要求加入 shortlist / 待触达，或在 Web 上执行对应动作后，才进入后续业务流程。隐私 hard-stop、未认证、provider failure、0 人结果、只做 schema 检查或用户明确要求不要保存时，追加 `--no-save`。
+不能把弱结果包装成强推荐：
 
-为减少 CLI 后续变动，只有高频、稳定字段才优先用独立 flag。Public API 新增字段、临时实验字段或低频字段优先通过 `--input` JSON 传完整请求；显式命令行 flag 会覆盖 `--input` 中的同名字段。
+- 论文、仓库、公司、实验室、项目、数据集、网页线索不能直接变候选人；必须找到个人资料或用户明确提供的公开个人资料。
+- 默认中国/中文生态相关人才池未被用户放宽时，缺公开职业信号的人只能作为其他线索、产业标杆或待核验对象。
+- Product/GTM/LinkedIn 主路径失败时，不输出全职候选、strong/soft shortlist 或“建议先聊”的候选表；只输出产业标杆、其他线索、阻塞原因和修复动作。
+- 公开 email、公开主页、公开 profile 可以输出并标来源；私人邮箱、手机号、住址、家庭信息、data broker 或 auth-gated 内容不能查询、推断或输出。
 
-不要静默打开浏览器，不要请求服务端供应商密钥。未认证时按 CLI 参考处理用户级 API key。
+详细质量门、失败恢复和最终报告口径见 [references/output-quality.md](references/output-quality.md)。
 
-## 6. 查询合同
+## 6. 参考
 
-- `--checkpoint` 必须保留用户本轮原始目标、约束和核验标准，尤其保留中文岗位、地区、排除项和证据信号；它不是“保存到 Web”的备注字段。
-- 用户未指定地区时，项目简报和 `--checkpoint` 写入
-  `默认地域/市场：中国/中文生态相关人才池优先（不做族裔推断）`；只在用户把中国/某城市/
-  海外市场说成硬条件时才写严格 `filter.locations`。
-- `--query` 按来源选择语言，不是一刀切：
-    - GitHub：使用英文技术关键词和角色词，例如 `AI Agent MCP LLM infra engineer open source`；
-      不要塞 `候选人`、`找人`、`优先 GitHub` 或默认地域叙述词。默认地域进入项目简报、候选人升级门槛和核验项。
-    - LinkedIn / GTM / 产品岗：使用用户语言的自然画像，保留中文岗位、方向、地区和公司信号。
-      缺地区时可把 `中国/中文生态相关人才池优先` 写入自然画像。
-    - 学术图谱：先写学术找人来源种子和方向词，明确综合学术来源栈；Google Scholar 不作为官方 API 连接器假设。
-      缺地区时把中国机构、中文社区、中国市场或 China / Chinese-language 作为找人来源种子之一，不自动转成 `filter.locations`。
-- `--query` 不写 `site:`、`LinkedIn profile only`、逗号关键词堆叠或布尔网页搜索语法。
-- GitHub 查询不要写 `GitHub developers in ...`、`clear evidence from GitHub` 这类来源解释词。
-- 排除项默认放进 `--checkpoint`、`--feedback` 或人工核验。只有能改写成正向人群画像的条件才进入 LinkedIn / Product / GTM `--query`。
-- 用户显式指定来源后，所有重试和替代命令必须保留相同 `--sources`。
-- 展示 CLI 命令时，`--sources` 必须写 JSON 字符串数组，例如 `--sources '["github"]'`；不要写 `--sources github`、`--sources linkedin` 或 `sources=github`。
-- 能明确识别岗位、技能、地点、公司时才写入 `filter`；不确定时保留在 `query`。
-- 不支持排除公司条件；排除项默认放进 `--checkpoint`、`--feedback` 或人工核验。
-- 普通公司/市场研究不是候选人寻访。此类请求应明确走宿主 Agent 原生研究；如果用户要转招聘，
-  再把公司地图改写成产品/GTM 招聘输入。
+按需读取，不要一次读完：
 
-详细来源输入合同见 [references/query-contract.md](references/query-contract.md)。
-
-## 7. 质量门
-
-不能把弱结果包装成强推荐。
-
-- `priority=C`、`evidenceStatus=缺职业工程证据`，或仓库回退缺少强
-  仓库 / 个人资料交叉信号时，只能作为弱线索或来源地图入口。
-- 仓库回退如果同时有明确个人资料、公司/经历信号和强开源项目证据，可以作为
-  建议先核实的人选进入推荐人选，但必须保留还要确认。
-- 网页 / 论文 / 实验室 / 公司 / 仓库 / 数据集线索不能直接变成候选人；最终候选人来源必须是
-  GitHub、LinkedIn、X 或用户明确给出的个人资料。
-- 默认中国/中文生态相关人才池未被用户放宽时，缺少公开中国/中文生态相关职业信号的人不能进入推荐人选或强推荐；不要凭姓名、照片、外貌、口音、族裔或国籍猜测补这个信号。
-- 非工程岗不因目标里有 Agent/LLM/大模型而归工程类；候选人主要证据是 PM/产品负责人/
-  平台产品/应用产品时，归 `AI产品/平台`。
-- GTM/增长/商业化/DevRel 主要证据归 `GTM/增长/DevRel`；不要因为公司是 AI 产品就归产品岗。
-- 创始人 / 联合创始人 / C-level 是可用性和职级信号，不是自动分类规则。
-
-详细结构字段、输出格式和失败恢复见 [references/output-quality.md](references/output-quality.md)。
-
-## 8. 输出格式
-
-用户是招聘负责人、猎头、投资人，不是工程师。最终回复用**招聘白话**：内部的状态机、证据等级 A/B/C、`priority`、`sourceFamily`、`checkpoint`、`functionCategory` 等只在脑内推理，**不出现在回复里**，渲染时按白话翻译（映射见 `templates/final-report.md`）。不输出原始 JSON、工程日志，不默认写「已完成 / 验证 / 运行了 / 用了哪个 skill / 调了哪个命令 / bash / code block / target-count / events / timing」；只有用户明确问「怎么跑的」时才说。
-
-用户可见报告的事实源是 `templates/final-report.md`。默认结构是 3-4 段短决策简报：
-
-- **结论**：一两句话说明能不能推进、最值得先看谁、默认地域/市场是否生效、本轮是否执行搜索。
-- **人选和证据**：每位人选的名字必须是 Markdown 链接；主列回答「招聘判断 / 为什么值得聊 / 相关作品或证据 / 还要确认 / 下一步」。论文、仓库、公司团队、项目或产品只能作为证据或线索，不能和人选混在同一列；默认中国人才池下，缺公开中国/中文生态职业信号的人不得进入可推进候选。
-- **其他线索 / 需要确认**：只放弱线索、待补证材料和招聘者需要确认的事项；不要默认展示内部标签、执行过程或大段风险表。
-- **下一步**：给出 1-3 个具体招聘动作，例如扩大同来源召回、核某人职业资料、写低压触达草稿。
-
-0 人、provider failure 或 privacy hard-stop 时，不输出候选人表；改用「结论 / 原因 / 下一步」，用招聘白话说明本轮为什么不能交付人选。
-
-内部仍必须覆盖质量检查：项目简报、来源地图、候选人分层、待核验线索、适配证明、覆盖缺口、停止原因、隐私边界和下一步；这些只用于判断和取舍，不作为用户可见标题或表头。
-
-- 执行类报告需要说明默认地域/市场边界时，写成一句白话：`默认中国/中文生态优先只看公开职业信号，不凭姓名、照片、族裔或国籍推断`。
-- 隐私和触达边界只在相关场景出现：不查询私人邮箱、手机号、非公开联系方式，不自动发送消息或提交表单。
-- 推荐人选先给招聘动作，不给技术尽调结论：`招聘判断` 写“可优先聊 / 建议先核实 / 顾问或推荐人 / 暂不推进”，`为什么值得聊` 写一句人话，技术细节只做支撑证据。
-- 如果一行里出现超过 2 个技术组件、repo 功能或 commit 主题，说明输出过技术化；压缩到一条招聘理由，其余放入适配证明包或待核验线索。
-- helper stdout 不是产品报告事实源。脚本可提供结构化结果或极简 fallback；最终回复必须按 `templates/final-report.md` 重写成招聘负责人可读报告。
-
-完整模板见 `templates/final-report.md`。不要编造邮箱、电话、薪资、是否愿意搬迁、在职状态或私人联系方式。没把握是不是同一人时写「可能是同一人，待确认」，不硬下结论。
-不要把 `hireable=true`、`Open to new opportunities`、`open to work`、profile bio 或状态标记写成“可招聘性”或“求职意愿”结论；最多写“公开 profile 有开放机会相关表述，触达前必须确认当前方向和是否开放外部机会”。
-
-## 9. 参考
-
-按需读取：`references/cli-reference.md`、`references/intent-routing.md`、`references/project-brief-and-state.md`、`references/source-map-recipes.md`、`references/ai-vertical-source-taxonomy.md`、`references/role-fit-rubrics.md`、`references/x-and-community-signals.md`、`references/academic-source-playbook.md`、`references/deep-dive-to-outreach-workflow.md`、`references/query-contract.md`、`references/fit-proof-packet.md`、`references/workflow-patterns.md`、`references/output-quality.md`、`references/execution-budget.md`。
-
-可套用模板：
-
-- `templates/cli-command-plan.md`：判断是否调用 CLI，并整理命令计划。
-- `templates/final-report.md`：整理最终候选人报告。
-- `templates/review-feedback-loop.md`：把人工反馈转成下一轮请求。
+| 文件 | 用途 |
+| --- | --- |
+| [references/shared-gates.md](references/shared-gates.md) | 共同执行门、默认地域、隐私、helper 停止、Web 保存 |
+| [references/intent-routing.md](references/intent-routing.md) | 模糊需求、硬停止、找人向导 |
+| [references/project-brief-and-state.md](references/project-brief-and-state.md) | 项目简报、状态机、线索升级 |
+| [references/source-map-recipes.md](references/source-map-recipes.md) | 来源地图、公司图谱、相邻入口 |
+| [references/query-contract.md](references/query-contract.md) | CLI/API 参数和来源查询合同 |
+| [references/cli-reference.md](references/cli-reference.md) | CLI status、find-people、schema 和失败恢复 |
+| [references/execution-budget.md](references/execution-budget.md) | 小批量预算和停止条件 |
+| [references/output-quality.md](references/output-quality.md) | 最终报告、warnings、失败恢复 |
+| [templates/final-report.md](templates/final-report.md) | 用户可见报告模板 |

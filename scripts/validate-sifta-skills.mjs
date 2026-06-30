@@ -18,6 +18,9 @@ const expectedCoreSkills = [
 ];
 
 const requiredInstallCommand = "npx -y skills add onenorthlab/sifta-skills -g --all";
+const routeSkillNames = expectedCoreSkills.filter((name) => name !== "sifta-search");
+const routerMaxLines = 140;
+const routeMaxLines = 90;
 
 function readArgValue(args, name) {
 	const index = args.indexOf(name);
@@ -51,6 +54,10 @@ function parseSkillFile(skillPath) {
 	return { name, version };
 }
 
+function splitLineCount(content) {
+	return content.split("\n").length;
+}
+
 function listSkillDirs(root) {
 	return fs
 		.readdirSync(root, { withFileTypes: true })
@@ -74,6 +81,7 @@ function validateSourceSkills(expectedVersion) {
 
 	for (const skillName of skillDirs) {
 		const skillPath = path.join(repoRoot, skillName, "SKILL.md");
+		const content = readFile(skillPath);
 		const parsed = parseSkillFile(skillPath);
 
 		if (!parsed.name) {
@@ -89,6 +97,42 @@ function validateSourceSkills(expectedVersion) {
 		}
 
 		versions.set(skillName, parsed.version);
+
+		if (skillName === "sifta-search") {
+			const lineCount = splitLineCount(content);
+			if (lineCount > routerMaxLines) {
+				fail(`${skillPath} router is too large: ${lineCount} lines > ${routerMaxLines}`);
+			}
+			for (const reference of [
+				"references/shared-gates.md",
+				"references/cli-reference.md",
+				"references/query-contract.md",
+				"references/output-quality.md",
+			]) {
+				if (!content.includes(reference)) {
+					fail(`${skillPath} missing router reference: ${reference}`);
+				}
+			}
+		}
+
+		if (routeSkillNames.includes(skillName)) {
+			const lineCount = splitLineCount(content);
+			if (lineCount > routeMaxLines) {
+				fail(
+					`${skillPath} route skill is too large: ${lineCount} lines > ${routeMaxLines}`,
+				);
+			}
+			for (const reference of [
+				"../sifta-search/references/shared-gates.md",
+				"../sifta-search/references/cli-reference.md",
+				"../sifta-search/references/query-contract.md",
+				"../sifta-search/references/output-quality.md",
+			]) {
+				if (!content.includes(reference)) {
+					fail(`${skillPath} missing route reference: ${reference}`);
+				}
+			}
+		}
 	}
 
 	const uniqueVersions = [...new Set(versions.values())];
@@ -121,7 +165,11 @@ function validateDocs() {
 			fail(`${doc.label} missing install fallback command: ${requiredInstallCommand}`);
 		}
 
-		if (/sifta-cli auth [^\n]+--base-url ["']?https:\/\/sifta\.onenorthdev\.com\/api/u.test(doc.content)) {
+		if (
+			/sifta-cli auth [^\n]+--base-url ["']?https:\/\/sifta\.onenorthdev\.com\/api/u.test(
+				doc.content,
+			)
+		) {
 			fail(`${doc.label} forces default SaaS --base-url in auth example`);
 		}
 	}
@@ -140,7 +188,9 @@ function validateInstalledRoot(installedRoot, sourceSkillDirs, suiteVersion) {
 		}
 
 		if (parsed.version !== suiteVersion) {
-			fail(`Installed ${skillPath} version mismatch: expected ${suiteVersion}, got ${parsed.version}`);
+			fail(
+				`Installed ${skillPath} version mismatch: expected ${suiteVersion}, got ${parsed.version}`,
+			);
 		}
 	}
 }
