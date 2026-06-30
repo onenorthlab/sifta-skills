@@ -75,7 +75,7 @@ CLI 稳定性原则：高频、长期稳定的参数才加独立 flag；Public A
 | ------------------ | -------------- | ------------------------------------------- | ------------------------------------------- |
 | `sifta-cli status` | 只读           | 读取本地认证和远端可达性                    | 使用 CLI 连接器前运行                       |
 | `sifta-cli tools`  | 只读           | 读取 Public API 结构                        | CLI/API 合约变化或命令失败时先运行          |
-| `find-people`      | 候选人搜索     | 默认不创建 Web session/run；`--save` 时写入 | 用于候选人召回；默认解析 JSON stdout        |
+| `find-people`      | 候选人搜索     | 默认创建 Web session/run；`--no-save` 时不写入 | 用于候选人召回；默认解析 JSON stdout        |
 | 未来写回命令       | 高风险写操作   | 写 ATS/CRM/外部系统                         | 必须先向用户确认对象、字段、内容和目标系统  |
 | 可选 MCP 薄包装    | 本地工具适配层 | 复用 CLI/Public API                         | 只包装现有命令，不实现第二套 Agent 运行环境 |
 
@@ -190,11 +190,12 @@ sifta-cli find-people \
 | `--target-count <n>`  | 否       | 目标候选人数，1-10。                                                       |
 | `--sources <json>`    | 否       | 候选人来源 JSON 字符串数组；当前只支持 `github`、`linkedin`、`x`。         |
 | `--mode <mode>`       | 否       | `default` 或 `research`。                                                  |
-| `--save`              | 否       | 保存本轮结果到 Web `/sourcing` 历史；等价于 Public API `persist: true`。   |
+| `--save`              | 否       | 兼容旧调用；当前默认保存本轮结果到 Web `/sourcing` 历史。                 |
+| `--no-save`           | 否       | 不保存本轮结果到 Web `/sourcing` 历史；等价于 Public API `persist: false`。 |
 | `--trace`             | 否       | 返回脱敏 `toolTrace`，用于渠道输入或工具调用排查。                         |
 | `--pretty`            | 否       | 人类可读输出。不要用于 Agent 解析。                                        |
 
-默认不要 `--save`：探索性宽召回、弱证据结果或尚未人工审查的试探查询只保留 JSON。用户明确要求保存、落库、同步到 Web、稍后回看，或 Agent 判断本轮结果已通过基本质量门、值得沉淀给用户复核时，追加 `--save`。保存成功后 JSON 会包含：
+`find-people` 默认保存本轮结果到 Web `/sourcing` 历史。成功写入后 JSON 会包含：
 
 ```json
 {
@@ -207,7 +208,7 @@ sifta-cli find-people \
 }
 ```
 
-最终回复应把 `persisted.webPath` 作为 Web 回看路径给用户。`--save` 只写入当前用户 API key 所属账号，不接受 CLI 传入 `userId`。
+最终回复应把 `persisted.webPath` 作为 Web 回看路径给用户。自动同步只表示这轮找人可回看、可复核，不表示候选人已进入 shortlist、待触达或任何业务 pipeline。只有隐私 hard-stop、未认证、provider failure、0 人结果、schema 检查、一次性排障或用户明确要求不要保存时，才使用 `--no-save` 或 `--input '{"persist":false}'`。保存只写入当前用户 API key 所属账号，不接受 CLI 传入 `userId`。
 
 `--input` 用于减少 CLI 后续变动。低频字段优先放在 `--input`，但 `--query` / `--checkpoint`
 仍建议显式保留，便于兼容较旧 CLI 和人工审查：
@@ -222,7 +223,13 @@ sifta-cli find-people \
 sifta-cli find-people \
   --query "AI Agent MCP LLM infra engineer open source" \
   --checkpoint "找上海 AI Agent 工程师" \
-  --input '{"sources":["github"],"persist":true}'
+  --input '{"sources":["github"]}'
+
+sifta-cli find-people \
+  --query "AI Agent MCP LLM infra engineer open source" \
+  --checkpoint "一次性排障查询，不写 Web 历史" \
+  --sources '["github"]' \
+  --no-save
 ```
 
 `--sources` 必须是 JSON 字符串数组，例如 `--sources '["github"]'` 或
