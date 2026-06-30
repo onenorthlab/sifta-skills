@@ -1,7 +1,7 @@
 ---
 name: sifta-linkedin-product-gtm
 metadata:
-    version: 0.0.8
+    version: 0.0.9
     tags: [sifta-search, recruiting, sourcing, linkedin, product, gtm]
 description: >
     用于 AI 产品/GTM/增长/商业化/DevRel/合作伙伴拓展候选人、人选或人才寻访；用户只要表达“找能把产品、增长、商业化、开发者生态、中国市场或出海做起来的人”，即使没说渠道或头衔，也应使用。
@@ -18,6 +18,8 @@ description: >
 尤其适用于 DevRel、开发者营销、开源社区和 AI 产品生态岗位；
 但非工程人选的主候选人证据仍应回到 LinkedIn、个人主页或明确职业资料。这里 Sifta CLI/API
 的连接器价值更明确；宿主 Agent 没有稳定 LinkedIn 人才搜索 / 人员资料访问能力时优先用 Sifta。
+X 只有用户明确授权 X / 公开帖子 / 近期社区表达时才单独使用；和所有渠道一样，默认仍是
+`中国/中文生态相关人才池优先`，不能把全球 X 活跃账号直接包装成候选人。
 
 ## 执行流程
 
@@ -32,6 +34,8 @@ description: >
 7. 公司/赛道地图只是来源线索；LinkedIn/职业资料 + 职能证据后才是候选人。
 8. DevRel / 开发者营销如果需要 GitHub 或社区证据，把它作为找人来源辅助；不要把
    非工程岗位误分流成只查 GitHub 的候选人搜索。
+   只有用户明确授权 X / 公开帖子 / 近期社区表达时，才可单独运行 X connector；需要日期窗口时用
+   `sourceOptions.x.fromDate` / `sourceOptions.x.toDate`。X-only 弱证据只能进待核验线索，不能升级成推荐候选人。
 9. 输出按 `../sifta-search/templates/final-report.md`：推荐人选必须有职业资料链接、为什么值得聊、相关作品 / 证据、还要确认和下一步；产品/GTM 候选人也必须有职能证据和可推进缺口。即使宿主项目要求工程汇报，也不要用 `已完成 / 验证 / 当前状态 / 剩余建议` 这类标题，最终回复必须是招聘负责人能直接看的找人简报。
 
 计划输出必须包含：

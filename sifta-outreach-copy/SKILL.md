@@ -1,7 +1,7 @@
 ---
 name: sifta-outreach-copy
 metadata:
-    version: 0.0.8
+    version: 0.0.9
     tags: [sifta-search, recruiting, outreach, copy]
 description: >
     用于已知候选人或候选人档案之后的招聘触达文案：DM、email、LinkedIn 消息、引荐介绍、跟进文案。用户要求基于候选人公开证据、

@@ -186,6 +186,7 @@ sifta-cli find-people \
 | `--checkpoint <text>` | 请求必填 | 用户本轮原始输入；可由 `--input.checkpoint` 提供。不要写复述或压缩搜索词。 |
 | `--filter <json>`     | 否       | 结构化筛选条件 JSON 对象。                                                 |
 | `--feedback <json>`   | 否       | 人工审查反馈 JSON 数组；由 Agent 根据上一轮结果和用户反馈整理。            |
+| `--source-options <json>` | 否    | 新版 CLI 的来源级 connector 选项便利参数；当前只支持 `{"x":{"fromDate":"YYYY-MM-DD","toDate":"YYYY-MM-DD"}}`。为降低 CLI/skill 版本耦合，skill 默认优先保留 `--query` / `--checkpoint`，并用 `--input` 传低频结构字段。 |
 | `--target-count <n>`  | 否       | 目标候选人数，1-10。                                                       |
 | `--sources <json>`    | 否       | 候选人来源 JSON 字符串数组；当前只支持 `github`、`linkedin`、`x`。         |
 | `--mode <mode>`       | 否       | `default` 或 `research`。                                                  |
@@ -208,7 +209,8 @@ sifta-cli find-people \
 
 最终回复应把 `persisted.webPath` 作为 Web 回看路径给用户。`--save` 只写入当前用户 API key 所属账号，不接受 CLI 传入 `userId`。
 
-`--input` 用于减少 CLI 后续变动。下面两条命令等价，后一种适合 API 增加低频字段或临时实验字段时使用：
+`--input` 用于减少 CLI 后续变动。低频字段优先放在 `--input`，但 `--query` / `--checkpoint`
+仍建议显式保留，便于兼容较旧 CLI 和人工审查：
 
 ```bash
 sifta-cli find-people \
@@ -218,7 +220,9 @@ sifta-cli find-people \
   --save
 
 sifta-cli find-people \
-  --input '{"query":"AI Agent MCP LLM infra engineer open source","checkpoint":"找上海 AI Agent 工程师","sources":["github"],"persist":true}'
+  --query "AI Agent MCP LLM infra engineer open source" \
+  --checkpoint "找上海 AI Agent 工程师" \
+  --input '{"sources":["github"],"persist":true}'
 ```
 
 `--sources` 必须是 JSON 字符串数组，例如 `--sources '["github"]'` 或
@@ -239,6 +243,11 @@ arXiv、Hugging Face、ModelScope、网页、公司页或社区平台写入 `--s
   OpenAlex、Google Scholar、Semantic Scholar、arXiv/OpenReview、Papers with Code 或
   lab/project/homepage。再用 GitHub/LinkedIn/个人主页验证候选人；不要把论文作者直接放进候选人。
 - X：只有用户明确授权 X / 公开帖子 / 社区信号时使用。
+  需要限定近期 X 公开表达时，优先保留 `--query` / `--checkpoint`，并通过 `--input` 传结构字段：
+  `{"sources":["x"],"sourceOptions":{"x":{"fromDate":"2026-01-01","toDate":"2026-06-30"}},"targetCount":3,"includeTrace":true}`。
+  如果本机 CLI 已支持 `--source-options`，也可以把相同 JSON 放到该便利参数里。
+  日期窗口只限制 X Search 公开帖范围，不作为候选人当前状态或求职意愿证据。X 也默认找
+  中国/中文生态相关人才池，查询和 `--checkpoint` 里要保留中国/中文生态、中国市场或中文社区偏置。
 
 `--feedback` 用于多轮反馈闭环。Agent 应把用户人工反馈整理成短 JSON 数组，保留
 `feedback`、`constraints`、`exclusions` 和 `expansionSeeds`。反馈会进入服务端

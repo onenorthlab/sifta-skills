@@ -207,11 +207,23 @@ sifta-cli find-people \
 
 X 只在用户明确要求公开表达、社区信号、公开帖子或指定 `--sources '["x"]'` 时使用。
 
+日期窗口：
+
+- 用户要求“最近 / 近半年 / 某段时间内的 X 公开表达”时，可以通过 Public API
+  `sourceOptions.x.fromDate` / `sourceOptions.x.toDate` 控制 X Search 时间范围。
+- 日期格式必须是 `YYYY-MM-DD`。CLI 默认保留 `--query` / `--checkpoint`，并用 `--input` 传
+  `{"sources":["x"],"sourceOptions":{"x":{"fromDate":"2026-01-01","toDate":"2026-06-30"}},"targetCount":3}`；
+  Public API 用同名 JSON 字段；新版 CLI 的 `--source-options` 只是便利别名。
+- 日期窗口只限制 X 公开帖搜索范围，不证明候选人当前职位、求职意愿、可联系性或近期仍活跃。
+- X 和所有渠道一样，默认查询和升级门槛都要保留 `中国/中文生态相关人才池优先`。不要把全球
+  X 活跃账号、英文社区影响力或粉丝数直接包装成候选人，除非用户明确放宽为全球人才池。
+
 禁止：
 
 - 默认搜索或反馈闭环自动加入 X。
 - 因为查询提到“社区”“传播”“影响力”就隐式调用 X。
 - 用 X 结果替代 GitHub/LinkedIn 职业证据。
+- X-only 结果缺个人资料、作品或职业证据时升级成“建议优先聊”的候选人。
 
 ## 6. 已知个人资料核验
 
