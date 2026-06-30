@@ -31,6 +31,18 @@ paper-first 必须走 `paper -> code -> identity alias -> contribution depth -> 
 
 profile-first 是召回补充，不是 strong 证明：公开个人资料命中方向词只能证明“可能相关”；没有 paper/code/project/contribution depth 前最高 soft，bio-only 或 repo-thin 是 lead。
 
+## 程序化召回 helper（OpenAlex）
+
+需要快速起一个候选池时，可用 `scripts/small-batch-academic.mjs`（OpenAlex 开放 API，无需 key）做程序化 paper-first + profile-first 召回，输出对齐 proposal JSON（`people` / `leadPeople` / `sourceLeads` / `recallPaths` / `legsCovered`）。它只产 raw pool，不替代上面的身份/贡献证据门：候选最高 `soft`，PI 进顾问/标杆桶。
+
+```bash
+node scripts/small-batch-academic.mjs --query "embodied AI world model robotics" --target-count 3 --max-elapsed-ms 55000
+```
+
+- 两条召回腿：全球引用腿（works 按全球引用排序 → 一作/通讯，给强证据）+ 中国机构地域锚定腿（works 按 `authorships.institutions.country_code:cn|hk|tw` 过滤，落实中国优先、补全球排序漏掉的中国机构研究者）。这是召回腿，不等同上文 `paper-first` / `profile-first` 证据路径族。
+- 内置质量门：survey/综述证据降权封顶 `adjacent`；OpenAlex 同名合并的噪声实体（概念横跨无关重学科等）标 `disambiguation-risk` 并踢出推荐人选、降为待核验线索。
+- helper 召回到的人仍需走 `paper -> code -> identity alias -> contribution depth` 核验；输出的 `risk` / `nextAction` 已写明待确认项，不推断可招聘性。
+
 ## 质量门
 
 - 计划输出和实时报告按共享执行门；不要把论文列表、来源地图或执行合同做成额外顶层标题。
