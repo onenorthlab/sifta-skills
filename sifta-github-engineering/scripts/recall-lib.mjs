@@ -148,7 +148,7 @@ export function scoreCandidateTwoAxis(candidate, coreTerms = [], config = DEFAUL
 	const evidenceRank = evidenceTier === "strong" ? 3 : evidenceTier === "adjacent" ? 2 : 1;
 	signals.push(`evidence:${evidenceTier}`);
 
-	// ---- 次轴：地域 / 角色偏好（仅档内加分，封顶；secondaryCap < rankMultiplier 保证不跨档反超）----
+	// ---- 次轴：地域 / 角色偏好 + 方向密度 + 近期活跃度（仅档内加分，封顶；secondaryCap < rankMultiplier 保证不跨档反超）----
 	// Owner 决策(放宽 W3)：档内排序让"地域+方向契合"压过"纯贡献量"——给 geo+direction 命中者
 	// 一个足够大的 secondary 分(geoDirectionSecondaryPts)，使其在同档内能盖过高贡献者的 evidence 差，
 	// 从而"领域对+地域对、贡献量不及全球主力的人"也能排在前面；但封顶仍 < rankMultiplier，弱档(无方向)永不跨档。
@@ -168,6 +168,49 @@ export function scoreCandidateTwoAxis(candidate, coreTerms = [], config = DEFAUL
 	}
 	if (candidate.company || candidate.bio || candidate.location)
 		secondary += s.hasProfileFieldPts ?? 1;
+
+	// ---- 方向密度加分：命中多个核心词 > 命中 1 个，档内区分 bio 深度契合者（仅次轴）----
+	// 基础 coreTermMatchPts 已在主轴记录（命中≥1 即 +1），此处对"额外命中"做密度奖励。
+	// 设计：每超出 1 个命中额外 +coreTermDensityPtsPerMatch，上限 coreTermDensityCapMatches 个，
+	// 字段缺失安全降级为 0（向后兼容）。放 secondary 保证不影响 evidenceTier 升档。
+	if (coreMatches >= 2) {
+		const extraMatches = coreMatches - 1; // 基础 1 个已在主轴计过
+		const densityCap = s.coreTermDensityCapMatches ?? 4; // 最多额外奖励这么多个命中
+		const densityPts = s.coreTermDensityPtsPerMatch ?? 1; // 每个额外命中得分
+		const densityBonus = Math.min(extraMatches, densityCap) * densityPts;
+		if (densityBonus > 0) {
+			secondary += densityBonus;
+			signals.push(`core-density-bonus:${densityBonus}`);
+		}
+	}
+
+	// ---- 近期活跃度衰减：近 6 个月还在方向上活跃的人，档内排序领先多年不活跃的高贡献账号 ----
+	// 数据来源：调用方在 candidate 上提供 lastActiveAt（ISO 日期字符串，取个人 repo 最近 pushed_at）。
+	// 字段缺失 → 安全降级为 0（向后兼容，不影响现有候选）。
+	// 档内信号，不影响 evidenceTier，受 secondaryCapPts 封顶。
+	const lastActiveAt = candidate.lastActiveAt;
+	if (lastActiveAt) {
+		const monthsAgo = (Date.now() - Date.parse(lastActiveAt)) / (1000 * 60 * 60 * 24 * 30.44);
+		const freshMonths = s.recentActivityFreshMonths ?? 6;
+		const staleMonths = s.recentActivityStaleMonths ?? 18;
+		if (monthsAgo <= freshMonths) {
+			secondary += s.recentActivityFreshPts ?? 4;
+			signals.push(`recent-active:fresh(${Math.round(monthsAgo)}mo)`);
+		} else if (monthsAgo <= staleMonths) {
+			secondary += s.recentActivityStalePts ?? 2;
+			signals.push(`recent-active:stale(${Math.round(monthsAgo)}mo)`);
+		}
+		// 超过 staleMonths → 不加分，视同无近期活跃信号
+	}
+
+	// ---- 可达性（reachability）弱信号：公开可达通道数量作为同档内排序微调（不跨档）----
+	// 守隐私红线：仅用公开字段（profileRaw.email/blog/twitter_username 是否存在），
+	// 不输出私人联系方式、不推断求职意愿/relocation；hireable 只进输出"待确认"，不作可招聘性结论。
+	// 通道越多 → 越容易低压公开触达，作为同档内微弱 tiebreaker；分值很小，受 secondaryCapPts 封顶。
+	const reachability = computeReachability(candidate, config);
+	secondary += reachability.points;
+	for (const sig of reachability.signals) signals.push(sig);
+
 	secondary = Math.min(secondary, s.secondaryCapPts ?? 25);
 
 	return {
@@ -179,5 +222,44 @@ export function scoreCandidateTwoAxis(candidate, coreTerms = [], config = DEFAUL
 		evidenceRank,
 		priority: evidenceTier === "strong" ? "A" : evidenceTier === "adjacent" ? "B" : "C",
 		signals,
+		reachability: {
+			channels: reachability.channels,
+			hireableFlag: reachability.hireableFlag,
+			note: reachability.note,
+		},
 	};
+}
+
+/**
+ * 可达性（reachability）弱信号核：从公开字段判断"能否公开低压触达到本人"。
+ * 关键边界（落隐私红线）：
+ *  - 只用公开字段是否存在（email / blog / twitter_username），不输出字段值本身；
+ *  - hireable 是 GitHub 公开自标记，只能作为"触达前待确认意愿"的提示，绝不作可招聘性 / 求职意愿结论；
+ *  - 不推断 relocation、薪资、可入职时间；不做任何"这个人动得了"的断言。
+ * 评分：仅"公开可达通道数量"作为同档内弱排序提示（越多通道越易触达），封顶很小，永不跨档。
+ * @returns {{points:number, channels:string[], hireableFlag:boolean, note:string, signals:string[]}}
+ */
+export function computeReachability(candidate, config = DEFAULT_CONFIG) {
+	const r = config.reachability ?? {};
+	const raw = candidate.profileRaw ?? {};
+	const channels = [];
+	// 公开通道"是否存在"，不取值（取值/触达由 candidate-dossier 在核验后处理）。
+	if (raw.email) channels.push("public-email");
+	if (raw.blog || candidate.blog) channels.push("blog/homepage");
+	if (raw.twitter_username) channels.push("x/twitter");
+
+	const hireableFlag = raw.hireable === true; // GitHub 公开 "available for hire" 自标记
+	const points =
+		Math.min(channels.length, r.channelCapCount ?? 3) * (r.channelPts ?? 1);
+
+	const signals = [];
+	if (channels.length) signals.push(`reach-channels:${channels.length}`);
+	if (hireableFlag) signals.push("hireable-flag-unverified");
+
+	const note =
+		channels.length || hireableFlag
+			? "存在公开可达信号；触达前仍需确认当前角色与真实意愿，不据此断定可招聘性或求职意愿"
+			: "未见公开可达通道；需先找到本人公开职业联系方式后再评估触达";
+
+	return { points, channels, hireableFlag, note, signals };
 }

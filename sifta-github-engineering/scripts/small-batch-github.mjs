@@ -449,6 +449,7 @@ function candidateScore(candidate) {
 	candidate.evidenceRank = scored.evidenceRank;
 	candidate.priority = scored.priority;
 	candidate.signals = scored.signals;
+	candidate.reachability = scored.reachability;
 	return scored.score;
 }
 
@@ -630,6 +631,7 @@ async function addCandidateSignal({
 	const ecosystemGeo = repoCandidateEcosystemEvidence(repo, contributor.contributions ?? 0, pr);
 	const geoEvidence = profileGeo.matched ? profileGeo : ecosystemGeo;
 	let personalRepoEvidence = [];
+	let lastActiveAt = null; // 个人仓库最近 pushed_at，用于档内活跃度排序信号
 	if (!requiresGeoFit || profileGeo.matched || ecosystemGeo.matched) {
 		if (timeBudgetExceeded()) return;
 		const repos = await safeGitHubJson(
@@ -638,9 +640,16 @@ async function addCandidateSignal({
 				sort: "pushed",
 			}),
 		);
-		personalRepoEvidence = Array.isArray(repos)
-			? userRepoEngineeringEvidence(repos, coreTerms)
-			: [];
+		if (Array.isArray(repos)) {
+			personalRepoEvidence = userRepoEngineeringEvidence(repos, coreTerms);
+			// 取个人 repo 最新 pushed_at（sort=pushed 已降序，直接取第一个非空值）
+			for (const r of repos) {
+				if (r.pushed_at) {
+					lastActiveAt = r.pushed_at;
+					break;
+				}
+			}
+		}
 	}
 	const existing = candidatesByLogin.get(login);
 	const nextCandidate = existing ?? {
@@ -661,6 +670,8 @@ async function addCandidateSignal({
 		ecosystemGeoEvidence: ecosystemGeo,
 		geoEvidence,
 		profileRaw: user,
+		// lastActiveAt：个人 repo 最近 pushed_at，档内活跃度排序信号的数据来源
+		lastActiveAt: null,
 	};
 	if (!nextCandidate.legTypes.includes(legType)) nextCandidate.legTypes.push(legType);
 	nextCandidate.profile = user.html_url ?? contributor.html_url ?? nextCandidate.profile;
@@ -681,6 +692,8 @@ async function addCandidateSignal({
 		description: repo.description ?? "",
 		stars: repo.stargazers_count ?? 0,
 		contributions: contributor.contributions ?? 0,
+		// pushedAt 来自 repo.pushed_at（贡献仓库最近 push 时间），用于档内活跃度排序信号
+		pushedAt: repo.pushed_at ?? null,
 	});
 	nextCandidate.evidence = mergeUnique([
 		...nextCandidate.evidence,
@@ -698,6 +711,11 @@ async function addCandidateSignal({
 	nextCandidate.geoEvidence = nextCandidate.geoEvidence?.matched
 		? nextCandidate.geoEvidence
 		: geoEvidence;
+	// lastActiveAt 取历次信号中最新的（越新越好，不会因后来腿覆盖掉更新的时间）
+	if (lastActiveAt) {
+		const prev = nextCandidate.lastActiveAt;
+		if (!prev || lastActiveAt > prev) nextCandidate.lastActiveAt = lastActiveAt;
+	}
 	nextCandidate.score = candidateScore(nextCandidate);
 	candidatesByLogin.set(login, nextCandidate);
 }
@@ -1080,6 +1098,12 @@ if (args.json) {
 		score: candidate.score ?? 0,
 		contributions: candidate.contributions ?? 0,
 		signals: candidate.signals ?? [],
+		// 可达性：仅公开通道是否存在 + hireable 待确认提示；不含联系方式值、不作可招聘性/意愿结论。
+		reachability: candidate.reachability ?? {
+			channels: [],
+			hireableFlag: false,
+			note: "未见公开可达通道；需先找到本人公开职业联系方式后再评估触达",
+		},
 		evidence: mergeUnique([
 			...candidate.evidence,
 			...candidate.personalRepoEvidence.map((entry) => `个人 repo：${entry}`),

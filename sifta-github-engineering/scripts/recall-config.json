@@ -169,11 +169,23 @@
 		"geoEcosystemPts": 1,
 		"sourceCatalogPts": 45,
 		"hasProfileFieldPts": 1,
-		"_w3Doc": "放宽 W3(Owner 决策)结构性保证：rankMultiplier 远大于 secondaryCapPts → 证据档绝对隔离，弱档(无方向)永不跨档(守住弱不冒充候选)；secondaryCapPts 远大于 evidence 档内最大跨度(≈maxEvidence×evidenceMultiplier≈70) → 同档内 geo+direction 契合恒压过纯贡献量。geoDirectionSecondaryPts 必须 > 该跨度。",
+		"_w3Doc": "放宽 W3(Owner 决策)结构性保证：rankMultiplier(1000) 远大于 secondaryCapPts(120) + evidence最大值×evidenceMultiplier(9×10=90) → 弱档(evidenceRank=1)最高分=1000+90+120=1210 < adjacent档下限=2000，证据档绝对隔离，弱档永不跨档。新信号(方向密度/活跃度)均在 secondary，受 secondaryCapPts 封顶，不影响 evidenceTier 升档。geoDirectionSecondaryPts(80) 仍须 > 同档 evidence 最大跨度(9×10=90 附近，实际生产中强档间贡献量跨度≈3×10=30)，确保地域+方向契合可在档内压过纯贡献量。",
 		"geoDirectionSecondaryPts": 80,
 		"secondaryCapPts": 120,
 		"rankMultiplier": 1000,
-		"evidenceMultiplier": 10
+		"evidenceMultiplier": 10,
+		"coreTermDensityCapMatches": 4,
+		"coreTermDensityPtsPerMatch": 1,
+		"recentActivityFreshMonths": 6,
+		"recentActivityStaleMonths": 18,
+		"recentActivityFreshPts": 4,
+		"recentActivityStalePts": 2
+	},
+
+	"_reachabilityDoc": "可达性弱信号调参。只用公开通道是否存在做同档内微弱 tiebreaker（channelPts × 通道数，封顶 channelCapCount）；hireable 不加分、只进输出待确认。分值刻意很小，远小于 geoDirectionSecondaryPts，不喧宾夺主、不跨档。",
+	"reachability": {
+		"channelPts": 1,
+		"channelCapCount": 3
 	},
 
 	"weakDirectoryPatterns": [
