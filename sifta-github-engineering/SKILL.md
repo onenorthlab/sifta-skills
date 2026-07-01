@@ -49,6 +49,8 @@ description: >
 - `--task <hf-pipeline-tag>`：按 HF 标准 task 标签跨全站召回 top 模型的作者，**不依赖任何 org 列表**，能捞到任意 org 在该方向的领先团队。tag 用 HF pipeline_tag，如 `text-generation`(LLM)、`image-text-to-text`(多模态/VLM)、`automatic-speech-recognition`(语音)、`text-to-image`、`feature-extraction`(embedding)。这是**首选**，因为它由方向驱动、覆盖不设限。
 - `--seed <org>`：针对你依目标判断出的具名团队召回。org 由你按画像决定——**下面这些只是示例起点、绝非全集**，你必须按具体方向补上新公司、冷门实验室、以及非中国团队（若用户放宽地域）：`Qwen deepseek-ai zai-org(GLM) moonshotai(Kimi) MiniMaxAI stepfun-ai internlm Skywork BAAI m-a-p inclusionAI(蚂蚁) ByteDance-Seed baichuan-inc 01-ai`。
 
+**关键·人群边界（别用错）**：HF 模型作者渠道召回的是**训模型 / 发布模型的人**——预训练、后训练、多模态、数据、模型研究员/训练工程师。它**不适合**找**推理 serving / infra / 量化部署**工程师（vLLM / SGLang / LMDeploy / TensorRT-LLM 那类）——那是 **GitHub-first 人群**（推理引擎在 GitHub 而非 HF 模型页），应走上面的 people-first / repo-first（搜 vllm/sglang/lmdeploy 仓的 maintainer 与 merged PR 作者）。用错渠道会召回一堆训模型的人，方向全偏。实测教训：招"推理优化工程师"却用 `--task text-generation`，捞到的是 Qwen/DeepSeek 的训练研究员，不是要的人。
+
 ```bash
 # 按方向跨全站（首选）
 node scripts/small-batch-hf.mjs --task text-generation --task image-text-to-text --json
