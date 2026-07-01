@@ -200,6 +200,14 @@ export function scoreAcademicTwoAxis(candidate, coreTerms = []) {
     evidenceTier = "adjacent";
     signals.push("survey-only-capped");
   }
+  // 方向门：完全不命中方向词的作者，无论多高产都不给 strong。
+  // 根因（实测）：strong 阈值被 cited/works/一作数主导，方向命中只 +1~2，
+  // 导致"self-adaptive 软件系统"等靠通用词误召的高产者也能进 strong。
+  // 研究人才召回里"方向对不对"是硬前提，产出量高但方向不命中只能是相邻线索。
+  if (coreMatches === 0 && evidenceTier === "strong") {
+    evidenceTier = "adjacent";
+    signals.push("no-direction-capped");
+  }
 
   const evidenceRank =
     evidenceTier === "strong" ? 3 : evidenceTier === "adjacent" ? 2 : 1;

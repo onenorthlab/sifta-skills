@@ -49,6 +49,7 @@ function parseArgs(argv) {
     maxAuthors: 30,       // 全程最多 hydrate 多少个 author 详情
     maxElapsedMs: 55_000,
     recentYears: 2,       // "近期活跃"定义：N 年内有发文
+    seeds: [],            // 种子论文（OpenAlex work id 或标题）：paper-first 从具名标杆锚定
     json: true,
   };
   for (let i = 0; i < argv.length; i += 1) {
@@ -61,6 +62,7 @@ function parseArgs(argv) {
     if (arg === "--max-authors" && next) args.maxAuthors = Number(next);
     if (arg === "--max-elapsed-ms" && next) args.maxElapsedMs = Number(next);
     if (arg === "--recent-years" && next) args.recentYears = Number(next);
+    if (arg === "--seed" && next) args.seeds.push(next);  // 可重复：多个种子论文
     if (arg === "--json") { args.json = next !== "false"; continue; }
     if (arg === "--markdown") { args.json = false; continue; }
     if (arg.startsWith("--")) i += 1;
@@ -202,7 +204,9 @@ const sourceLeads = [];
 const hydratedAuthorIds = new Set();
 
 const query = args.query || "multimodal large language model alignment";
-const coreTerms = coreQueryTerms(query);
+// coreTerms 是方向门/评分的方向词来源。种子腿解析后会把种子论文标题核心词并入，
+// 让"从具名标杆锚定"的候选天然拿到方向命中（种子作者方向由标杆论文保证）。
+let coreTerms = coreQueryTerms(query);
 
 // 计算"近期活跃"年份门槛
 const recentYearThreshold = new Date().getFullYear() - args.recentYears;
@@ -246,11 +250,17 @@ function upsertCandidate(authorId, authorDetail, workEvidence, isFirstOrCorr, is
     ? Math.max(...activeYearList) - Math.min(...activeYearList) + 1
     : 0;
 
-  // 概念/主题标签（用于方向匹配评分 + 消歧门跨学科判断）
+  // 概念/主题标签（用于方向匹配评分 + 消歧门跨学科判断）。
+  // x_concepts 已被 OpenAlex 弃用（实测返回空），改以 topics 为主。
+  // 消歧门靠"横跨无关重学科（Medicine/Materials science…）"判断，需要 topic 的
+  // 上位 field/domain 名（宽领域），而非 topic display_name（很具体）；故两者都收。
+  const topics = authorDetail.topics ?? [];
   const conceptTags = [
     ...(authorDetail.x_concepts ?? []).slice(0, 8).map((c) => c.display_name),
-    ...(authorDetail.topics ?? []).slice(0, 5).map((t) => t.display_name),
-  ];
+    ...topics.slice(0, 5).map((t) => t.display_name),
+    ...topics.map((t) => t.field?.display_name).filter(Boolean),
+    ...topics.map((t) => t.domain?.display_name).filter(Boolean),
+  ].filter(Boolean);
 
   const geo = detectGeo(authorDetail);
   const lastInst = (authorDetail.last_known_institutions ?? [])[0];
@@ -529,9 +539,100 @@ async function runProfileFirstLeg() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 执行召回（paper-first 给强证据，profile-first 补池子；合并进同一 candidatesByOpenAlexId）
+// 召回腿：seed + graph-neighbor（老板文档里的 DeepSeek/OpenAlex 挖掘法）
+// 从具名标杆论文（--seed，OpenAlex work id 或标题）锚定：
+//   1. 种子论文自身的一作/通讯 —— 方向由标杆论文保证，天然强证据；
+//   2. 图邻居：引用该标杆的近期论文（cites:）的一作/通讯 —— 发现"在标杆之上继续做"的
+//      年轻高潜研究者（正是招聘要找的活跃全职梯队），比泛关键词搜精度高得多。
+// 泛关键词搜索退居补充（paper-first/profile-first），只在种子腿之后跑。
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** 把 OpenAlex work id / URL / 标题 解析成一篇 work 对象（含 authorships）。 */
+async function resolveSeedWork(seed) {
+  const raw = String(seed || "").trim();
+  if (!raw) return null;
+  // 优先走"纯 GET / 纯 filter"解析（work id、DOI）：这些路径稳定；
+  // 全文 search 端点在部分网络/OpenAlex 负载下会 504（老板方法刻意避开泛搜也是此因），
+  // 所以标题解析放到最后、且作为 best-effort。
+  // 1) work id 形态：W\d+ 或 https://openalex.org/W\d+
+  const idMatch = raw.match(/\bW\d{4,}\b/i);
+  if (idMatch) {
+    const detail = await openAlexJson(`works/${idMatch[0].toUpperCase()}`);
+    if (detail && !detail.error) return detail;
+    return null;
+  }
+  // 2) DOI（或 doi.org URL）：GET works/https://doi.org/{doi}
+  const doiMatch = raw.match(/10\.\d{4,9}\/[^\s"']+/i);
+  if (doiMatch) {
+    const doi = doiMatch[0].replace(/[).,;]+$/u, "");
+    const detail = await openAlexJson(`works/https://doi.org/${doi}`);
+    if (detail && !detail.error) return detail;
+    return null;
+  }
+  // 3) 否则按标题搜索（best-effort，环境不稳时可能 504）
+  const result = await openAlexJson("works", {
+    search: cleanSearchQuery(raw),
+    sort: "relevance_score:desc",
+    per_page: 1,
+  });
+  if (result?.error) return null;
+  return (result?.results ?? [])[0] ?? null;
+}
+
+async function runSeedGraphLeg(cap) {
+  for (const seed of args.seeds) {
+    if (timeBudgetExceeded()) break;
+    if (hydratedAuthorIds.size >= cap) break;
+
+    const seedWork = await resolveSeedWork(seed);
+    if (!seedWork?.id) {
+      sourceLeads.push({
+        lead: `种子论文未解析：${String(seed).slice(0, 80)}`,
+        sourceFamily: "OpenAlex 种子论文",
+        whyRelevant: "作为具名标杆锚定研究者",
+        blocker: "OpenAlex 未按 work id/标题解析到该论文",
+        next: "确认 work id（W 开头）或用更精确的论文标题重试",
+      });
+      continue;
+    }
+
+    const seedTitle = seedWork.title ?? "(无标题种子)";
+    recallPaths.push(`OpenAlex seed: ${seedTitle.slice(0, 60)}`);
+    // 把种子标题核心词并入方向词：种子作者/图邻居方向由标杆论文保证。
+    coreTerms = [...new Set([...coreTerms, ...coreQueryTerms(seedTitle)])];
+
+    // 1) 种子论文自身作者（一作/通讯优先）
+    await processWorkAuthors(seedWork, cap, `种子标杆：${seedTitle.slice(0, 50)}`);
+
+    // 2) 图邻居：引用该标杆的近期论文 → 年轻高潜作者
+    if (timeBudgetExceeded() || hydratedAuthorIds.size >= cap) continue;
+    const shortId = String(seedWork.id).replace(/^https?:\/\/openalex\.org\//i, "");
+    const citing = await openAlexJson("works", {
+      filter: `cites:${shortId},${OPENALEX_AI_SUBFIELD_FILTER}`,
+      sort: "publication_date:desc",
+      per_page: args.worksPerQuery,
+    });
+    recallPaths.push(`OpenAlex graph-neighbor[cites:${shortId}]`);
+    if (citing?.error) {
+      providerFailed = true;
+      continue;
+    }
+    for (const work of citing?.results ?? []) {
+      if (timeBudgetExceeded()) break;
+      if (hydratedAuthorIds.size >= cap) break;
+      await processWorkAuthors(work, cap, `引用标杆「${seedTitle.slice(0, 40)}」`);
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 执行召回（有种子 → 种子/图邻居优先给强证据；paper-first/profile-first 补池子；
+// 合并进同一 candidatesByOpenAlexId）
+// ─────────────────────────────────────────────────────────────────────────────
+
+// 种子腿预算：给到 maxAuthors 的 ~70%，把 hydrate 配额优先留给方向可靠的种子/图邻居。
+const seedCap = Math.max(args.targetCount * 3, Math.floor(args.maxAuthors * 0.7));
+if (args.seeds.length) await runSeedGraphLeg(seedCap);
 await runPaperFirstLeg(paperFirstCap);
 await runProfileFirstLeg();
 
@@ -665,7 +766,12 @@ const proposal = {
   recommendedCount: people.length,
   potentialCount: leadPeople.length,
   recallPaths: [...new Set(recallPaths)],
-  legsCovered: ["paper-first", "profile-first"],
+  legsCovered: [
+    ...(args.seeds.length ? ["seed-graph-neighbor"] : []),
+    "paper-first",
+    "profile-first",
+  ],
+  seeds: args.seeds,
   // 注意：学术来源 bucket 最高 soft；PI 进 sourceLeads，不进 people
   // people = 推荐人选（待个人资料交叉核验，最高 soft）
   people: people.map((c) => toPerson(c, "soft")),

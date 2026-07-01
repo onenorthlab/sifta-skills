@@ -154,3 +154,27 @@ test("两轴硬约束：弱档+强地域 永不反超 强档", () => {
   assert.equal(s.evidenceTier, "strong");
   assert.ok(s.score > w.score, "强档全球候选必须排在弱档中国候选之前");
 });
+
+test("方向门：不命中方向词的高产作者不给 strong（砍跑偏）", () => {
+  // 上一轮 self-adaptive systems 型：高引/高产/多一作，但方向完全不沾具身/VLA
+  const highOutputOffDirection = {
+    citedByCount: 900,
+    nonSurveyCitedByCount: 900,
+    worksCount: 100,
+    recentWorksCount: 10,
+    conceptTags: ["Computer science", "Software engineering"],
+    evidence: ["Generative AI for Self-Adaptive Systems"],
+    firstOrCorrespondingAuthorCount: 4,
+    orcid: "x",
+  };
+  const dirs = ["embodied", "vla", "robotics", "world"];
+  const off = scoreAcademicTwoAxis(highOutputOffDirection, dirs);
+  assert.notEqual(off.evidenceTier, "strong");
+  assert.ok(off.signals.includes("no-direction-capped"));
+  // 对照：同等产出但方向命中 → 仍可 strong
+  const on = scoreAcademicTwoAxis(
+    { ...highOutputOffDirection, evidence: ["Vision-Language-Action model for robotics manipulation"] },
+    dirs,
+  );
+  assert.equal(on.evidenceTier, "strong");
+});
