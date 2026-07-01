@@ -536,7 +536,7 @@ function quoteQualifierValue(value) {
 	return /\s/u.test(value) ? `"${value}"` : value;
 }
 
-// 腿 1 people-first：主概念词 × location 变体 + 一条不带 location 的 broad。
+// 路 1 people-first：主概念词 × location 变体 + 一条不带 location 的 broad。
 // 召回高、快，证据通常弱（只证明"可能相关的人"）。
 // repos:>N 门槛 config 化：阈值过高会把"公开 repo 少但很强"的人(如只发 1 个核心 infra repo
 // 的作者)直接挡在召回外——这是诊断出的真实 recall-miss 来源之一，故下调并外置到 config。
@@ -555,7 +555,7 @@ function peopleFirstQueries(value) {
 	return mergeUnique([...locationQueries, broadQuery]);
 }
 
-// 腿 3 profile-first：query 的其余概念词对 × location 变体（通用方向词召回）。
+// 路 3 profile-first：query 的其余概念词对 × location 变体（通用方向词召回）。
 // 覆盖 research / 多概念画像被主概念 AND 漏掉的方向（embodied / world-model / robotics 等）。
 function profileFirstQueries(value) {
 	if (seedMode === "global-benchmark") return [];
@@ -680,7 +680,7 @@ async function addCandidateSignal({
 	nextCandidate.geoEvidence = nextCandidate.geoEvidence?.matched
 		? nextCandidate.geoEvidence
 		: geoEvidence;
-	// lastActiveAt 取历次信号中最新的（越新越好，不会因后来腿覆盖掉更新的时间）
+	// lastActiveAt 取历次信号中最新的（越新越好，不会因后来路覆盖掉更新的时间）
 	if (lastActiveAt) {
 		const prev = nextCandidate.lastActiveAt;
 		if (!prev || lastActiveAt > prev) nextCandidate.lastActiveAt = lastActiveAt;
@@ -801,8 +801,8 @@ async function processRepository(repo, whyRelevant, legType = "repo-contributor"
 	});
 }
 
-// 通用 user-search 腿执行器；people-first 和 profile-first 共用，只是 legType / 查询集不同。
-// 共享 searchedLogins / hydratedProfiles 预算，按 login 去重进 candidatesByLogin（即多腿合并）。
+// 通用 user-search 路执行器；people-first 和 profile-first 共用，只是 legType / 查询集不同。
+// 共享 searchedLogins / hydratedProfiles 预算，按 login 去重进 candidatesByLogin（即多路合并）。
 const userSearchState = { searchedLogins: new Set(), hydratedProfiles: 0 };
 
 async function runUserSearchLeg(legType, queries) {
@@ -937,12 +937,12 @@ async function runSeedFallback() {
 }
 
 const coreTerms = coreQueryTerms(query);
-// 三腿并行召回（Promise.all），合并去重进 candidatesByLogin（按 login）：
-// 腿 1 people-first：主概念 × location + broad。
-// 腿 3 profile-first：其余概念方向词 × location（通用方向词召回，补 research/多概念画像）。
-// 腿 2 repo/contributor-first：runRepositorySearch（repo → contributors / merged PR 作者）。
+// 三路并行召回（Promise.all），合并去重进 candidatesByLogin（按 login）：
+// 路 1 people-first：主概念 × location + broad。
+// 路 3 profile-first：其余概念方向词 × location（通用方向词召回，补 research/多概念画像）。
+// 路 2 repo/contributor-first：runRepositorySearch（repo → contributors / merged PR 作者）。
 // 并发安全：JS 单线程，候选去重的 has+add 同步相邻为原子；按 login 在写入处去重。
-// 并发度=3 腿（最多 3 个 search 在飞），比一次性发全部查询温和；瞬时打爆 search 配额时由
+// 并发度=3 路（最多 3 个 search 在飞），比一次性发全部查询温和；瞬时打爆 search 配额时由
 // safeGitHubJson 的限流识别 + 有界退避兜底，并如实记 providerFailure，不当 recall=0。
 if (RECALL_CONFIG.parallelLegs === true) {
 	await Promise.all([

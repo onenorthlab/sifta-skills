@@ -50,10 +50,10 @@ export function queryConceptPairs(value, config = DEFAULT_CONFIG) {
 }
 
 /**
- * 多腿召回合并去重（people-first / repo-contributor-first / profile-first 三腿）。
- * 按 login（小写）去重，保留先出现的腿，并记录命中的 legType 集合。
+ * 多路召回合并去重（people-first / repo-contributor-first / profile-first 三路）。
+ * 按 login（小写）去重，保留先出现的路，并记录命中的 legType 集合。
  * small-batch-github.mjs 的 candidatesByLogin Map 用同一 by-login 去重契约；
- * 这里抽成纯函数，便于确定性断言"合并后 raw pool 比单腿大、且无重复 login"。
+ * 这里抽成纯函数，便于确定性断言"合并后 raw pool 比单路大、且无重复 login"。
  * @param {Array<{legType:string, items:Array<{login:string}>}>} legs
  */
 export function mergeLegResults(legs) {

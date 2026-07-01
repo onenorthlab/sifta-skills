@@ -289,7 +289,7 @@ test("signals 可解释：命中信号可被 Owner 复核", () => {
 	assert.ok(scored.signals.some((s) => s.startsWith("core-term-match:")));
 });
 
-test("多腿合并：按 login 去重、raw pool 比单腿大、记录命中腿", () => {
+test("多路合并：按 login 去重、raw pool 比单路大、记录命中路", () => {
 	const peopleLeg = {
 		legType: "people",
 		items: [{ login: "alice" }, { login: "bob" }],
@@ -306,16 +306,16 @@ test("多腿合并：按 login 去重、raw pool 比单腿大、记录命中腿"
 	const single = mergeLegResults([peopleLeg]);
 	const merged = mergeLegResults([peopleLeg, repoLeg, profileLeg]);
 
-	// raw pool 随腿数增大
+	// raw pool 随路数增大
 	assert.ok(
 		merged.length > single.length,
-		`三腿(${merged.length}) 应比单腿(${single.length}) 大`,
+		`三路(${merged.length}) 应比单路(${single.length}) 大`,
 	);
 	// 按 login 去重（含大小写）：alice/bob/carol/dave = 4
 	const logins = merged.map((m) => m.login.toLowerCase()).sort();
 	assert.deepEqual([...new Set(logins)], logins, "不应有重复 login");
 	assert.equal(merged.length, 4);
-	// 跨腿命中的人记录多个 legType
+	// 跨路命中的人记录多个 legType
 	const bob = merged.find((m) => m.login.toLowerCase() === "bob");
 	assert.deepEqual(bob.legTypes.sort(), ["people", "repo-contributor"]);
 });

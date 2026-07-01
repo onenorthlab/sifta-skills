@@ -5,7 +5,7 @@
  * 学术图谱召回 helper（OpenAlex API）。**只做召回 + 客观信号粗排，不做语义判级。**
  *
  * 职责边界（重要）：
- *   脚本负责——OpenAlex 召回（seed/图邻居/paper-first/profile-first 腿）、去重、预算控制、
+ *   脚本负责——OpenAlex 召回（seed/图邻居/paper-first/profile-first 路）、去重、预算控制、
  *   country_code 地域事实、按客观数值（引用/发文/近年活跃/一作通讯）粗排、隐私硬门（最高 soft）。
  *   脚本不负责——综述是否弱证据、是否疑似同名合并实体、方向是否契合、机构是否属中国生态。
  *   这些是语义判断，靠正则/枚举会枚举不尽、跨语言失效，交给宿主 Agent 依
@@ -78,7 +78,7 @@ args.authorsPerWork = Math.min(5, Math.max(1, args.authorsPerWork || 3));
 args.maxAuthors = Math.max(args.targetCount * 4, args.maxAuthors || 30);
 args.maxElapsedMs = Math.max(10_000, args.maxElapsedMs || 55_000);
 
-// 两腿分预算：paper-first 占 ~60%，剩余留给 profile-first。
+// 两路分预算：paper-first 占 ~60%，剩余留给 profile-first。
 // 否则 paper-first 吃满 maxAuthors，profile-first 一个作者都召不到（实测的真实问题）。
 const paperFirstCap = Math.max(args.targetCount * 3, Math.floor(args.maxAuthors * 0.6));
 
@@ -287,7 +287,7 @@ function upsertCandidate(authorId, authorDetail, workEvidence, isFirstOrCorr) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 召回腿：paper-first（works 搜索 → authorships → author hydrate）
+// 召回路：paper-first（works 搜索 → authorships → author hydrate）
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -375,8 +375,8 @@ async function runPaperFirstLeg(cap) {
 }
 
 // 共享：从一篇 work 抽取一作/通讯作者 → hydrate 详情 → upsert/合并候选，并把论文进来源地图。
-// paper-first 和 profile-first 两腿都用它，保证作者抽取/去重口径一致。
-// cap：本腿的 hydrate 预算（paper-first 传 paperFirstCap，profile-first 传 maxAuthors）。
+// paper-first 和 profile-first 两路都用它，保证作者抽取/去重口径一致。
+// cap：本路的 hydrate 预算（paper-first 传 paperFirstCap，profile-first 传 maxAuthors）。
 async function processWorkAuthors(work, cap, queryLabel) {
   const workTitle = work.title ?? "(无标题)";
   const workUrl = work.doi
@@ -447,7 +447,7 @@ async function processWorkAuthors(work, cap, queryLabel) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 召回腿：profile-first（中国优先地域锚定）
+// 召回路：profile-first（中国优先地域锚定）
 // works 按 authorships.institutions.country_code:CN/HK/TW 过滤 + 方向词搜索，抽取一作/通讯。
 // 补 paper-first（全球引用排序）漏掉的中国机构研究者，直接落实"中国优先"默认。
 // 设计教训：OpenAlex authors?search= 搜的是作者名而非方向，x_concepts 作者过滤已被弃用（实测 count=0），
@@ -511,12 +511,12 @@ async function runProfileFirstLeg() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 召回腿：seed + graph-neighbor（老板文档里的 DeepSeek/OpenAlex 挖掘法）
+// 召回路：seed + graph-neighbor（老板文档里的 DeepSeek/OpenAlex 挖掘法）
 // 从具名标杆论文（--seed，OpenAlex work id 或标题）锚定：
 //   1. 种子论文自身的一作/通讯 —— 方向由标杆论文保证，天然强证据；
 //   2. 图邻居：引用该标杆的近期论文（cites:）的一作/通讯 —— 发现"在标杆之上继续做"的
 //      年轻高潜研究者（正是招聘要找的活跃全职梯队），比泛关键词搜精度高得多。
-// 泛关键词搜索退居补充（paper-first/profile-first），只在种子腿之后跑。
+// 泛关键词搜索退居补充（paper-first/profile-first），只在种子路之后跑。
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** 把 OpenAlex work id / URL / 标题 解析成一篇 work 对象（含 authorships）。 */
@@ -580,11 +580,11 @@ async function runSeedGraphLeg(cap) {
     // 纯 filter=cites（引用图），不用 search=——OpenAlex 的 search 全文端点不稳（Cloudflare
     // 挑战 / 服务端 query_timeout），而引用图是老板方法的稳健主路径，直连即通。
     const shortId = String(seedWork.id).replace(/^https?:\/\/openalex\.org\//i, "");
-    // 引用图两腿都加 AI 子领域过滤 + 按引用量排序（不是发表时间）。实测教训（量化验证）：
+    // 引用图两路都加 AI 子领域过滤 + 按引用量排序（不是发表时间）。实测教训（量化验证）：
     //   - 只按 country_code 不加子领域过滤 → 引用标杆的医学/农业等"应用论文"作者大量涌入，噪声高；
     //   - 按 publication_date 排序 → 近期应用论文压过核心方法后续研究，方向精度掉；
-    //   - 单腿吃满预算 → 另一腿不执行。故：两腿都加子领域过滤 + cited_by_count 排序（取有影响力
-    //     的后续方法工作，其一作/通讯更可能是核心方向研究者）+ 给中国腿封一个配额上限，留预算给全球腿。
+    //   - 单路吃满预算 → 另一路不执行。故：两路都加子领域过滤 + cited_by_count 排序（取有影响力
+    //     的后续方法工作，其一作/通讯更可能是核心方向研究者）+ 给中国路封一个配额上限，留预算给全球路。
     const cnTarget = Math.max(args.targetCount * 2, Math.floor(cap * 0.6));
 
     // 2a) 中国机构引用图邻居（中国优先，先跑，配额封顶 cnTarget）：direction 由种子保证
@@ -625,8 +625,8 @@ async function runSeedGraphLeg(cap) {
 // 合并进同一 candidatesByOpenAlexId）
 // ─────────────────────────────────────────────────────────────────────────────
 
-// 种子腿预算：给到全部 maxAuthors。种子/引用图/中国机构过滤是稳健主路径（纯 filter，直连稳过），
-// 优先吃满配额；下面 search-based 的 paper/profile 腿只在还有余量时补充（且它们不稳，失败也不影响主结果）。
+// 种子路预算：给到全部 maxAuthors。种子/引用图/中国机构过滤是稳健主路径（纯 filter，直连稳过），
+// 优先吃满配额；下面 search-based 的 paper/profile 路只在还有余量时补充（且它们不稳，失败也不影响主结果）。
 const seedCap = args.maxAuthors;
 if (args.seeds.length) await runSeedGraphLeg(seedCap);
 await runPaperFirstLeg(paperFirstCap);
@@ -742,7 +742,7 @@ function toPerson(candidate, bucket) {
 }
 
 // coverage 判断：只有"完全没召回到任何候选"才算 provider_failure。
-// 若稳健腿（种子/引用图/中国机构过滤）已产出候选，即便补充的 search 腿失败，也只是 partial。
+// 若稳健路（种子/引用图/中国机构过滤）已产出候选，即便补充的 search 路失败，也只是 partial。
 const coverage =
   candidatesByOpenAlexId.size === 0
     ? providerFailed
