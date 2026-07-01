@@ -292,28 +292,17 @@ function githubRecoveryHint(error) {
 	return "重试 GitHub API，或降低本轮搜索次数后重跑；不要仅为 GitHub token 改走 Sifta CLI";
 }
 
-const publicGeoPatterns = [
-	/china|china-based|china market|greater china|mainland china|chinese-language|中文|beijing|shanghai|shenzhen|hangzhou|guangzhou|hong kong|taiwan|taipei|tsinghua|peking university|zhejiang university|fudan|sjtu|ustc|hkust|cuhk|chinese academy|cas/i,
-	/tencent|alibaba|bytedance|baidu|meituan|xiaohongshu|pinduoduo|huawei|ant group|alipay|deepseek|qwen|zhipu|moonshot|minimax|sensetime|megvii/i,
-	/\.cn\b|\.com\.cn\b/i,
-];
+// 从 recall-config.json 编译；非穷尽的地域/公司信号正则种子，最终生态归属由宿主 Agent 依 rubric 判断。
+// Owner 可在 config 的 geoSignalPatterns 数组里增删条目，脚本无需改动。
+const publicGeoPatterns = (RECALL_CONFIG.geoSignalPatterns ?? []).map(
+	(pattern) => new RegExp(pattern, "iu"),
+);
 
-const chinaEcosystemRepoPatterns = [
-	/^QwenLM\//i,
-	/^modelscope\//i,
-	/^alibaba\//i,
-	/^infiniflow\//i,
-	/^eosphoros-ai\//i,
-	/^OpenBMB\//i,
-	/^THUDM\//i,
-	/^PaddlePaddle\//i,
-	/^Datawhalechina\//i,
-	/^InternLM\//i,
-	/^deepseek-ai\//i,
-	/^bytedance\//i,
-	/^lobehub\//i,
-	/^OpenManus\//i,
-];
+// 从 recall-config.json 编译；非穷尽的召回种子（性质等同论文 seed），最终生态归属由宿主 Agent 依 rubric 判断。
+// Owner 可在 config 的 ecosystemRepoPatterns 数组里增删条目，脚本无需改动。
+const chinaEcosystemRepoPatterns = (RECALL_CONFIG.ecosystemRepoPatterns ?? []).map(
+	(pattern) => new RegExp(pattern, "iu"),
+);
 
 // 注：原 engineeringKeywordPatterns（agent/runtime/MCP/RAG… 硬编码方向白名单）已删除。
 // "这个 repo 是不是目标工程方向"由 query 驱动的 repoMatchesDirection(coreTerms) 判断，
@@ -1097,6 +1086,22 @@ if (args.json) {
 				? "补 2-3 个核心 PR / commit、个人主页或 LinkedIn，再决定是否写低压触达草稿"
 				: "先核验个人资料、核心 PR / commit 和公开职业信号；达到候选门槛后再升级",
 		topRepos: (candidate.repos ?? []).slice(0, 3).map((r) => r.fullName),
+		// 原始地域字段：供宿主 Agent 依 rubric 判断清单外的新中国机构/公司，不依赖脚本正则结论。
+		// 只含公开 profile 字段（GitHub 公开数据），守隐私红线：不含私人邮箱/手机，不推断求职意愿。
+		rawGeoFields: {
+			location: candidate.location || null,
+			company: candidate.company || null,
+			bio: candidate.bio || null,
+			blog: candidate.blog || null,
+			// 候选人贡献过的 repo 的 org/user owner（去重），供 Agent 核查清单外的新中国生态机构。
+			contributedRepoOwners: [
+				...new Set(
+					(candidate.repos ?? [])
+						.map((r) => r.fullName?.split("/")[0])
+						.filter(Boolean),
+				),
+			].slice(0, 8),
+		},
 	});
 	const proposal = {
 		query,

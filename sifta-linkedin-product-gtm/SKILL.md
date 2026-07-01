@@ -29,6 +29,7 @@ description: >
 - 默认地域对找人入口是排序和核验偏置，对推荐人选是升级门槛；不凭姓名、照片或族裔推断。
 - 不推断搬迁、签证、薪资、触达意愿或求职意愿；founder/CEO/自营创业者默认按低可动性或顾问/引荐优先处理。
 - DevRel strong 必须有职业资料中的 DevRel/开发者生态/社区/开发者营销职责，并有开发者结果证据；只有 KOL、会议嘉宾或 GitHub org member 时默认 lead。
+- helper/connector 回传的 `functionCategory` / `careerStage` / `talentPool` 只是**后端关键词粗分类**（正则命中头衔文本，枚举不尽、跨语言会漏判、founder/benchmark 等词可能误分到"产业标杆池"）。**别直接采信这些标签**：拿候选人的原始 `headline` / `currentTitle` / `currentCompany` / `summary`，按 [角色证明标准](../sifta-search/references/role-fit-rubrics.md) 自己判职能族、角色契合、可动性和分桶；后端标签只作机械提示。同理"是否中国生态"以候选人声明的公司/地点原文为准，由你判断，别只信固定清单。
 - 人选名字必须是 Markdown 链接；产品、公司、文章、演讲、项目和社区证据放进“相关作品 / 证据”。
 
 ## 计划输出边界

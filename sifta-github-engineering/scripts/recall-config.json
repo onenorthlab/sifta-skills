@@ -211,5 +211,30 @@
 		"指南",
 		"links?",
 		"examples?$"
+	],
+
+	"_geoSignalPatternsDoc": "非穷尽的地域/公司信号正则种子（从 publicGeoPatterns 硬编码移入）。脚本用这些正则在候选公开声明的 location/company/bio/blog 字段中识别中国地域/机构/公司的客观信号；最终生态归属由宿主 Agent 依 rubric 判断——此列表会漏清单外新上线的机构和公司，需结合 rawGeoFields 原始字段人工/Agent 判断。",
+	"geoSignalPatterns": [
+		"china|china-based|china market|greater china|mainland china|chinese-language|中文|beijing|shanghai|shenzhen|hangzhou|guangzhou|hong kong|taiwan|taipei|tsinghua|peking university|zhejiang university|fudan|sjtu|ustc|hkust|cuhk|chinese academy|cas",
+		"tencent|alibaba|bytedance|baidu|meituan|xiaohongshu|pinduoduo|huawei|ant group|alipay|deepseek|qwen|zhipu|moonshot|minimax|sensetime|megvii",
+		"\\.cn\\b|\\.com\\.cn\\b"
+	],
+
+	"_ecosystemRepoPatternsDoc": "非穷尽的召回种子——已知中国开源生态 org/repo 前缀正则（从 chinaEcosystemRepoPatterns 硬编码移入）。性质等同论文 seed：仅用于 repoEcosystemEvidence() 识别贡献信号和 runRepositorySearch() 优先排序；不作最终生态归属判断。最终由宿主 Agent 依 rubric 判断，新机构/公司上线后会漏列，需结合 rawGeoFields.contributedRepoOwners 补充核查。",
+	"ecosystemRepoPatterns": [
+		"^QwenLM/",
+		"^modelscope/",
+		"^alibaba/",
+		"^infiniflow/",
+		"^eosphoros-ai/",
+		"^OpenBMB/",
+		"^THUDM/",
+		"^PaddlePaddle/",
+		"^Datawhalechina/",
+		"^InternLM/",
+		"^deepseek-ai/",
+		"^bytedance/",
+		"^lobehub/",
+		"^OpenManus/"
 	]
 }
