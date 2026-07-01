@@ -1,0 +1,41 @@
+{
+  "_doc": "四画像真实招聘 brief，用于端到端质量基线。每条给宿主 Agent 一个真实需求，让它按 skill 入口跑完整寻访。geo 默认中国优先。评分见 rubric.md。",
+  "briefs": [
+    {
+      "id": "eng-llm-infra",
+      "persona": "工程（大模型工程师 / infra）",
+      "skill": "sifta-github-engineering",
+      "brief": "为一家做 AI Agent 产品的公司招 1-2 名 LLM 推理优化工程师，方向是高吞吐推理 / vLLM / SGLang / 量化部署。要能拿到具体真人 + 公开工程作品。",
+      "geo": "中国/中文生态优先",
+      "targetCount": 2,
+      "judgeNotes": "目标是真在做推理引擎/kernel/serving 的人，不是泛 LLM 应用开发者；HF task 路径可用 text-generation 头部模型作者或 GitHub vllm/sglang 贡献者。"
+    },
+    {
+      "id": "research-multimodal",
+      "persona": "学术（研究员 / 研究工程师）",
+      "skill": "sifta-academic-graph",
+      "brief": "为大模型团队招 1-2 名多模态 / 视觉语言（VLM）方向的年轻研究员或研究工程师，最好有顶会一作或知名开源实现。",
+      "geo": "中国/中文生态优先",
+      "targetCount": 2,
+      "judgeNotes": "要年轻高潜全职梯队（一作/共同一作/核心实现），不是资深 PI（PI 进顾问/标杆池）；注意 OpenAlex 中文消歧噪声，需交叉核验身份。"
+    },
+    {
+      "id": "gtm-ai-startup",
+      "persona": "GTM（增长 / 商业化）",
+      "skill": "sifta-linkedin-product-gtm",
+      "brief": "为一家 AI 视频生成创业公司招 1 名增长 / GTM 负责人，要有 AI 或消费级产品的增长操盘经验。",
+      "geo": "中国/中文生态优先",
+      "targetCount": 1,
+      "judgeNotes": "要具名的增长/GTM 负责人（非创始人），有可核验的增长履历；单源领英需注意封顶产业标杆池、不推断联系方式。"
+    },
+    {
+      "id": "founder-ai-coding",
+      "persona": "创始人 / 超级个体",
+      "skill": "sifta-search",
+      "brief": "盘点 1-2 名 AI Coding / Agent 方向有创业潜质的技术型创始人或超级个体（已创业或明显在独立做出圈项目）。",
+      "geo": "中国/中文生态优先",
+      "targetCount": 2,
+      "judgeNotes": "自营创业者默认降级为顾问/引荐/标杆，不当可招候选；要有出圈作品/影响力的可核验证据。"
+    }
+  ]
+}
