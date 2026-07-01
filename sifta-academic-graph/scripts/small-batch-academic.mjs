@@ -580,31 +580,37 @@ async function runSeedGraphLeg(cap) {
     // 纯 filter=cites（引用图），不用 search=——OpenAlex 的 search 全文端点不稳（Cloudflare
     // 挑战 / 服务端 query_timeout），而引用图是老板方法的稳健主路径，直连即通。
     const shortId = String(seedWork.id).replace(/^https?:\/\/openalex\.org\//i, "");
+    // 引用图两腿都加 AI 子领域过滤 + 按引用量排序（不是发表时间）。实测教训（量化验证）：
+    //   - 只按 country_code 不加子领域过滤 → 引用标杆的医学/农业等"应用论文"作者大量涌入，噪声高；
+    //   - 按 publication_date 排序 → 近期应用论文压过核心方法后续研究，方向精度掉；
+    //   - 单腿吃满预算 → 另一腿不执行。故：两腿都加子领域过滤 + cited_by_count 排序（取有影响力
+    //     的后续方法工作，其一作/通讯更可能是核心方向研究者）+ 给中国腿封一个配额上限，留预算给全球腿。
+    const cnTarget = Math.max(args.targetCount * 2, Math.floor(cap * 0.6));
 
-    // 2a) 中国机构引用图邻居（中国优先，先跑）：direction 由种子保证 + 中国由 country_code
-    // 过滤，纯 filter。等价于"引用了该标杆、且作者在中国机构的人"，直连稳过。
-    if (!timeBudgetExceeded() && hydratedAuthorIds.size < cap) {
+    // 2a) 中国机构引用图邻居（中国优先，先跑，配额封顶 cnTarget）：direction 由种子保证
+    // + 中国由 country_code 过滤 + AI 子领域过滤挡掉应用域噪声，纯 filter，直连稳过。
+    if (!timeBudgetExceeded() && hydratedAuthorIds.size < cnTarget) {
       const citingCn = await openAlexJson("works", {
-        filter: `cites:${shortId},authorships.institutions.country_code:cn|hk|tw`,
-        sort: "publication_date:desc",
+        filter: `cites:${shortId},authorships.institutions.country_code:cn|hk|tw,${OPENALEX_AI_SUBFIELD_FILTER}`,
+        sort: "cited_by_count:desc",
         per_page: args.worksPerQuery,
       });
-      recallPaths.push(`OpenAlex graph-neighbor[cites:${shortId} + CN机构]`);
+      recallPaths.push(`OpenAlex graph-neighbor[cites:${shortId} + CN机构 + AI子域]`);
       if (citingCn?.error) providerFailed = true;
       for (const work of citingCn?.results ?? []) {
-        if (timeBudgetExceeded() || hydratedAuthorIds.size >= cap) break;
-        await processWorkAuthors(work, cap, `中国机构引用标杆「${seedTitle.slice(0, 30)}」`);
+        if (timeBudgetExceeded() || hydratedAuthorIds.size >= cnTarget) break;
+        await processWorkAuthors(work, cnTarget, `中国机构引用标杆「${seedTitle.slice(0, 30)}」`);
       }
     }
 
-    // 2b) 全球引用图邻居（补充，近期优先，发现年轻高潜）
+    // 2b) 全球引用图邻居（补充核心方向研究者，用满剩余预算）：有影响力的后续方法工作。
     if (!timeBudgetExceeded() && hydratedAuthorIds.size < cap) {
       const citing = await openAlexJson("works", {
         filter: `cites:${shortId},${OPENALEX_AI_SUBFIELD_FILTER}`,
-        sort: "publication_date:desc",
+        sort: "cited_by_count:desc",
         per_page: args.worksPerQuery,
       });
-      recallPaths.push(`OpenAlex graph-neighbor[cites:${shortId}]`);
+      recallPaths.push(`OpenAlex graph-neighbor[cites:${shortId} + AI子域]`);
       if (citing?.error) providerFailed = true;
       for (const work of citing?.results ?? []) {
         if (timeBudgetExceeded() || hydratedAuthorIds.size >= cap) break;
