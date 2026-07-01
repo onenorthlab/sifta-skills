@@ -315,19 +315,9 @@ const chinaEcosystemRepoPatterns = [
 	/^OpenManus\//i,
 ];
 
-const engineeringKeywordPatterns = [
-	/agent/i,
-	/runtime/i,
-	/tool calling/i,
-	/\bMCP\b/i,
-	/function calling/i,
-	/RAG/i,
-	/evaluation/i,
-	/observability/i,
-	/LLM/i,
-	/inference/i,
-	/workflow/i,
-];
+// 注：原 engineeringKeywordPatterns（agent/runtime/MCP/RAG… 硬编码方向白名单）已删除。
+// "这个 repo 是不是目标工程方向"由 query 驱动的 repoMatchesDirection(coreTerms) 判断，
+// 方向白名单枚举不尽（robotics/VLA/新框架层出不穷），会误过滤也会漏，不该写死在脚本里。
 
 // 弱目录正则来自 recall-config.json（Owner 可调），从字符串编译。
 const weakDirectoryRepoPatterns = (RECALL_CONFIG.weakDirectoryPatterns ?? []).map(
@@ -410,23 +400,11 @@ function repoCandidateEcosystemEvidence(repo, contributionCount, isPrAuthor) {
 	};
 }
 
-function repoEngineeringEvidence(repo) {
-	const text = [
-		repo.full_name,
-		repo.description,
-		Array.isArray(repo.topics) ? repo.topics.join(" ") : "",
-	]
-		.filter(Boolean)
-		.join(" ");
-	return engineeringKeywordPatterns.some((pattern) => pattern.test(text));
-}
 
 function userRepoEngineeringEvidence(repositories, coreTermsList = []) {
 	return repositories
 		.filter((repo) => !isWeakDirectoryRepo(repo))
-		.filter(
-			(repo) => repoEngineeringEvidence(repo) || repoMatchesDirection(repo, coreTermsList),
-		)
+		.filter((repo) => repoMatchesDirection(repo, coreTermsList))
 		.slice(0, 3)
 		.map((repo) => {
 			const stars = Number.isFinite(repo.stargazers_count)
@@ -514,18 +492,21 @@ const seen = new Set();
 const recallPaths = [];
 
 function queryFocusTerms(value) {
-	// 优先用真实核心词；engineering 白名单只作补充信号，不作过滤门。
+	// 纯 query 驱动：取用户 query 的核心词；query 退化到没有实词时退回清洗后的原始分词，
+	// 而不是套一张 engineering 关键词白名单（那会把方向绑死在 agent/MCP 等固定词上）。
 	const core = coreQueryTerms(value);
 	if (core.length) return core;
 	return cleanSearchQuery(value)
 		.split(/\s+/u)
-		.filter((term) => engineeringKeywordPatterns.some((pattern) => pattern.test(term)))
+		.filter((term) => term.length >= 3)
 		.map((term) => term.toLowerCase());
 }
 
-// repo 是否与 query 方向相关：命中任一核心词，或命中 engineering 白名单（补充）。
-// 替代 repoEngineeringEvidence 作为召回门，避免把 robotics / VLA / 非 agent 域 repo 误过滤。
+// repo 是否与 query 方向相关：命中用户 query 的任一核心词即算相关。
+// 纯 query 驱动，不套 engineering 白名单——方向由用户 query 定义，脚本不预设是 agent 还是 robotics。
+// coreTermsList 为空（query 退化）时不过滤，避免误杀（宁可多召回、由 Agent 判方向）。
 function repoMatchesDirection(repo, coreTermsList) {
+	if (!coreTermsList.length) return true;
 	const text = [
 		repo.full_name,
 		repo.name,
@@ -535,8 +516,7 @@ function repoMatchesDirection(repo, coreTermsList) {
 		.filter(Boolean)
 		.join(" ")
 		.toLowerCase();
-	if (coreTermsList.some((term) => text.includes(term))) return true;
-	return engineeringKeywordPatterns.some((pattern) => pattern.test(text));
+	return coreTermsList.some((term) => text.includes(term));
 }
 
 function repositorySearchQueries(value) {
