@@ -13,9 +13,9 @@
  * "是不是核心工程师 vs 一次性 contributor、方向对不对、是否中国生态、可招性"是语义判断，
  * 全部交宿主 Agent 依 rubric 判。输出每个候选带 needsAgentJudgment 明列待判项。
  *
- * 网络：HF 直连常被重置(http=000)，需走代理。用环境变量跑：
- *   NODE_USE_ENV_PROXY=1 HTTPS_PROXY=http://127.0.0.1:7890 node small-batch-hf.mjs ...
- * （与 OpenAlex 学术脚本相反——那个要直连；HF 要代理。）
+ * 网络：默认直连 huggingface.co 即可。少数网络环境下直连会被重置(连接失败/候选为 0)，
+ *   此时用运行者自己的代理跑（脚本走环境变量、不写死地址）：
+ *   NODE_USE_ENV_PROXY=1 HTTPS_PROXY=<你的代理地址> node small-batch-hf.mjs ...
  *
  * 隐私硬门：只取公开职业字段(真名/组织/论文数/关注数/公开简介/HF 主页 URL)；
  * 不查私人邮箱/电话，不推断求职意愿/可招性(hireability 交 Agent 判)。

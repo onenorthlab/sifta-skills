@@ -45,9 +45,13 @@ description: >
 当目标是**大模型工程师 / 研究工程师**（尤其中国生态 Qwen/DeepSeek/GLM/InternLM 等团队核心）时，GitHub 之外多一条更干净的渠道：`scripts/small-batch-hf.mjs`。链路是 `中国 AI 组织种子 → 热门模型 → 模型 commit 作者(真正 push 模型的人) → HF 个人资料`。它的身份是真人自维护、**零同名合并噪声**，实测能直接召回 An Yang(Qwen)、Damai Dai(DeepSeek MoE)、Haoran Wei(DeepSeek-OCR) 这类核心工程师。
 
 ```bash
-# HF 直连常被重置，必须走代理（与 OpenAlex 学术脚本相反）
-NODE_USE_ENV_PROXY=1 HTTPS_PROXY=http://127.0.0.1:7890 \
-  node scripts/small-batch-hf.mjs --seed Qwen --seed deepseek-ai --max-authors 20 --json
+node scripts/small-batch-hf.mjs --seed Qwen --seed deepseek-ai --max-authors 20 --json
+```
+
+网络提示：默认直连 HuggingFace 即可；少数网络环境下直连 `huggingface.co` 会被重置（表现为连接失败/超时、候选为 0）。遇到这种情况，用你自己的 HTTP 代理跑即可，脚本会自动走环境变量里的代理，不写死任何地址：
+
+```bash
+NODE_USE_ENV_PROXY=1 HTTPS_PROXY=<你的代理地址> node scripts/small-batch-hf.mjs --seed Qwen --json
 ```
 
 与其它 helper 同构：脚本只做确定性召回 + 客观量级粗排（论文数/关注数/贡献模型下载量），`roughBand` 非权威；`needsAgentJudgment` 明列你要判的项——核心工程师 vs 一次性 contributor、方向契合、是否中国生态、可招性。HF 单源封顶 `lead`，需交叉 GitHub/主页/论文核验身份与贡献深度才升级。约一半候选只有用户名+组织（HF 用户名常等于 GitHub 用户名，可直接交叉）。
@@ -58,7 +62,7 @@ NODE_USE_ENV_PROXY=1 HTTPS_PROXY=http://127.0.0.1:7890 \
 | --- | --- |
 | [共享执行门](../sifta-search/references/shared-gates.md) | 执行/计划/硬停止、默认地域、helper 停止、过程隐藏 |
 | [小批量辅助脚本](scripts/small-batch-github.mjs) | 用户只要 1-3 个 GitHub 强线索 |
-| [HF 模型作者召回](scripts/small-batch-hf.mjs) | 找大模型工程师（中国 Qwen/DeepSeek/GLM 等团队核心，干净身份、无消歧噪声，走代理） |
+| [HF 模型作者召回](scripts/small-batch-hf.mjs) | 找大模型工程师（中国 Qwen/DeepSeek/GLM 等团队核心，干净身份、无消歧噪声；直连不通时可用自有代理） |
 | [召回/排序调参](../sifta-search/references/recall-tuning.md) | 调概念词对、location 偏置、证据/地域权重 |
 | [执行预算](../sifta-search/references/execution-budget.md) | 控制实时命令、延迟和 helper 后停止 |
 | [CLI 合同](../sifta-search/references/cli-reference.md) | auth/status/schema 或调用轨迹 |
