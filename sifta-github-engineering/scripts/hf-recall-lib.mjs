@@ -16,9 +16,8 @@ export function scoreHfContributor(c) {
   if (papers >= 10) { strength += 2; signals.push("papers:10+"); }
   else if (papers >= 1) { strength += 1; signals.push("papers:1+"); }
 
-  const followers = c.numFollowers ?? 0;
-  if (followers >= 1000) { strength += 2; signals.push("followers:1000+"); }
-  else if (followers >= 100) { strength += 1; signals.push("followers:100+"); }
+  // 注意：不把 numFollowers 计入强度——关注数奖励的是平台名气(HF DevRel/网红关注数极高)，
+  // 与"是不是实验室核心工程师"无关，会把 HF 平台员工顶到高档。关注数只作为原始字段 emit 供 Agent 参考。
 
   // 贡献到的种子模型总下载量：贡献到高影响力模型是强工程信号（客观量级）。
   const dl = (c.contributedModels ?? []).reduce((s, m) => s + (m.downloads ?? 0), 0);
@@ -45,4 +44,11 @@ export function isOrgOrBot(username, orgSeeds = []) {
   if (!u) return true;
   if (/\bbot\b|-bot$|\[bot\]|^system$|^admin$/u.test(u)) return true;
   return orgSeeds.some((o) => String(o).toLowerCase() === u);
+}
+
+// HF 平台运营人员（huggingface 官方 org 成员）会因维护/curation 提交出现在大量模型的 commit 里，
+// 但他们是平台方、不是实验室招聘目标。这是客观的"平台角色"事实(等同 bot 过滤)，不是人才判断。
+const HF_PLATFORM_ORGS = new Set(["huggingface", "huggingface-course", "hf-internal-testing", "evaluate-metric"]);
+export function isPlatformStaff(orgs = []) {
+  return (orgs || []).some((o) => HF_PLATFORM_ORGS.has(String(o).toLowerCase()));
 }

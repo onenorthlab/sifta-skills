@@ -42,19 +42,23 @@ description: >
 
 ### HuggingFace 模型作者召回（大模型工程师专用干净渠道）
 
-当目标是**大模型工程师 / 研究工程师**（尤其中国生态 Qwen/DeepSeek/GLM/InternLM 等团队核心）时，GitHub 之外多一条更干净的渠道：`scripts/small-batch-hf.mjs`。链路是 `中国 AI 组织种子 → 热门模型 → 模型 commit 作者(真正 push 模型的人) → HF 个人资料`。它的身份是真人自维护、**零同名合并噪声**，实测能直接召回 An Yang(Qwen)、Damai Dai(DeepSeek MoE)、Haoran Wei(DeepSeek-OCR) 这类核心工程师。
+当目标是**大模型工程师 / 研究工程师**（尤其中国生态）时，GitHub 之外多一条更干净的渠道：`scripts/small-batch-hf.mjs`。链路是 `模型(按下载排序) → 模型 commit 作者(真正 push 模型的人) → HF 个人资料`。身份真人自维护、**零同名合并噪声**，实测能直接召回 An Yang(Qwen)、Damai Dai(DeepSeek MoE)、Haoran Wei(DeepSeek-OCR) 这类核心工程师。
+
+**方向由你(Agent)给，脚本不内置固定 org 全集**——写死一个 org 列表会成为召回天花板，新公司/冷门实验室/个人就永远捞不到。按目标画像给方向，两种入口可单用或组合：
+
+- `--task <hf-pipeline-tag>`：按 HF 标准 task 标签跨全站召回 top 模型的作者，**不依赖任何 org 列表**，能捞到任意 org 在该方向的领先团队。tag 用 HF pipeline_tag，如 `text-generation`(LLM)、`image-text-to-text`(多模态/VLM)、`automatic-speech-recognition`(语音)、`text-to-image`、`feature-extraction`(embedding)。这是**首选**，因为它由方向驱动、覆盖不设限。
+- `--seed <org>`：针对你依目标判断出的具名团队召回。org 由你按画像决定——**下面这些只是示例起点、绝非全集**，你必须按具体方向补上新公司、冷门实验室、以及非中国团队（若用户放宽地域）：`Qwen deepseek-ai zai-org(GLM) moonshotai(Kimi) MiniMaxAI stepfun-ai internlm Skywork BAAI m-a-p inclusionAI(蚂蚁) ByteDance-Seed baichuan-inc 01-ai`。
 
 ```bash
-node scripts/small-batch-hf.mjs --seed Qwen --seed deepseek-ai --max-authors 20 --json
+# 按方向跨全站（首选）
+node scripts/small-batch-hf.mjs --task text-generation --task image-text-to-text --json
+# 或针对你判断出的具名团队（含你自己补的新公司）
+node scripts/small-batch-hf.mjs --seed Qwen --seed <你按画像补的新团队> --max-authors 20 --json
 ```
 
-网络提示：默认直连 HuggingFace 即可；少数网络环境下直连 `huggingface.co` 会被重置（表现为连接失败/超时、候选为 0）。遇到这种情况，用你自己的 HTTP 代理跑即可，脚本会自动走环境变量里的代理，不写死任何地址：
+网络提示：默认直连 HuggingFace 即可；少数网络环境下直连 `huggingface.co` 会被重置（连接失败/候选为 0）。此时用你自己的 HTTP 代理跑，脚本走环境变量、不写死地址：`NODE_USE_ENV_PROXY=1 HTTPS_PROXY=<你的代理地址> node scripts/small-batch-hf.mjs ...`。
 
-```bash
-NODE_USE_ENV_PROXY=1 HTTPS_PROXY=<你的代理地址> node scripts/small-batch-hf.mjs --seed Qwen --json
-```
-
-与其它 helper 同构：脚本只做确定性召回 + 客观量级粗排（论文数/关注数/贡献模型下载量），`roughBand` 非权威；`needsAgentJudgment` 明列你要判的项——核心工程师 vs 一次性 contributor、方向契合、是否中国生态、可招性。HF 单源封顶 `lead`，需交叉 GitHub/主页/论文核验身份与贡献深度才升级。约一半候选只有用户名+组织（HF 用户名常等于 GitHub 用户名，可直接交叉）。
+与其它 helper 同构：脚本只做确定性召回 + 客观量级粗排（论文数/贡献模型下载量；**不含关注数**——关注数是平台名气、与工程能力无关），`roughBand` 非权威；`needsAgentJudgment` 明列你要判的项——核心工程师 vs 一次性 contributor、方向契合、是否中国生态、可招性。HF 单源封顶 `lead`，需交叉 GitHub/主页/论文核验身份与贡献深度才升级。约一半候选只有用户名+组织（HF 用户名常等于 GitHub 用户名，可直接交叉）。
 
 ## 参考
 

@@ -3,11 +3,17 @@
  * small-batch-hf.mjs —— HuggingFace 模型作者的程序化召回（无需 key）。
  *
  * 用途：给"大模型工程师 / 研究工程师"画像补一条干净召回渠道。链路：
- *   中国 AI 组织种子 → 该组织按下载排序的热门模型 → 模型 commit 作者(真正 push 模型的人)
- *   → HF 个人资料(真名/组织/论文数/关注数/简介) → 去重 + 客观粗排 → proposal。
+ *   模型（按下载排序）→ 模型 commit 作者(真正 push 模型的人) → HF 个人资料 → 去重 + 客观粗排。
+ * HF 的身份是真人自维护、零同名合并噪声，拿到的是"实际提交了某模型的工程师"这种强信号候选。
  *
- * 为什么用它：HF 的身份是真人自己维护、零同名合并噪声（对比 OpenAlex author 把 Cheng Chi
- * 合并进地质）。拿到的是"实际提交了 Qwen/DeepSeek 模型的工程师"这种强信号候选。
+ * 方向由调用方(宿主 Agent)给，脚本不内置任何固定 org 全集——固定列表会成为召回天花板，
+ * 不在列表里的新公司/冷门实验室/个人永远捞不到。两种方向入口，按目标画像给一个或都给：
+ *   --seed <org>   针对具名团队召回（Agent 依目标决定找哪些 org，含新创业公司/冷门实验室）
+ *   --task <tag>   按 HF 标准 task 标签跨全站召回 top 模型的作者（不依赖任何 org 列表，
+ *                  能捞到任意 org 在该方向的领先团队）。tag 用 HF pipeline_tag，如
+ *                  text-generation / image-text-to-text / automatic-speech-recognition /
+ *                  text-to-image / feature-extraction 等。
+ * 至少给一个 --seed 或 --task；都不给时脚本不臆造全集，直接提示调用方按目标补方向。
  *
  * 分工（与 academic/github 同构的铁律）：脚本只做确定性召回 + 客观量级粗排；
  * "是不是核心工程师 vs 一次性 contributor、方向对不对、是否中国生态、可招性"是语义判断，
@@ -21,17 +27,10 @@
  * 不查私人邮箱/电话，不推断求职意愿/可招性(hireability 交 Agent 判)。
  *
  * 用法：
- *   node small-batch-hf.mjs --query "llm inference engineer" --target-count 6
- *   node small-batch-hf.mjs --seed Qwen --seed deepseek-ai --max-authors 30 --json
+ *   node small-batch-hf.mjs --seed Qwen --seed deepseek-ai --max-authors 20 --json
+ *   node small-batch-hf.mjs --task text-generation --task image-text-to-text --json
  */
-import { scoreHfContributor, isOrgOrBot } from "./hf-recall-lib.mjs";
-
-// 非穷尽的中国 AI 组织召回种子（"去哪找"的入口，Owner 可用 --seed 覆盖/补充，不是判断表）。
-const DEFAULT_ORG_SEEDS = [
-  "Qwen", "deepseek-ai", "THUDM", "internlm", "01-ai", "baichuan-inc",
-  "OpenBMB", "BAAI", "m-a-p", "Skywork", "MiniMaxAI", "opencompass",
-  "IDEA-CCNL", "Shanghai-AI-Laboratory",
-];
+import { scoreHfContributor, isOrgOrBot, isPlatformStaff } from "./hf-recall-lib.mjs";
 
 const HF_BASE = "https://huggingface.co/api";
 const HF_TIMEOUT_MS = 15000;
@@ -40,9 +39,11 @@ function parseArgs(argv) {
   const args = {
     query: "",
     seeds: [],
+    tasks: [],
     targetCount: 6,
     maxAuthors: 30,
-    modelsPerOrg: 3,
+    authorsPerSource: 5, // 每个 org/task 最多取几个候选，保证跨来源广度（头部大来源不吃满预算）
+    modelsPerSource: 3,
     commitsPerModel: 20,
     maxElapsedMs: 55000,
     json: false,
@@ -52,9 +53,11 @@ function parseArgs(argv) {
     const next = () => argv[(i += 1)];
     if (a === "--query") args.query = next() ?? "";
     else if (a === "--seed") args.seeds.push(next());
+    else if (a === "--task") args.tasks.push(next());
     else if (a === "--target-count") args.targetCount = Number(next()) || args.targetCount;
     else if (a === "--max-authors") args.maxAuthors = Number(next()) || args.maxAuthors;
-    else if (a === "--models-per-org") args.modelsPerOrg = Number(next()) || args.modelsPerOrg;
+    else if (a === "--authors-per-source") args.authorsPerSource = Number(next()) || args.authorsPerSource;
+    else if (a === "--models-per-source") args.modelsPerSource = Number(next()) || args.modelsPerSource;
     else if (a === "--commits-per-model") args.commitsPerModel = Number(next()) || args.commitsPerModel;
     else if (a === "--max-elapsed-ms") args.maxElapsedMs = Number(next()) || args.maxElapsedMs;
     else if (a === "--json") args.json = true;
@@ -63,7 +66,6 @@ function parseArgs(argv) {
 }
 
 const args = parseArgs(process.argv);
-const orgSeeds = args.seeds.length ? args.seeds : DEFAULT_ORG_SEEDS;
 const startedAt = Date.now();
 const timeLeft = () => args.maxElapsedMs - (Date.now() - startedAt);
 const outOfTime = () => timeLeft() <= 2000;
@@ -105,34 +107,29 @@ async function upsertUser(username, model) {
   if (existing) {
     if (!existing.contributedModels.some((m) => m.id === model.id)) existing.contributedModels.push(model);
     applyScore(existing);
-    return;
+    return existing;
   }
-  if (isOrgOrBot(username, orgSeeds)) return;
-  if (candidatesByUser.size >= args.maxAuthors || outOfTime()) return;
+  if (isOrgOrBot(username, args.seeds)) return null;
+  if (candidatesByUser.size >= args.maxAuthors || outOfTime()) return null;
 
   const ov = await hfJson(`users/${encodeURIComponent(username)}/overview`);
   if (ov?.__error || !ov) {
     // 资料拉取失败也保留最小候选（仍是真实提交者），身份待 Agent 核验。
     const minimal = {
-      hfUsername: username,
-      fullName: null,
-      orgs: [],
-      numModels: 0,
-      numPapers: 0,
-      numFollowers: 0,
-      numUpvotes: 0,
-      bio: null,
-      profileUrl: `https://huggingface.co/${username}`,
-      contributedModels: [model],
+      hfUsername: username, fullName: null, orgs: [], numModels: 0, numPapers: 0,
+      numFollowers: 0, numUpvotes: 0, bio: null,
+      profileUrl: `https://huggingface.co/${username}`, contributedModels: [model],
     };
     applyScore(minimal);
     candidatesByUser.set(username, minimal);
-    return;
+    return minimal;
   }
+  const orgs = (ov.orgs || []).map((o) => o.name).filter(Boolean);
+  if (isPlatformStaff(orgs)) return null; // HF 平台运营方，非实验室招聘目标（客观角色，非人才判断）
   const c = {
     hfUsername: username,
     fullName: ov.fullname || null,
-    orgs: (ov.orgs || []).map((o) => o.name).filter(Boolean),
+    orgs,
     numModels: ov.numModels || 0,
     numPapers: ov.numPapers || 0,
     numFollowers: ov.numFollowers || 0,
@@ -143,22 +140,16 @@ async function upsertUser(username, model) {
   };
   applyScore(c);
   candidatesByUser.set(username, c);
+  return c;
 }
 
-async function processOrg(org) {
-  if (outOfTime()) return;
-  const models = await hfJson(
-    `models?author=${encodeURIComponent(org)}&sort=downloads&direction=-1&limit=${args.modelsPerOrg}&full=false`,
-  );
-  if (models?.__error) {
-    providerFailed = true;
-    recallPaths.push(`HF org ${org}: 拉取失败 ${models.__error}`);
-    return;
-  }
+// 从一批模型里走 commit 作者 → 候选；perSource 控制单来源最多取多少人，保证跨来源广度。
+async function consumeModels(models, sourceLabel) {
   const list = Array.isArray(models) ? models : [];
-  recallPaths.push(`HF org ${org}: ${list.length} 个热门模型`);
+  recallPaths.push(`${sourceLabel}: ${list.length} 个热门模型`);
+  let takenFromSource = 0;
   for (const m of list) {
-    if (outOfTime() || candidatesByUser.size >= args.maxAuthors) break;
+    if (outOfTime() || candidatesByUser.size >= args.maxAuthors || takenFromSource >= args.authorsPerSource) break;
     // m.id 形如 owner/model，斜杠不能 url-encode（HF 会 400），其余保持原样。
     const commits = await hfJson(`models/${m.id}/commits/main`);
     if (commits?.__error) {
@@ -169,12 +160,39 @@ async function processOrg(org) {
     for (const commit of (Array.isArray(commits) ? commits : []).slice(0, args.commitsPerModel)) {
       for (const a of commit.authors || []) if (a.user) authors.add(a.user);
     }
-    const model = { id: m.id, downloads: m.downloads || 0, likes: m.likes || 0, org };
+    const model = { id: m.id, downloads: m.downloads || 0, likes: m.likes || 0, source: sourceLabel };
     for (const u of authors) {
-      if (outOfTime() || candidatesByUser.size >= args.maxAuthors) break;
-      await upsertUser(u, model);
+      if (outOfTime() || candidatesByUser.size >= args.maxAuthors || takenFromSource >= args.authorsPerSource) break;
+      const added = await upsertUser(u, model);
+      if (added) takenFromSource += 1;
     }
   }
+}
+
+async function processOrg(org) {
+  if (outOfTime()) return;
+  const models = await hfJson(
+    `models?author=${encodeURIComponent(org)}&sort=downloads&direction=-1&limit=${args.modelsPerSource}&full=false`,
+  );
+  if (models?.__error) {
+    providerFailed = true;
+    recallPaths.push(`org ${org}: 拉取失败 ${models.__error}`);
+    return;
+  }
+  await consumeModels(models, `org ${org}`);
+}
+
+async function processTask(tag) {
+  if (outOfTime()) return;
+  const models = await hfJson(
+    `models?pipeline_tag=${encodeURIComponent(tag)}&sort=downloads&direction=-1&limit=${args.modelsPerSource}&full=false`,
+  );
+  if (models?.__error) {
+    providerFailed = true;
+    recallPaths.push(`task ${tag}: 拉取失败 ${models.__error}`);
+    return;
+  }
+  await consumeModels(models, `task ${tag}`);
 }
 
 function toPerson(c) {
@@ -187,7 +205,7 @@ function toPerson(c) {
     numPapers: c.numPapers,
     numFollowers: c.numFollowers,
     bio: c.bio,
-    contributedModels: topModels.map((m) => ({ id: m.id, downloads: m.downloads, org: m.org })),
+    contributedModels: topModels.map((m) => ({ id: m.id, downloads: m.downloads, source: m.source })),
     // 非权威机械粗排——只按客观量级，别当最终档位。
     roughBand: c.roughBand,
     signals: c.signals,
@@ -200,12 +218,8 @@ function toPerson(c) {
       c.fullName ? "身份已有真名，仍需交叉 GitHub/主页核验" : "仅 HF 用户名，需交叉 GitHub/主页补全身份",
     ],
     rawFields: {
-      hfUsername: c.hfUsername,
-      fullName: c.fullName,
-      orgs: c.orgs,
-      numModels: c.numModels,
-      numPapers: c.numPapers,
-      numFollowers: c.numFollowers,
+      hfUsername: c.hfUsername, fullName: c.fullName, orgs: c.orgs,
+      numModels: c.numModels, numPapers: c.numPapers, numFollowers: c.numFollowers,
       profileUrl: c.profileUrl,
     },
     // HF 单源封顶 soft：身份需跨源(GitHub/论文)交叉核验才升级。
@@ -214,10 +228,34 @@ function toPerson(c) {
   };
 }
 
+function emitGuidance() {
+  const guidance = {
+    source: "huggingface",
+    coverage: "no_direction",
+    people: [],
+    leadPeople: [],
+    note:
+      "未给召回方向。脚本不内置固定 org 全集（会成为召回天花板）。请按目标画像给方向：" +
+      "--seed <org>（具名团队，Agent 依目标决定，含新公司/冷门实验室）和/或 " +
+      "--task <hf-pipeline-tag>（跨全站按方向召回，如 text-generation / image-text-to-text / " +
+      "automatic-speech-recognition）。见 SKILL.md 的 HF 召回段。",
+  };
+  if (args.json) process.stdout.write(`${JSON.stringify(guidance, null, 2)}\n`);
+  else process.stdout.write(`\n${guidance.note}\n`);
+}
+
 async function main() {
-  for (const org of orgSeeds) {
+  if (!args.seeds.length && !args.tasks.length) {
+    emitGuidance();
+    return;
+  }
+  for (const org of args.seeds) {
     if (outOfTime() || candidatesByUser.size >= args.maxAuthors) break;
     await processOrg(org);
+  }
+  for (const tag of args.tasks) {
+    if (outOfTime() || candidatesByUser.size >= args.maxAuthors) break;
+    await processTask(tag);
   }
 
   const all = [...candidatesByUser.values()].sort((a, b) => b.score - a.score);
@@ -231,15 +269,16 @@ async function main() {
   const proposal = {
     source: "huggingface",
     query: args.query,
-    orgSeeds,
+    seedsGiven: args.seeds,
+    tasksGiven: args.tasks,
     coverage,
     providerFailed,
     totalCandidates: candidatesByUser.size,
     people,
     leadPeople,
     recallPaths,
-    legsCovered: ["hf-org-model-committers"],
-    note: "HF 模型作者召回：干净身份、零同名合并；候选最高 soft，需跨源核验。语义判级交 Agent。",
+    legsCovered: [...(args.seeds.length ? ["hf-org-committers"] : []), ...(args.tasks.length ? ["hf-task-committers"] : [])],
+    note: "HF 模型作者召回：干净身份、零同名合并；候选最高 soft，需跨源核验。方向由调用方给，语义判级交 Agent。",
   };
 
   if (args.json) {
