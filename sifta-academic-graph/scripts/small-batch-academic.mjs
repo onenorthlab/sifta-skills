@@ -576,23 +576,40 @@ async function runSeedGraphLeg(cap) {
     // 1) 种子论文自身作者（一作/通讯优先）
     await processWorkAuthors(seedWork, cap, `种子标杆：${seedTitle.slice(0, 50)}`);
 
-    // 2) 图邻居：引用该标杆的近期论文 → 年轻高潜作者
-    if (timeBudgetExceeded() || hydratedAuthorIds.size >= cap) continue;
+    // 2) 图邻居：引用该标杆的近期论文 → 年轻高潜作者。
+    // 纯 filter=cites（引用图），不用 search=——OpenAlex 的 search 全文端点不稳（Cloudflare
+    // 挑战 / 服务端 query_timeout），而引用图是老板方法的稳健主路径，直连即通。
     const shortId = String(seedWork.id).replace(/^https?:\/\/openalex\.org\//i, "");
-    const citing = await openAlexJson("works", {
-      filter: `cites:${shortId},${OPENALEX_AI_SUBFIELD_FILTER}`,
-      sort: "publication_date:desc",
-      per_page: args.worksPerQuery,
-    });
-    recallPaths.push(`OpenAlex graph-neighbor[cites:${shortId}]`);
-    if (citing?.error) {
-      providerFailed = true;
-      continue;
+
+    // 2a) 中国机构引用图邻居（中国优先，先跑）：direction 由种子保证 + 中国由 country_code
+    // 过滤，纯 filter。等价于"引用了该标杆、且作者在中国机构的人"，直连稳过。
+    if (!timeBudgetExceeded() && hydratedAuthorIds.size < cap) {
+      const citingCn = await openAlexJson("works", {
+        filter: `cites:${shortId},authorships.institutions.country_code:cn|hk|tw`,
+        sort: "publication_date:desc",
+        per_page: args.worksPerQuery,
+      });
+      recallPaths.push(`OpenAlex graph-neighbor[cites:${shortId} + CN机构]`);
+      if (citingCn?.error) providerFailed = true;
+      for (const work of citingCn?.results ?? []) {
+        if (timeBudgetExceeded() || hydratedAuthorIds.size >= cap) break;
+        await processWorkAuthors(work, cap, `中国机构引用标杆「${seedTitle.slice(0, 30)}」`);
+      }
     }
-    for (const work of citing?.results ?? []) {
-      if (timeBudgetExceeded()) break;
-      if (hydratedAuthorIds.size >= cap) break;
-      await processWorkAuthors(work, cap, `引用标杆「${seedTitle.slice(0, 40)}」`);
+
+    // 2b) 全球引用图邻居（补充，近期优先，发现年轻高潜）
+    if (!timeBudgetExceeded() && hydratedAuthorIds.size < cap) {
+      const citing = await openAlexJson("works", {
+        filter: `cites:${shortId},${OPENALEX_AI_SUBFIELD_FILTER}`,
+        sort: "publication_date:desc",
+        per_page: args.worksPerQuery,
+      });
+      recallPaths.push(`OpenAlex graph-neighbor[cites:${shortId}]`);
+      if (citing?.error) providerFailed = true;
+      for (const work of citing?.results ?? []) {
+        if (timeBudgetExceeded() || hydratedAuthorIds.size >= cap) break;
+        await processWorkAuthors(work, cap, `引用标杆「${seedTitle.slice(0, 40)}」`);
+      }
     }
   }
 }
@@ -602,8 +619,9 @@ async function runSeedGraphLeg(cap) {
 // 合并进同一 candidatesByOpenAlexId）
 // ─────────────────────────────────────────────────────────────────────────────
 
-// 种子腿预算：给到 maxAuthors 的 ~70%，把 hydrate 配额优先留给方向可靠的种子/图邻居。
-const seedCap = Math.max(args.targetCount * 3, Math.floor(args.maxAuthors * 0.7));
+// 种子腿预算：给到全部 maxAuthors。种子/引用图/中国机构过滤是稳健主路径（纯 filter，直连稳过），
+// 优先吃满配额；下面 search-based 的 paper/profile 腿只在还有余量时补充（且它们不稳，失败也不影响主结果）。
+const seedCap = args.maxAuthors;
 if (args.seeds.length) await runSeedGraphLeg(seedCap);
 await runPaperFirstLeg(paperFirstCap);
 await runProfileFirstLeg();
@@ -717,12 +735,15 @@ function toPerson(candidate, bucket) {
   };
 }
 
-// coverage 判断
+// coverage 判断：只有"完全没召回到任何候选"才算 provider_failure。
+// 若稳健腿（种子/引用图/中国机构过滤）已产出候选，即便补充的 search 腿失败，也只是 partial。
 const coverage =
-  timeBudgetHit
-    ? "partial"
-    : providerFailed
+  candidatesByOpenAlexId.size === 0
+    ? providerFailed
       ? "provider_failure"
+      : "partial"
+    : timeBudgetHit || providerFailed
+      ? "partial"
       : "pilot";
 
 const proposal = {
