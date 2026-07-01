@@ -1,7 +1,7 @@
 ---
 name: sifta-github-engineering
 metadata:
-    version: 0.0.10
+    version: 0.0.11
     tags: [sifta-search, recruiting, sourcing, github, engineering]
 description: >
     用于 AI 工程人选寻访，特别是用户要求 GitHub、开源证据、AI Agent、MCP、LLM infra、SDK、runtime、observability、RAG / embedding infra、仓库贡献者、包注册表或公开工程作品候选人时使用。用户只要 1-3 个强线索时，先用小批量辅助脚本；非招聘仓库调研、公司技术分析、KOL 合作、PM/GTM 或纯论文综述不要使用。

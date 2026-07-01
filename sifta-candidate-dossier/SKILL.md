@@ -1,7 +1,7 @@
 ---
 name: sifta-candidate-dossier
 metadata:
-    version: 0.0.10
+    version: 0.0.11
     tags: [sifta-search, recruiting, sourcing, dossier, verification]
 description: >
     用于已知候选人深挖、公开资料核验和候选人档案。用户给出候选人姓名、GitHub、LinkedIn、X、个人主页、论文作者、上一轮候选人或候选人 key，并希望查公开职业联系方式、经历、成就、论文、开源贡献、产品/GTM 成果或风险缺口时使用。不用于继续找新人、私人信息挖掘、背景调查、auth-gated 数据或自动触达。

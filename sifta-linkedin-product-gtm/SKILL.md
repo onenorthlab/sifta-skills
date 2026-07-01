@@ -1,7 +1,7 @@
 ---
 name: sifta-linkedin-product-gtm
 metadata:
-    version: 0.0.10
+    version: 0.0.11
     tags: [sifta-search, recruiting, sourcing, linkedin, product, gtm]
 description: >
     用于 AI 产品/GTM/增长/商业化/DevRel/合作伙伴拓展候选人、人选或人才寻访；用户表达“找能把产品、增长、商业化、开发者生态、中国市场或出海做起来的人”时使用。明确不找候选人的公司研究、市场分析、岗位说明、销售线索、KOL 合作不要使用；要求私人邮箱、手机号、自动发送或批量外联时硬停止。

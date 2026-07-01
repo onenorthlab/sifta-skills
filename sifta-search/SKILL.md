@@ -1,7 +1,7 @@
 ---
 name: sifta-search
 metadata:
-    version: 0.0.10
+    version: 0.0.11
     tags: [sifta-search, recruiting, sourcing, candidates]
 description: >
     AI/前沿科技招聘寻访的总控入口。用户要新找候选人、人才、强人、创始人型/超级个体、工程师、
