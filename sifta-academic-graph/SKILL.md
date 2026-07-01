@@ -31,6 +31,21 @@ paper-first 必须走 `paper -> code -> identity alias -> contribution depth -> 
 
 profile-first 是召回补充，不是 strong 证明：公开个人资料命中方向词只能证明“可能相关”；没有 paper/code/project/contribution depth 前最高 soft，bio-only 或 repo-thin 是 lead。
 
+## 数据源精度优先级（重要——先读）
+
+OpenAlex 的 author 端点**中文人名消歧很差**：会把多个同名真人合并成一个跨学科噪声实体（实测：连 Diffusion Policy 一作 Cheng Chi、InstructGPT 一作 Long Ouyang 都被合并进地质/医学/半导体 profile）。所以 OpenAlex 程序化 helper 是**广度召回**，精度天花板低，它的结果**必须**靠下面判断准则 + 交叉核验消歧，别直接采信 author profile。
+
+按精度优先选源（都免费、多数无需 key）：
+
+| 目标人群 | 首选干净源 | 为什么 |
+| --- | --- | --- |
+| **大模型工程师 / 研究工程师** | HuggingFace Hub（模型→作者/组织，Qwen/DeepSeek/Yi 等中国团队核心工程师）、GitHub `topic:` 搜索（vllm/llm-inference/trl 维护者）、论文→Papers with Code 官方仓→GitHub 贡献者 | 身份直接可用、零消歧；数据比 OpenAlex 干净得多 |
+| **顶会研究员** | OpenReview（NeurIPS/ICLR/ICML 作者，身份与论文绑定、无消歧污染） | 顶会 AI 研究员最干净的源之一 |
+| **中国大陆学者补充** | AMiner（清华唐杰组，中文学者消歧专项，覆盖国内机构优于 S2） | 国内院所覆盖好 |
+| 广度召回 / 引用图扩展 | OpenAlex helper（下节） | 快、覆盖广，但噪声高，需消歧过滤 |
+
+paper→code→人 的干净链路（研究工程师最稳）：论文 → Papers with Code API（免费无 key，`official=true` 官方仓）→ GitHub 贡献者 → GitHub 真实身份。这条拿到的是带论文背书的干净 GitHub 身份，优先于 OpenAlex author。
+
 ## 程序化召回 helper（OpenAlex）
 
 需要快速起一个候选池时，可用 `scripts/small-batch-academic.mjs`（OpenAlex 开放 API，无需 key）做程序化召回，输出对齐 proposal JSON（`people` / `leadPeople` / `sourceLeads` / `recallPaths` / `legsCovered`）。它只产初步候选池，不替代上面的身份/贡献证据核验：候选最高 `soft`，资深 PI 进顾问/标杆池。
