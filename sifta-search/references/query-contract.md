@@ -72,7 +72,7 @@ GitHub 传参分层：
 GitHub helper 的数量语义：
 
 - `--target-count` 是最终展示 / 推荐人数，不是每次 GitHub API 返回人数。
-- `--pool-size`、`--user-search-per-query`、`--max-user-profiles` 控制 raw pool 和 hydrate 预算。
+- `--pool-size`、`--user-search-per-query`、`--max-user-profiles` 控制初步候选池和候选详情拉取预算。
 - 质量评估和 pilot 不能用 `target-count=1` 代表找人能力；应先形成足够大的 profile / repo 池，再按证据和地域门槛筛。
 - people-first 看召回宽度，repo-first 看实现证据；两条线都要保留 trace 和覆盖风险。
 

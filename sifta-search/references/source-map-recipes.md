@@ -19,7 +19,7 @@
 - GitHub 优先、LinkedIn 优先、学术优先是主证据渠道，不是唯一渠道。
 - 找人来源用来发现入口；候选人必须再经过个人资料验证。
 - 找人来源不是候选人池。paper、repo、company、lab、project、dataset 等都先是 `待核验线索`。
-- 召回与判级分离：先扩大 raw pool，再按证据分 strong / soft / lead / reject；不要因为 strong 稀缺就返回空，也不要为了非空把 lead 包装成候选。
+- 召回与判级分离：先扩大初步候选池，再按证据分 strong / soft / lead / reject；不要因为 strong 稀缺就返回空，也不要为了非空把 lead 包装成候选。
 - 本地 Agent 原生搜索、GitHub MCP、`gh`、浏览器和学术搜索可优先使用。
 - CLI 只在需要 Sifta-owned 连接器、结构化候选人返回、调用轨迹、反馈闭环、回归验证或稳定 JSON 时使用。GitHub 不因为 token/auth 成为 CLI 必经路径；优先使用宿主 `gh`、GitHub MCP 或用户自己的 `GH_TOKEN` / `GITHUB_TOKEN`。
 

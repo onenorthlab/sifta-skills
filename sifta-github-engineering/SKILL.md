@@ -26,7 +26,7 @@ description: >
 
 - 强线索必须来自核心工程 repo 的持续贡献、repo owner 工程作品、merged PR 深度、个人实现型 repo，或公开职业资料交叉验证；awesome-list、教程、资源集合、单次 PR 只能进来源地图。
 - 默认地域对找人入口是召回偏置，对推荐人选是升级门槛；缺公开中国/中文生态相关职业信号的人只能作为其他线索、产业标杆或待核验对象，除非用户明确放宽全球人才池。
-- 证据强度是主轴，地域/角色偏好是次轴；不得用地域信号把弱证据包装成 strong。
+- 证据强度是首要排序依据，地域/角色偏好是次要依据；不得用地域信号把弱证据包装成 strong。
 - 创始人、CEO、CTO、高知名度维护者默认放入产业标杆/推荐人/创始人级候选，除非用户明确要这类全职候选。
 - repo、PR、commit 是支撑证据，不是推荐理由本身；输出格式和过程隐藏按共享执行门。
 - 召回 helper 会给每个候选附 `reachability`（公开可达通道是否存在 + `hireable` 公开自标记）。它只是同档内微弱排序提示和触达便利信号，**不是可招聘性或求职意愿结论**：`hireable=true` 只能转成"触达前待确认意愿"，不得写成"此人想跳槽/可招"；不输出私人联系方式，不推断 relocation/薪资/可入职时间。
@@ -46,7 +46,7 @@ description: >
 | --- | --- |
 | [共享执行门](../sifta-search/references/shared-gates.md) | 执行/计划/硬停止、默认地域、helper 停止、过程隐藏 |
 | [小批量辅助脚本](scripts/small-batch-github.mjs) | 用户只要 1-3 个 GitHub 强线索 |
-| [召回/重排调参](../sifta-search/references/recall-tuning.md) | 调概念词对、location 偏置、证据/地域权重 |
+| [召回/排序调参](../sifta-search/references/recall-tuning.md) | 调概念词对、location 偏置、证据/地域权重 |
 | [执行预算](../sifta-search/references/execution-budget.md) | 控制实时命令、延迟和 helper 后停止 |
 | [CLI 合同](../sifta-search/references/cli-reference.md) | auth/status/schema 或调用轨迹 |
 | [查询规则](../sifta-search/references/query-contract.md) | 写 GitHub query、sources 或处理 0 result |
