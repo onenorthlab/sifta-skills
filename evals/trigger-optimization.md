@@ -8,8 +8,9 @@
 - **结果**：`best_description == original_description`——**5 轮迭代没有任何候选跑赢原始描述**。best_train 6/12、best_test 4/8。
 - **为什么分低 = 评测信号无效，不是描述差**：逐条看，**所有"该触发"的正例触发率都是 0/3**（"帮我找搞 llm 推理优化的大佬""组 AI Agent 团队物色人""盘 AI coding 创始人"这种教科书级找人请求都没触发）。6/12 分**全来自负例正确地不触发**。即在这个 `claude -p` 测试环境里 **skill 对任何 query 都没被 consult**（正例也不触发）——评测只能测出"负例没触发"，无法区分描述质量。
 - **判断**：这是**无效量化信号**，不是描述质量结论。可能原因：①`claude -p` 对"找人"这类看似简单的请求倾向直接处理、不 consult skill（skill-creator 明确警告的 undertriggering 效应）；②测试环境的 skill 安装/检出方式使触发检测失灵。负例全过是"什么都不触发"的平凡结果。
-- **动作**：**不基于此轮量化改 description**（无有效信号，不能假装有提升）。保留原始 description。
-- **副产物（可选、与量化脱钩）**：优化器最后一轮生成的候选 description 明显更"主动"（更符合 skill-creator 对抗 undertriggering 的"pushy"指导），见下。是否采用**由人工判断**，不声称有量化背书。
+- **动作**：量化无有效信号，不据其声称提升；但经 Owner 人工判断，**采用了优化器生成的更 pushy 候选 description**（见下），因为它写得更好、直接对抗真实失败模式（Agent 拿到"帮我找几个人"却自己网搜、不走 skill），风险低、负向边界一条没少。**保持 0.0.11、落 main、不发新 release**（Owner 定）。
+- **诚实声明**：此次 description 更换是**人工判断 + skill-creator 的 pushy 指导**，**非量化背书**（这轮量化 undertrigger 无效）。真实触发增益待更可靠的评测（换复杂正例/兄弟 skill 同装）验证。
+- **副产物（已采用）**：优化器最后一轮生成的候选 description 更"主动"（口语触发词开头、强调"先接住别绕过"），见下。
 
 ### 候选 description（优化器 final，人工可选采用）
 
