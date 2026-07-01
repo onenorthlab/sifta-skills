@@ -49,8 +49,12 @@ node scripts/small-batch-academic.mjs \
 
 **补充：无种子时的泛召回腿**（精度较低，仅在无法点名标杆时用）：全球引用腿（works 按全球引用排序 → 一作/通讯）+ 中国机构地域锚定腿（works 按 `authorships.institutions.country_code:cn|hk|tw` 过滤，落实中国优先、补全球排序漏掉的中国机构研究者）。这些是召回腿，不等同上文 `paper-first` / `profile-first` 证据路径族。
 
-- 内置质量门：**方向门**（完全不命中方向词的高产作者不给 `strong`，砍靠通用词误召的跑偏者）；survey/综述证据降权封顶 `adjacent`；OpenAlex 同名合并的噪声实体（概念横跨无关重学科等）标 `disambiguation-risk` 并踢出推荐人选、降为待核验线索。
-- helper 召回到的人仍需走 `paper -> code -> identity alias -> contribution depth` 核验；输出的 `risk` / `nextAction` 已写明待确认项，不推断可招聘性。
+**分工（关键）**：helper 只做确定性的召回 + 客观信号粗排，**判断你来做**。它不判"是不是综述、是不是同名合并、方向对不对、是不是中国生态"——这些语义判断用正则/枚举会枚举不尽、跨语言失效，故一律交给你。输出里每个候选带：
+- `roughBand`（high/mid/low）——只是按引用/发文/近年活跃的机械粗排，**不是**判级，别当 tier 用；
+- `needsAgentJudgment`——明确列出你要判的项（综述弱证据/方向契合/疑似同名合并/中国生态/职业阶段）；
+- 原始证据：论文标题（`evidence`）、`conceptTags`、`institutionNames`、`geoStrong`（country_code 事实）、`activeYears`。
+
+拿到 helper 输出后，**必须**按 [学术来源执行手册 §5 判断准则](../sifta-search/references/academic-source-playbook.md) 逐个判级，再走 `paper -> code -> identity alias -> contribution depth` 核验身份与职业阶段。helper 已封顶 soft、写好隐私硬门（不推断可招聘性/不查私人联系方式），但研究证据强弱与方向契合要你自己判，别直接把 `roughBand:high` 当成强候选。
 
 ## 质量门
 

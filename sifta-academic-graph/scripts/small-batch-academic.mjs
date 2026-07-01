@@ -2,38 +2,39 @@
 
 /**
  * small-batch-academic.mjs
- * 学术图谱最小程序化召回 helper（paper-first，OpenAlex API）。
+ * 学术图谱召回 helper（OpenAlex API）。**只做召回 + 客观信号粗排，不做语义判级。**
  *
- * 设计决策：跨 skill 相对 import recall-lib.mjs 在两种布局（workspace / ~/.agents/skills）下
- * 路径都不稳定（平级 skill 目录在 sync-local 后没有相对路径保证）。为保证脚本自包含可独立运行，
- * 内联最小评分逻辑（cleanSearchQuery / coreQueryTerms / scoreAcademicTwoAxis），
- * 注意：scoreCandidateTwoAxis 原函数对 GitHub 贡献数/PR 数做主轴，在学术域无意义；
- * 这里重写 scoreAcademicTwoAxis，用 cited_by_count / works_count / 近年发文 / geo 做同形评分。
- * 两轴结构与 recall-lib 保持一致（evidenceTier / evidenceRank / priority / signals / score）。
+ * 职责边界（重要）：
+ *   脚本负责——OpenAlex 召回（seed/图邻居/paper-first/profile-first 腿）、去重、预算控制、
+ *   country_code 地域事实、按客观数值（引用/发文/近年活跃/一作通讯）粗排、隐私硬门（最高 soft）。
+ *   脚本不负责——综述是否弱证据、是否疑似同名合并实体、方向是否契合、机构是否属中国生态。
+ *   这些是语义判断，靠正则/枚举会枚举不尽、跨语言失效，交给宿主 Agent 依
+ *   sifta-search/references/academic-source-playbook.md §5 判断。输出里每个候选带
+ *   needsAgentJudgment 明确标记待判项；roughBand 只是机械粗排，不是判级。
  *
  * 数据源：OpenAlex API（https://api.openalex.org，完全开放，无需 API key）。
  * 礼貌池：所有请求加 ?mailto=（env OPENALEX_MAILTO 覆盖）。
  *
  * 用法：
- *   node small-batch-academic.mjs --query "multimodal large language model alignment" --target-count 3
- *   node small-batch-academic.mjs --query "..." --target-count 5 --max-elapsed-ms 60000
+ *   node small-batch-academic.mjs --query "..." --seed W4385403811 --target-count 4
+ *   node small-batch-academic.mjs --query "multimodal alignment" --target-count 3 --max-elapsed-ms 60000
  *   node small-batch-academic.mjs --query "..." --markdown  # 调试 fallback
  *
  * 输出形状对齐 small-batch-github.mjs proposal JSON：
  *   people / leadPeople / sourceLeads / coverage / recallPaths / providerFailed / executedSources
- *   每个 person：source/displayName/login/profileUrl/evidence/risk/nextAction/bucket/priority/...
+ *   每个 person：source/displayName/profileUrl/evidence/conceptTags/institutionNames/roughBand/
+ *   needsAgentJudgment/risk/nextAction/bucket（学术最高 soft）
  */
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 评分核：import 自同目录 academic-recall-lib.mjs
+// 召回核：import 自同目录 academic-recall-lib.mjs
 // sync 用 rsync -a 整目录搬运，同目录相对路径在 workspace / ~/.agents/skills 两种布局下都稳定。
-// 机制（两轴重排 + survey 降权 + 消歧门）在 lib 里，由 academic-recall-lib.test.mjs 确定性单测守护。
+// lib 只含确定性逻辑（搜索串构造 + 客观信号粗排），由 academic-recall-lib.test.mjs 单测守护。
 // ─────────────────────────────────────────────────────────────────────────────
 import {
   cleanSearchQuery,
   coreQueryTerms,
-  isSurveyWork,
-  scoreAcademicTwoAxis,
+  scoreAcademicRoughSignals,
 } from "./academic-recall-lib.mjs";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -149,15 +150,11 @@ async function openAlexJson(path, params = {}) {
 // 地域判断（基于机构公开信息，不做姓名/族裔推断）
 // ─────────────────────────────────────────────────────────────────────────────
 
-// 中国/香港/台湾 country_code
+// 中国/香港/台湾 country_code —— 唯一的客观地域事实。
+// 机构名/公司是否属"中国生态"（清华、智谱、深势、某 AI 创业公司…）是语义判断，
+// 不在脚本里用机构清单枚举（枚举不尽、会漏新公司）；脚本只给 country_code 事实
+// + 原始机构名，让宿主 Agent 依 rubric §5.4 自己判断生态归属。
 const CN_COUNTRY_CODES = new Set(["CN", "HK", "TW"]);
-
-// 机构名称中明确表达"中国生态"的词（不靠姓名推断）
-const CN_INSTITUTION_PATTERNS = [
-  /tsinghua|peking university|pku|fudan|sjtu|zhejiang|ustc|hkust|cuhk|nus|nanyang|ntu/i,
-  /chinese academy|cas\b|baidu|alibaba|tencent|bytedance|huawei|deepseek|zhipu|moonshot|minimax|sensetime|megvii|meituan/i,
-  /renmin|tongji|beihang|nankai|wuhan|xiamen|harbin institute|sun yat-sen/i,
-];
 
 function detectGeo(authorData) {
   // last_known_institutions 是最近机构（更准）
@@ -167,30 +164,24 @@ function detectGeo(authorData) {
   ];
 
   let geoStrong = false;
-  let geoMatched = false;
-  const geoEvidence = [];
+  // 原始机构名+国别，如实透传给 Agent 判断生态归属（不做任何名称匹配判断）。
+  const institutionNames = [];
 
   for (const inst of institutions) {
     if (!inst) continue;
     const cc = String(inst.country_code ?? "").toUpperCase();
     const name = String(inst.display_name ?? "");
-
-    if (CN_COUNTRY_CODES.has(cc)) {
-      geoStrong = true;
-      geoMatched = true;
-      geoEvidence.push(`机构：${name}（country_code=${cc}）`);
-      break;
-    }
-    if (CN_INSTITUTION_PATTERNS.some((p) => p.test(name))) {
-      geoMatched = true;
-      geoEvidence.push(`机构名匹配中国生态：${name}`);
-    }
+    if (name) institutionNames.push(cc ? `${name}（${cc}）` : name);
+    if (CN_COUNTRY_CODES.has(cc)) geoStrong = true;
   }
 
   return {
     geoStrong,
-    geoMatched,
-    geoEvidence: geoEvidence.slice(0, 2),
+    institutionNames: [...new Set(institutionNames)].slice(0, 4),
+    // geoEvidence：country_code 命中的客观地域事实（供输出展示）。
+    geoEvidence: geoStrong
+      ? [...new Set(institutionNames)].filter((n) => /（(CN|HK|TW)）$/u.test(n)).slice(0, 2)
+      : [],
   };
 }
 
@@ -204,44 +195,36 @@ const sourceLeads = [];
 const hydratedAuthorIds = new Set();
 
 const query = args.query || "multimodal large language model alignment";
-// coreTerms 是方向门/评分的方向词来源。种子腿解析后会把种子论文标题核心词并入，
-// 让"从具名标杆锚定"的候选天然拿到方向命中（种子作者方向由标杆论文保证）。
-let coreTerms = coreQueryTerms(query);
 
 // 计算"近期活跃"年份门槛
 const recentYearThreshold = new Date().getFullYear() - args.recentYears;
 
 /**
- * 计算派生评分字段（nonSurveyCitedByCount + 两轴评分 + 消歧风险），写回 candidate。
- * 单一入口：upsertCandidate 和已 hydrate 复用路径都调它，保证评分口径一致。
+ * 写回客观信号粗排（score / roughBand / signals）。非权威判级——
+ * 综述弱证据、消歧、方向契合、生态归属由宿主 Agent 依 rubric §5 判断。
+ * 单一入口：upsertCandidate 和已 hydrate 复用路径都调它，保证粗排口径一致。
  */
 function applyAcademicScore(c) {
-  // survey-only（召回到的证据全是综述）→ 非综述引用归零，触发核里的 survey-only 封顶；
-  // 否则保守取总引用（无法精确拆分混合发表者的 survey/非 survey 引用占比）。
-  c.nonSurveyCitedByCount =
-    c.nonSurveyWorksCount === 0 && c.surveyWorksCount >= 1 ? 0 : c.citedByCount;
-  const scored = scoreAcademicTwoAxis(c, coreTerms);
-  c.evidenceTier = scored.evidenceTier;
-  c.evidenceRank = scored.evidenceRank;
-  c.priority = scored.priority;
-  c.signals = scored.signals;
+  const scored = scoreAcademicRoughSignals(c);
   c.score = scored.score;
-  c.disambiguationRisk = scored.disambiguationRisk;
+  c.roughBand = scored.roughBand;
+  c.roughStrength = scored.roughStrength;
+  c.signals = scored.signals;
 }
 
 /**
  * 从 OpenAlex author 详情构建/合并候选人记录。
  * 合并策略：同一 OpenAlex author id 只 hydrate 一次，多论文累加 firstOrCorrespondingAuthorCount。
- * isSurvey: true=该证据论文是综述 / false=非综述 / null=非论文来源(profile-first，不计 survey)。
+ * 如实透传原始证据（论文标题/concepts/机构/活跃年份），综述/消歧/方向判断留给 Agent。
  */
-function upsertCandidate(authorId, authorDetail, workEvidence, isFirstOrCorr, isSurvey = null) {
+function upsertCandidate(authorId, authorDetail, workEvidence, isFirstOrCorr) {
   const existing = candidatesByOpenAlexId.get(authorId);
 
   const countsRaw = authorDetail.counts_by_year ?? [];
   const recentWorksCount = countsRaw
     .filter((y) => (y.year ?? 0) >= recentYearThreshold)
     .reduce((sum, y) => sum + (y.works_count ?? 0), 0);
-  // 活跃年份跨度（供消歧门"年均发文异常高 → 疑似多人合并"判断）
+  // 活跃年份跨度（原始数据，供 Agent 判断"年均发文异常高 → 疑似同名合并"）
   const activeYearList = countsRaw
     .filter((y) => (y.works_count ?? 0) > 0)
     .map((y) => y.year ?? 0)
@@ -250,10 +233,9 @@ function upsertCandidate(authorId, authorDetail, workEvidence, isFirstOrCorr, is
     ? Math.max(...activeYearList) - Math.min(...activeYearList) + 1
     : 0;
 
-  // 概念/主题标签（用于方向匹配评分 + 消歧门跨学科判断）。
-  // x_concepts 已被 OpenAlex 弃用（实测返回空），改以 topics 为主。
-  // 消歧门靠"横跨无关重学科（Medicine/Materials science…）"判断，需要 topic 的
-  // 上位 field/domain 名（宽领域），而非 topic display_name（很具体）；故两者都收。
+  // 概念/主题标签：如实透传给 Agent 判断方向契合 + 是否疑似跨无关学科的合并实体。
+  // x_concepts 已被 OpenAlex 弃用（实测返回空），改以 topics 为主；同时收 topic 的
+  // 上位 field/domain 名（宽领域），让 Agent 能看到学科横跨情况。
   const topics = authorDetail.topics ?? [];
   const conceptTags = [
     ...(authorDetail.x_concepts ?? []).slice(0, 8).map((c) => c.display_name),
@@ -272,39 +254,32 @@ function upsertCandidate(authorId, authorDetail, workEvidence, isFirstOrCorr, is
     homepageUrl: authorDetail.homepage_url ?? null,
     worksCount: authorDetail.works_count ?? 0,
     citedByCount: authorDetail.cited_by_count ?? 0,
-    nonSurveyCitedByCount: authorDetail.cited_by_count ?? 0,
     recentWorksCount,
     activeYears,
     lastInstitution: lastInst?.display_name ?? "",
     lastInstitutionCountry: lastInst?.country_code ?? "",
     geoStrong: geo.geoStrong,
-    geoMatched: geo.geoMatched,
+    institutionNames: geo.institutionNames,
     geoEvidence: geo.geoEvidence,
     conceptTags,
     evidence: [],
-    surveyWorksCount: 0,
-    nonSurveyWorksCount: 0,
     firstOrCorrespondingAuthorCount: 0,
-    disambiguationRisk: [],
     sourcedFromWorks: [],
   };
 
-  // 累加（survey 计数与 evidence 去重绑定：同一篇论文只计一次）
   base.firstOrCorrespondingAuthorCount += isFirstOrCorr ? 1 : 0;
   if (workEvidence && !base.evidence.includes(workEvidence)) {
     base.evidence.push(workEvidence);
-    if (isSurvey === true) base.surveyWorksCount += 1;
-    else if (isSurvey === false) base.nonSurveyWorksCount += 1;
   }
   // 以最新 hydrate 的 geo 为准（同一作者多篇论文机构可能不同）
   if (!base.geoStrong && geo.geoStrong) {
     base.geoStrong = true;
-    base.geoMatched = true;
     base.geoEvidence = geo.geoEvidence;
   }
-  if (!base.geoMatched && geo.geoMatched) {
-    base.geoMatched = true;
-    base.geoEvidence = geo.geoEvidence;
+  if (geo.institutionNames.length) {
+    base.institutionNames = [
+      ...new Set([...(base.institutionNames ?? []), ...geo.institutionNames]),
+    ].slice(0, 6);
   }
 
   applyAcademicScore(base);
@@ -400,7 +375,7 @@ async function runPaperFirstLeg(cap) {
 }
 
 // 共享：从一篇 work 抽取一作/通讯作者 → hydrate 详情 → upsert/合并候选，并把论文进来源地图。
-// paper-first 和 profile-first 两腿都用它，保证作者抽取/去重/survey 计数口径一致。
+// paper-first 和 profile-first 两腿都用它，保证作者抽取/去重口径一致。
 // cap：本腿的 hydrate 预算（paper-first 传 paperFirstCap，profile-first 传 maxAuthors）。
 async function processWorkAuthors(work, cap, queryLabel) {
   const workTitle = work.title ?? "(无标题)";
@@ -408,7 +383,6 @@ async function processWorkAuthors(work, cap, queryLabel) {
     ? `https://doi.org/${work.doi.replace(/^https?:\/\/doi\.org\//i, "")}`
     : work.id ?? "";
   const workCited = work.cited_by_count ?? 0;
-  const isSurvey = isSurveyWork(workTitle);
 
   const authorships = work.authorships ?? [];
   // 优先一作/通讯（position: first/last），限制每篇取 N 个
@@ -448,14 +422,12 @@ async function processWorkAuthors(work, cap, queryLabel) {
         });
         continue;
       }
-      upsertCandidate(authorId, authorDetail, workEvidence, isFirstOrCorr, isSurvey);
+      upsertCandidate(authorId, authorDetail, workEvidence, isFirstOrCorr);
     } else {
       const existing = candidatesByOpenAlexId.get(authorId);
       if (existing) {
         if (!existing.evidence.includes(workEvidence)) {
           existing.evidence.push(workEvidence);
-          if (isSurvey) existing.surveyWorksCount += 1;
-          else existing.nonSurveyWorksCount += 1;
         }
         if (isFirstOrCorr) existing.firstOrCorrespondingAuthorCount += 1;
         applyAcademicScore(existing);
@@ -598,8 +570,8 @@ async function runSeedGraphLeg(cap) {
 
     const seedTitle = seedWork.title ?? "(无标题种子)";
     recallPaths.push(`OpenAlex seed: ${seedTitle.slice(0, 60)}`);
-    // 把种子标题核心词并入方向词：种子作者/图邻居方向由标杆论文保证。
-    coreTerms = [...new Set([...coreTerms, ...coreQueryTerms(seedTitle)])];
+    // 种子作者/图邻居的方向由标杆论文保证（provenance），Agent 据此可直接信方向；
+    // 脚本不再做方向词命中判断（那是 rubric §5.2 的语义判断）。
 
     // 1) 种子论文自身作者（一作/通讯优先）
     await processWorkAuthors(seedWork, cap, `种子标杆：${seedTitle.slice(0, 50)}`);
@@ -658,17 +630,13 @@ const allCandidates = [...candidatesByOpenAlexId.values()]
 const seniorPIList = allCandidates.filter(isLikelySeniorPI);
 const nonSeniorList = allCandidates.filter((c) => !isLikelySeniorPI(c));
 
-// people（推荐人选，最多 targetCount）：学术来源最高 soft，绝不自报 strong。
-// weak evidenceTier 不进推荐：弱证据档最高只能是 lead（待核验线索），不冒充候选。
-const people = nonSeniorList
-  .filter((c) => c.evidenceTier !== "weak")
-  // 消歧风险实体（疑似 OpenAlex 同名合并）不进推荐人选，自动降级到 leadPeople 待核验，
-  // 避免"跨学科噪声实体"凭高引浮到推荐第一名冒充候选。
-  .filter((c) => (c.disambiguationRisk?.length ?? 0) === 0)
-  .slice(0, args.targetCount);
+// people / leadPeople 只按客观信号强度粗排切分，**不是**判级——
+// 谁是真候选、谁是弱证据/综述/消歧风险/方向不符，由宿主 Agent 依 rubric §5 判断。
+// 学术来源一律最高 soft（隐私硬门），绝不自报 strong；这里给的是"待判级召回候选池"。
+const people = nonSeniorList.slice(0, args.targetCount);
 const peopleIds = new Set(people.map((c) => c.openAlexId));
 
-// leadPeople（待核验线索，剩余非资深候选）
+// leadPeople（其余非资深召回候选，同样待 Agent 判级）
 const leadPeople = nonSeniorList
   .filter((c) => !peopleIds.has(c.openAlexId))
   .slice(0, args.targetCount * 4);
@@ -713,36 +681,39 @@ function toPerson(candidate, bucket) {
       candidate.openAlexId,
     institution: candidate.lastInstitution ?? "",
     institutionCountry: candidate.lastInstitutionCountry ?? "",
+    institutionNames: candidate.institutionNames ?? [],
     worksCount: candidate.worksCount ?? 0,
     citedByCount: candidate.citedByCount ?? 0,
     recentWorksCount: candidate.recentWorksCount ?? 0,
+    activeYears: candidate.activeYears ?? 0,
+    geoStrong: !!candidate.geoStrong,
     geoEvidence: candidate.geoEvidence ?? [],
-    priority: candidate.priority ?? (safeBucket === "soft" ? "B" : "C"),
     bucket: safeBucket,
     talentPool: safeBucket,
-    evidenceTier: candidate.evidenceTier ?? null,
+    // roughBand 只是客观信号强度粗排，**不是**判级；判级看下面 needsAgentJudgment。
+    roughBand: candidate.roughBand ?? "low",
     // 学术来源只能达到 soft（待个人资料核验），不能自报 strong
-    evidenceStatus: "academic-paper-lead-pending-identity-verify",
+    evidenceStatus: "academic-recall-candidate-pending-agent-judgment",
+    // 明确标记：这是待宿主 Agent 依 rubric §5 判级的召回候选，不是成品判级。
+    needsAgentJudgment: {
+      rubric: "sifta-search/references/academic-source-playbook.md §5",
+      judge: ["综述是否弱证据", "方向是否契合", "是否疑似同名合并实体", "是否中国生态", "当前职业阶段/可招聘性"],
+    },
     score: candidate.score ?? 0,
     signals: candidate.signals ?? [],
     firstOrCorrespondingAuthorCount: candidate.firstOrCorrespondingAuthorCount ?? 0,
     evidence: (candidate.evidence ?? []).slice(0, 5),
-    conceptTags: (candidate.conceptTags ?? []).slice(0, 5),
-    // 风险：必须清晰写出
+    conceptTags: (candidate.conceptTags ?? []).slice(0, 8),
+    // 风险：只写客观/隐私硬门；语义风险（综述/消歧/方向）由 Agent 判后补。
     risk: [
       ...identityRisk,
-      ...(candidate.disambiguationRisk?.length
-        ? [`消歧风险：${candidate.disambiguationRisk.join("；")}（已降级，需先确认是否同名合并）`]
-        : []),
       candidate.geoStrong
-        ? `机构地域：${(candidate.geoEvidence ?? []).join("；")}`
-        : "机构地域未确认 CN/HK/TW；需核验当前所在地和求职市场",
+        ? `机构地域(country_code)：${(candidate.geoEvidence ?? []).join("；") || "CN/HK/TW"}`
+        : "机构地域未命中 CN/HK/TW country_code；生态归属与所在地需 Agent 结合机构名判断",
       "不推断求职意愿、薪资、relocation；不查私人联系方式",
     ].join("；"),
     nextAction:
-      safeBucket === "soft"
-        ? "1) 找到个人主页/GitHub/LinkedIn 核验身份；2) 确认当前职业阶段（学生/博后/工业界）；3) 再决定是否草拟低压触达"
-        : "先交叉核验 ORCID/主页/论文署名，确认不是同名误消歧；达到候选门槛后再升级",
+      "先依 rubric §5 判级（综述/方向/消歧/生态/职业阶段），再找个人主页/GitHub/LinkedIn 核验身份与当前阶段；学术候选最高 soft",
   };
 }
 
@@ -800,7 +771,7 @@ process.stdout.write(`**rawPoolSize:** ${proposal.rawPoolSize}  **coverage:** ${
 process.stdout.write(`## 推荐人选（${people.length}）\n\n`);
 for (const p of people) {
   process.stdout.write(
-    `- **${p.displayName}** | ${p.institution} | cited:${p.citedByCount} | ${p.bucket} | ${p.priority}\n`,
+    `- **${p.displayName}** | ${p.institution} | cited:${p.citedByCount} | ${p.bucket} | rough:${p.roughBand}\n`,
   );
   for (const e of p.evidence.slice(0, 2)) {
     process.stdout.write(`  - ${e}\n`);
